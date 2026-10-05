@@ -105,6 +105,35 @@ export function ansiToHtml(text: string): string {
   return out
 }
 
+/**
+ * Where each picture starts: the last line containing this text (ANSI
+ * stripped). Whole lines above it are left out; nothing is changed or added.
+ */
+export const CROPS: Record<string, string> = {
+  hero: 'now clamps the percent',
+  'spinner-cinema': 'tests: cat',
+  'prod-shield': 'Run exactly this command',
+  'secret-guard': "It's a throwaway demo key",
+  'testlight-consent': 'I added a JSDoc comment',
+  'exo-status': '❯ /exo',
+  recap: '❯ /recap',
+  achievements: '❯ /achievements',
+  'cleanup-brake': 'Delete the dist folder',
+}
+
+const plain = (l: string) => l.replace(/\x1b\[[0-9;:]*[A-Za-z]/g, '')
+
+/** The capture from the last line that contains `from` (all of it when absent or not found). */
+export function cropFrom(text: string, from: string | undefined): string {
+  if (!from) return text
+  const lines = text.split('\n')
+  let at = -1
+  lines.forEach((l, i) => {
+    if (plain(l).includes(from)) at = i
+  })
+  return at === -1 ? text : lines.slice(at).join('\n')
+}
+
 /** Drops trailing blank lines so the frame hugs the content. */
 export function trimCapture(text: string): string {
   const lines = text.replace(/\r/g, '').split('\n')
@@ -132,7 +161,7 @@ async function main() {
   const pg = await browser.newPage({ deviceScaleFactor: 2, viewport: { width: 1400, height: 900 } })
   for (const f of captures) {
     const name = basename(f, '.ans')
-    const html = page('claude — shop-api', ansiToHtml(trimCapture(readFileSync(join(SRC, f), 'utf8'))))
+    const html = page('claude — shop-api', ansiToHtml(trimCapture(cropFrom(readFileSync(join(SRC, f), 'utf8'), CROPS[name]))))
     const file = join(TMP, `${name}.html`)
     writeFileSync(file, html)
     await pg.goto(`file://${file}`)

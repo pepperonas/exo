@@ -168,3 +168,6 @@ export function snapshotId(now: number, rand: string): string {
   const p = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-${rand}`
 }
+
+/** `1 path`, `3 paths`. */
+export const paths = (n: number) => `${n} path${n === 1 ? '' : 's'}`

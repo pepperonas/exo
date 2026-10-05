@@ -10,7 +10,7 @@ import { joinPath } from '../../core/cwd'
 import { exoDir } from '../../core/killswitch'
 import { summarize } from '../../core/shell/words'
 import type { StoreBox } from '../../core/store/store'
-import { expired, parseCleanDryRun, plans, simpleGlob, snapshotId } from './brake-logic'
+import { expired, parseCleanDryRun, paths, plans, simpleGlob, snapshotId } from './brake-logic'
 import type { BrakePlan, SnapshotMeta } from './brake-logic'
 
 export const RUN_UNSAVED = 'Run without snapshot'
@@ -118,7 +118,7 @@ export function brakeStep(): Step {
       await ctx.untimed(ctx.host.writeFile(`${dir}/meta.json`, JSON.stringify(meta, null, 2) + '\n'))
       await writeSnapshots(ctx.store, [meta, ...(await readSnapshots(ctx.store))])
       ctx.journal.push({ type: 'snapshot', id, kind: meta.kind }, await ctx.host.now())
-      const what = [meta.stashRef ? 'tracked changes' : '', meta.tar ? `${meta.files.length} path(s), ${mb(meta.bytes)}` : ''].filter(Boolean).join(' + ')
+      const what = [meta.stashRef ? 'tracked changes' : '', meta.tar ? `${paths(meta.files.length)}, ${mb(meta.bytes)}` : ''].filter(Boolean).join(' + ')
       ctx.notes.push(`exo/cleanup brake: snapshot ${id} (${what}) – restore with /undo-last.`)
     },
   }

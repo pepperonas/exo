@@ -60,7 +60,7 @@ test('numeric defaults in the README match the manifest', () => {
 })
 
 test('README and docs use documentation addresses only', () => {
-  for (const f of ['README.md', 'CLAUDE.md', 'docs/PLAN.md']) {
+  for (const f of ['README.md', 'CLAUDE.md', 'docs/PLAN.md', 'docs/SCREENSHOTS.md']) {
     for (const ip of read(f).match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g) ?? []) assert.ok(/^(203\.0\.113|198\.51\.100|192\.0\.2)\./.test(ip), `${f}: ${ip}`)
   }
 })

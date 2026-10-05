@@ -15,8 +15,8 @@
 <h3>👉 <code>/plugin marketplace add pepperonas/exo</code> · <code>/plugin install exo@pepperonas-exo</code> — that's it.</h3>
 
 [![version](https://img.shields.io/badge/version-0.1.0-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
-[![node tests](https://img.shields.io/badge/node%20tests-519-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
-[![engine tests](https://img.shields.io/badge/engine%20tests-22-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
+[![node tests](https://img.shields.io/badge/node%20tests-524-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
+[![engine tests](https://img.shields.io/badge/engine%20tests-23-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
 [![mutations](https://img.shields.io/badge/mutations-165%2F165%20caught-FF6F00?style=for-the-badge&logo=testinglibrary&logoColor=white)](docs/MUTATIONS.md)
 [![lines of code](https://img.shields.io/badge/lines%20of%20code-6.9k-4B6BDF?style=for-the-badge&logo=typescript&logoColor=white)](core)
 
@@ -53,14 +53,47 @@
 
 ## 📸 Screenshots
 
-<!-- Screenshot: the exo status line under the prompt (⛨ exo · ● 48/48 · ● CI green · ⏱ 3:12 today) -->
-<!-- GIF: the prod shield dialog with dry run -->
-<!-- Screenshot: /exo status table -->
-<!-- Screenshot: /changes sidebar with diff -->
-<!-- Screenshot: /achievements card -->
-<!-- GIF: spinner cinema (excavator during npm install) -->
+<img src="docs/hero.png" alt="Claude Code after a change: under the prompt, exo's line shows ⛨ exo · ● 5/5 · ⏱ 0:02 today" width="100%">
 
-<sub>Screenshots are on their way. Until then, the card at the top shows exo's own texts — it is rendered by <code>npm run social</code>, not drawn by hand.</sub>
+<sub>Where it lives: one line under the prompt — exo is active, the test light is green with 5 of 5, today's active time. (The bars above it are <a href="https://github.com/pepperonas/usage-bars">usage-bars</a>, another mod.)</sub>
+
+### 🛡 Guards
+
+<img src="docs/prod-shield.png" alt="The prod shield stops sqlite3 shop.db 'DROP TABLE orders' and asks: Run or Cancel" width="100%">
+
+<sub><b>Prod shield</b> — a destructive SQL statement is put to you before it runs.</sub>
+
+<img src="docs/secret-guard.png" alt="The secret guard refuses git commit: an Anthropic API key in src/config.js and vendor-key.txt, shown masked" width="100%">
+
+<sub><b>Secret guard</b> — the commit is refused; the key appears only masked (<code>sk-ant-…JDAA</code>).</sub>
+
+<img src="docs/cleanup-brake.png" alt="After rm -rf dist, /undo-list shows the snapshot and /undo-last restores it" width="100%">
+
+<sub><b>Cleanup brake</b> — <code>rm -rf dist</code> ran, but a snapshot was taken first; <code>/undo-last</code> brings it back.</sub>
+
+### 🧭 Cockpit
+
+<img src="docs/testlight-consent.png" alt="Test light asks once per project whether it may run npm test --silent after every change" width="100%">
+
+<sub><b>Test light</b> — it runs commands from your project, so it asks first, once per project.</sub>
+
+<img src="docs/changes.png" alt="/changes opens a side pane with the changed file, its diff and a Revert button" width="100%">
+
+<sub><b>Changes sidebar</b> — every file changed in the session, its diff, and revert.</sub>
+
+<img src="docs/spinner-cinema.png" alt="The spinner shows a test-tube film and the running commands while tests run" width="100%">
+
+<sub><b>Spinner cinema</b> — a small film per activity, here while tests run.</sub>
+
+### 🔁 Review and extras
+
+<img src="docs/recap.png" alt="/recap card: duration, turns, cost, files, tests before and after, open points" width="100%">
+
+<img src="docs/exo-status.png" alt="/exo status table: every module with state, calls and timing, prod hosts, house rules, kill switch" width="100%">
+
+<img src="docs/achievements.png" alt="/achievements card with unlocked and pending badges" width="100%">
+
+<sub>Every picture is a real Claude Code 2.1.289 session with exo loaded, recorded in tmux and rendered by <code>npm run screens</code> — only whole lines above the relevant prompt are cropped; see <a href="docs/SCREENSHOTS.md">docs/SCREENSHOTS.md</a>.</sub>
 
 ## ✨ Features
 
@@ -311,7 +344,7 @@ Claude itself can't switch exo off: changes to `~/.claude/exo/`, to exo's entrie
 | [`modules/cockpit/`](modules/cockpit) | Test light, done check, changes sidebar, CI light |
 | [`modules/rueckblick/`](modules/rueckblick) | Review: recap, lessons, time tracking |
 | [`modules/extras/`](modules/extras) | Achievements, spinner cinema, rubber duck |
-| [`tools/`](tools) | Mutation probe, history scan, social card |
+| [`tools/`](tools) | Mutation probe, history scan, social card, screenshot renderer |
 | [`docs/PLAN.md`](docs/PLAN.md) | The design and its decisions |
 
 Detection logic is pure and engine-free (`*-logic.ts`); the modules around it do the I/O.
@@ -332,6 +365,7 @@ npm run check            # tsc --strict + claude plugin validate
 npm run mutate           # mutation probe
 npm run history-scan     # git history: prod addresses, private IPs, secrets
 npm run social           # re-render docs/social.png and the icon (needs `npx playwright install chromium`)
+npm run screens          # re-render the screenshots from docs/screens/*.ans
 ```
 
 ## ❓ FAQ

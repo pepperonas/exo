@@ -1,0 +1,34 @@
+[38;5;246m  ⎿  [39mAdded [1m5[0m lines
+     [38;5;77m[48;5;22m 1 +[38;5;242m/**[38;5;231m                                                                                             [39m[49m
+     [38;5;77m[48;5;22m 2 +[38;5;231m * [38;5;148mSums[38;5;231m price × qty across all cart items.                                                      [39m[49m
+     [38;5;77m[48;5;22m 3 +[38;5;231m * @param {{[38;5;148mprice[38;5;231m: number, [38;5;148mqty[38;5;231m: number}[]} items                                                [39m[49m
+     [38;5;77m[48;5;22m 4 +[38;5;231m * @returns {number}                                                                            [39m[49m
+     [38;5;77m[48;5;22m 5 +[38;5;231m */                                                                                             [39m[49m
+     [2m[38;5;231m 6 [0m[38;5;231m [38;5;197mexport[38;5;231m [38;5;81mfunction[38;5;231m [38;5;148mtotal[38;5;231m([38;5;208mitems[38;5;231m) {[39m
+     [2m[38;5;231m 7 [0m[38;5;231m   [38;5;197mreturn[38;5;231m items.[38;5;148mreduce[38;5;231m(([38;5;208msum, i[38;5;231m) => sum + i.price * i.qty, [38;5;141m0[38;5;231m)[39m
+     [2m[38;5;231m 8 [0m[38;5;231m }[39m
+
+[38;5;231m⏺[39m I added a JSDoc comment above [38;5;153mtotal[39m in [38;5;153msrc/cart.js[39m. It says the function adds up price × qty for every item in
+  the cart, and it gives the types of the input items and of the number it returns. I changed nothing else in
+  the file.
+
+[38;5;246m✻[39m [38;5;246mWorked for 7s · done 18:32[39m
+
+[38;5;246m[48;5;237m❯ [38;5;231mRun exactly this command and nothing else: sqlite3 shop.db 'DROP TABLE orders'[39m
+[49m
+[38;5;246m [39m Drop the orders table from shop.db
+[38;5;246m  ⎿  $ sqlite3 shop.db 'DROP TABLE orders'[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[38;5;16m[48;5;153m ☐ Plugin [39m[49m
+
+[2m│[0m [1m[38;5;231mProd shield: SQL: DROP TABLE orders[0m
+[2m│[0m [1m[38;5;231mCommand: sqlite3 shop.db 'DROP TABLE orders'[0m
+[2m│[0m [1m[38;5;231mRun?[0m
+
+[38;5;153m❯[39m [38;5;246m1.[39m [38;5;153mRun[39m
+  [38;5;246m2.[39m Cancel
+  [38;5;246m3. Type something.[39m
+[38;5;246m────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  4. Chat about this
+
+[38;5;246mEnter to select · ↑/↓ to navigate · Esc to cancel[39m

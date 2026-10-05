@@ -5,6 +5,7 @@
 import type { Host } from '../../core/adapter/host'
 import type { StoreBox } from '../../core/store/store'
 import { readSnapshots, writeSnapshots } from './brake'
+import { paths } from './brake-logic'
 import type { SnapshotMeta } from './brake-logic'
 
 const KINDS: Record<SnapshotMeta['kind'], string> = {
@@ -29,7 +30,7 @@ export async function undoList(store: StoreBox | undefined, now: number): Promis
   if (!list.length) return 'No snapshots. The cleanup brake takes one before rm -rf, git reset --hard, git checkout -- ., git restore and git clean.'
   const lines = ['Snapshots (newest first):']
   for (const s of list) {
-    const parts = [s.stashRef ? 'changes' : '', s.tar ? `${s.files.length} path(s)` : ''].filter(Boolean).join(' + ')
+    const parts = [s.stashRef ? 'changes' : '', s.tar ? `${paths(s.files.length)}` : ''].filter(Boolean).join(' + ')
     lines.push(`  ${s.id}  ${KINDS[s.kind]}  ${when(s.at, now)}  ${parts}${s.restored ? '  (restored)' : ''}`)
   }
   lines.push('Restore: /undo-last (newest) or /undo-last <id>.')
@@ -66,13 +67,13 @@ export async function undoLast(host: Host, store: StoreBox | undefined, id: stri
     for (const f of s.files) if (await host.exists(f).catch(() => false)) exists.push(f)
     let keepExisting = false
     if (exists.length) {
-      const a = await ask(host, `${exists.length} path(s) from the snapshot already exist (e.g. ${exists[0]}). Overwrite?`, ['Overwrite', 'Only missing', 'Cancel'])
+      const a = await ask(host, `${paths(exists.length)} from the snapshot already ${exists.length === 1 ? 'exists' : 'exist'} (e.g. ${exists[0]}). Overwrite?`, ['Overwrite', 'Only missing', 'Cancel'])
       if (a === null || a === 'Cancel') return done.length ? `${done.join('; ')}. Files left untouched.` : 'Cancelled, nothing changed.'
       keepExisting = a === 'Only missing'
     }
     const r = await host.run(['tar', keepExisting ? '-xzPkf' : '-xzPf', s.tar], { timeoutMs: 300_000 })
     if (r.exitCode !== 0 && !keepExisting) return `tar failed: ${r.stderr.trim().slice(0, 400)}`
-    done.push(`${s.files.length} path(s) restored${keepExisting ? ' (existing ones kept)' : ''}`)
+    done.push(`${paths(s.files.length)}${keepExisting ? ' (existing ones kept)' : ''}`)
   }
 
   await writeSnapshots(store, list.map(x => (x.id === s.id ? { ...x, restored: true } : x)))

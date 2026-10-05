@@ -89,15 +89,15 @@ Each row breaks one safety-relevant behaviour on purpose. *caught* means: the mu
 | `prod-unparsable` | `modules/waechter/prod.ts` | unreadable commands referencing prod pass | caught: 1 test(s) red · 428aa5ff20fa→0350b375f789 |
 | `prod-jump` | `modules/waechter/prod-logic.ts` | ssh -J/-o HostName to prod passes | caught: 1 test(s) red · 7321c636be47→c74591534dc0 |
 | `prod-dot` | `modules/waechter/prod-logic.ts` | vps. with trailing dot passes | caught: 1 test(s) red · 7321c636be47→f42466a823c0 |
-| `brake-rf` | `modules/waechter/brake-logic.ts` | rm -Rf / --recursive --force are missed | caught: 1 test(s) red · 4425fc33f570→ff8c4dce02f7 |
-| `brake-feeder` | `modules/waechter/brake-logic.ts` | xargs rm -rf is silently not backed up | caught: 2 test(s) red · 4425fc33f570→34ff8e9b37d4 |
-| `brake-vars` | `modules/waechter/brake-logic.ts` | rm -rf "$X" runs without asking | caught: 2 test(s) red · 4425fc33f570→3d0cba646b46 |
-| `brake-clean-n` | `modules/waechter/brake-logic.ts` | the backup actually runs git clean | caught: 3 test(s) red · 4425fc33f570→f0aee194442b |
-| `brake-ref` | `modules/waechter/brake.ts` | stash commit without ref (gc cleans it up) | caught: 1 test(s) red · 2cfd2f89ee9c→a10fedb8be80 |
-| `brake-untracked` | `modules/waechter/brake.ts` | git clean: untracked files not backed up | caught: 2 test(s) red · 2cfd2f89ee9c→6fe57be0382c |
-| `brake-limit` | `modules/waechter/brake.ts` | size limit without asking | caught: 1 test(s) red · 2cfd2f89ee9c→f9c789ae3d2f |
-| `brake-overwrite` | `modules/waechter/undo.ts` | /undo-last overwrites without asking | caught: 1 test(s) red · 4acaea6cd1ce→1702387d8c92 |
-| `brake-retention` | `modules/waechter/brake-logic.ts` | old snapshots stay forever | caught: 1 test(s) red · 4425fc33f570→2ad03e3895d7 |
+| `brake-rf` | `modules/waechter/brake-logic.ts` | rm -Rf / --recursive --force are missed | caught: 1 test(s) red · c83d19ca0ada→10f5412026e3 |
+| `brake-feeder` | `modules/waechter/brake-logic.ts` | xargs rm -rf is silently not backed up | caught: 2 test(s) red · c83d19ca0ada→75b6677b731d |
+| `brake-vars` | `modules/waechter/brake-logic.ts` | rm -rf "$X" runs without asking | caught: 2 test(s) red · c83d19ca0ada→65c3da665303 |
+| `brake-clean-n` | `modules/waechter/brake-logic.ts` | the backup actually runs git clean | caught: 3 test(s) red · c83d19ca0ada→5c5242ce05ad |
+| `brake-ref` | `modules/waechter/brake.ts` | stash commit without ref (gc cleans it up) | caught: 1 test(s) red · 4fe318292317→8dbc0650fb00 |
+| `brake-untracked` | `modules/waechter/brake.ts` | git clean: untracked files not backed up | caught: 2 test(s) red · 4fe318292317→d42be25a55e5 |
+| `brake-limit` | `modules/waechter/brake.ts` | size limit without asking | caught: 1 test(s) red · 4fe318292317→b3bdb3eba73f |
+| `brake-overwrite` | `modules/waechter/undo.ts` | /undo-last overwrites without asking | caught: 1 test(s) red · f0095f5e1d4d→35c33205c607 |
+| `brake-retention` | `modules/waechter/brake-logic.ts` | old snapshots stay forever | caught: 1 test(s) red · c83d19ca0ada→4ec752727e56 |
 | `diet-range` | `modules/waechter/diet-logic.ts` | targeted reads are still truncated / endless loop | caught: 1 test(s) red · 9bf34fde05ca→2666633060c7 |
 | `diet-guard` | `modules/waechter/diet.ts` | second read of the same file is truncated again | caught: 1 test(s) red · ee755bc24761→c7221a36252b |
 | `diet-tail` | `modules/waechter/diet.ts` | the end of the file is missing | caught: 1 test(s) red · ee755bc24761→8dff3ef31fe4 |
@@ -138,9 +138,9 @@ Each row breaks one safety-relevant behaviour on purpose. *caught* means: the mu
 | `l-ticked` | `modules/rueckblick/recap.ts` | lessons are written without a checkmark | caught: 1 test(s) red · bb8f0719e3e5→8aa612842221 |
 | `l-esc` | `modules/rueckblick/recap.ts` | Esc writes all lessons | caught: 1 test(s) red · bb8f0719e3e5→a8f6ec1c4947 |
 | `l-dup` | `modules/rueckblick/recap.ts` | duplicates of CLAUDE.md are offered again | caught: 1 test(s) red · bb8f0719e3e5→aea9b1177c81 |
-| `l-code` | `modules/rueckblick/recap-logic.ts` | code blocks yield fake lessons | caught: 1 test(s) red · 563850186aee→e2516751bd46 |
-| `l-label` | `modules/rueckblick/recap-logic.ts` | label is truncated text (commas, not fully read) | caught: 2 test(s) red · 563850186aee→a4626ce0157f |
-| `l-sanitize` | `modules/rueckblick/recap-logic.ts` | markup/HTML ends up in CLAUDE.md | caught: 1 test(s) red · 563850186aee→60e3c813e48e |
+| `l-code` | `modules/rueckblick/recap-logic.ts` | code blocks yield fake lessons | caught: 1 test(s) red · c4341a3c3ccc→a920dff8233e |
+| `l-label` | `modules/rueckblick/recap-logic.ts` | label is truncated text (commas, not fully read) | caught: 2 test(s) red · c4341a3c3ccc→ca5f51b4ad45 |
+| `l-sanitize` | `modules/rueckblick/recap-logic.ts` | markup/HTML ends up in CLAUDE.md | caught: 1 test(s) red · c4341a3c3ccc→396be1178e25 |
 | `l-fulltext` | `modules/rueckblick/recap.ts` | things not fully readable get ticked | caught: 1 test(s) red · bb8f0719e3e5→f7366b45b60e |
 | `safe-lessons` | `modules/rueckblick/recap.ts` | lessons via a symlink to ~/.bashrc | caught: 1 test(s) red · bb8f0719e3e5→85284118015c |
 | `safe-md` | `modules/rueckblick/recap.ts` | /recap md writes via a symlink to /etc | caught: 1 test(s) red · bb8f0719e3e5→fabfc45c0303 |

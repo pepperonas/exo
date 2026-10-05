@@ -1,0 +1,36 @@
+     House rules: 1 active (rules.json)
+
+     Kill switch: touch ~/.claude/exo/DISABLED (or /exo off)
+
+[38;5;246m[48;5;237m❯[39m [38;5;231m/exo[39m [49m
+[38;5;246m  ⎿  [39mexo: exo is on.
+
+     Module                       State     Calls    avg ms max ms  last error
+     Secret guard (secrets)       on        8        0.5    2.0
+     Prod shield (prodShield)     on        8        0.1    1.0
+     Cleanup brake (brake)        on        8        0.1    1.0
+     Context diet (diet)          on        16       0.0    0.0
+     Test light (testLight)       on        16       0.0    0.0
+     Done check (doneCheck)       on        0        –      –
+     Changes sidebar (sidebar)    on        8        1.4    10
+     CI light (ci)                on        0        –      –
+     Recap (recap)                on        0        –      –
+     Lessons (lessons)            on        0        –      –
+     Time tracking (hours)        on        0        –      –
+     Achievements (achievements)  on        0        –      –
+     Spinner cinema (cinema)      on        0        –      –
+     Rubber duck (duck)           on        0        –      –
+
+     Journal: 29 events · session 73370e2c-1c59-4641-95b7-d8b8beb10ed0
+     Configuration: /Users/martin/.claude/exo · options in /config (exo)
+     Prod hosts: web, shop
+     House rules: 1 active (rules.json)
+
+     Kill switch: touch ~/.claude/exo/DISABLED (or /exo off)
+
+[38;5;244m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m❯ 
+[38;5;244m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[39m  [38;5;220m⏵⏵ auto mode on[38;5;246m (shift+tab to cycle) · ← for agents[39m
+  [38;5;246m5h [39m🍺[38;5;246m▕[38;5;178m█[38;5;231m[48;5;178m│[38;5;178m[49m████████████[38;5;230m▓[38;5;246m░░░░░░░░░▏[39m [38;5;78m 37%[39m 😎[38;5;246m ↻ 12m52s[39m   [38;5;246m7d [39m🍺[38;5;246m▕[38;5;178m███████[38;5;230m▓[38;5;246m░░░░░░░░░[38;5;145m│[38;5;246m░░░░░░▏[39m [38;5;179m 66%[39m 😬[38;5;246m ↻ 5d 5h[1m[38;5;209m ⚠ empty ~Wed 07:29[0m
+  [38;5;246m⛨ exo[38;5;78m · ● 5/5[38;5;246m · ⏱ 0:02 today[39m

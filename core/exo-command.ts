@@ -17,7 +17,8 @@ import { KILL_HINT, exoDir } from './killswitch'
 import { killReason, refreshLiveness, rulesPath, setPrefs } from './runtime'
 import type { Runtime } from './runtime'
 
-const pad = (s: string, n: number) => (s.length >= n ? s : s + ' '.repeat(n - s.length))
+/** Pads to `n`, and always leaves at least one space before the next column. */
+const pad = (s: string, n: number) => s.padEnd(Math.max(n, s.length + 1))
 const ms = (n: number) => (n < 10 ? n.toFixed(1) : String(Math.round(n)))
 
 function clock(at: number): string {
@@ -31,18 +32,19 @@ export async function statusText(rt: Runtime, host: Host): Promise<string> {
   const lines: string[] = []
   lines.push(killed ? `exo is OFF (${killed}).` : 'exo is on.')
   lines.push('')
-  lines.push(`${pad('Module', 24)}${pad('State', 10)}${pad('Calls', 9)}${pad('avg ms', 7)}${pad('max ms', 8)}last error`)
+  const width = Math.max(...MODULES.map(m => `${m.label} (${m.id})`.length)) + 2
+  lines.push(`${pad('Module', width)}${pad('State', 10)}${pad('Calls', 9)}${pad('avg ms', 7)}${pad('max ms', 8)}last error`)
   for (const m of MODULES) {
     const h = snap[m.id]
     const state = h?.broken ? L.brokenState : rt.config.enabled[m.id] && !killed ? L.on : L.off
     const avg = h && h.calls ? ms(h.totalMs / h.calls) : '–'
     const err = h?.lastError ? `${clock(h.lastError.at)} ${h.lastError.message}` : ''
-    lines.push(`${pad(`${m.label} (${m.id})`, 24)}${pad(state, 10)}${pad(String(h?.calls ?? 0), 9)}${pad(avg, 7)}${pad(h ? ms(h.maxMs) : '–', 8)}${err}`)
+    lines.push(`${pad(`${m.label} (${m.id})`, width)}${pad(state, 10)}${pad(String(h?.calls ?? 0), 9)}${pad(avg, 7)}${pad(h ? ms(h.maxMs) : '–', 8)}${err}`)
   }
   const core = snap.core
   if (core?.budgetHits) lines.push(`Time budget (50 ms) exceeded: ${core.budgetHits}×`)
   lines.push('')
-  lines.push(`Journal: ${rt.journal.size()} events · session ${rt.journal.sessionId || '–'}`)
+  lines.push(`Journal: ${rt.journal.size()} event${rt.journal.size() === 1 ? '' : 's'} · session ${rt.journal.sessionId || '–'}`)
   lines.push(`Configuration: ${rt.home ? exoDir(rt.home) : '~/.claude/exo'} · options in /config (exo)`)
   lines.push(`Prod hosts: ${rt.config.prodHosts.length ? rt.config.prodHosts.map(h => h.name).join(', ') : 'none (shield only for SQL and force push)'}`)
   lines.push(`House rules: ${rt.rules.rules.length} active (${rt.rules.source === 'file' ? 'rules.json' : rt.rules.source === 'default' ? 'built-in' : 'built-in, rules.json has errors'})`)

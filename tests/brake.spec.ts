@@ -226,3 +226,9 @@ test('/undo-list and pruning', async () => {
     host.dispose()
   }
 })
+
+test('paths reads as English: 1 path, 2 paths', async () => {
+  const { paths } = await import('../modules/waechter/brake-logic')
+  assert.equal(paths(1), '1 path')
+  assert.equal(paths(2), '2 paths')
+})

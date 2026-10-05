@@ -307,3 +307,10 @@ test('only a "not there" error counts as missing; anything else fails closed', a
   }
   assert.equal(await insideRoot(host, `${P}/new/dir/x.md`, P), false)
 })
+
+test('counts read as English: 1 turn, 2 turns, 1 file', async () => {
+  const { count } = await import('../modules/rueckblick/recap-logic')
+  assert.equal(count(1, 'turn'), '1 turn')
+  assert.equal(count(2, 'turn'), '2 turns')
+  assert.equal(count(0, 'file'), '0 files')
+})

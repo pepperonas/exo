@@ -58,9 +58,12 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
   on('turn.complete', (_$: any, e: any) => ({ text: e.answer }))
   on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr: '' } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
-  on('session.id', () => ({ value: 'sess-test' }))
+  const session = { id: 'sess-test' }
+  on('session.id', () => ({ value: session.id }))
   on('session.repo', () => ({ value: { root: '/work/proj', remote: null, internal: false, name: null } }))
   on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
+  on('session.end', (_$: any, e: any) => ({ sessionId: e.sessionId }))
+  on('prompt.submit', (_$: any, e: any) => e)
   on('command.register', () => ({ value: undefined }))
   on('ui.toast', (_$: any, e: any) => {
     toasts.push(String(e.text ?? e))
@@ -75,7 +78,7 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
     ran.push(String(e.command ?? e.file_path))
     return { result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }
   })
-  return { fs, toasts, ran, store, filled, clock, locked }
+  return { fs, toasts, ran, store, filled, clock, locked, session }
 }
 
 const start = ($: any) => $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: true })
@@ -248,6 +251,9 @@ test('/achievements draws the card', async ($, on) => {
   const r = await $.command.run({ command: 'achievements', args: '' } as any)
   expect(r.text).toContain('exo · Achievements')
   expect(r.text).toContain('First step')
+  // one card line per row: a fenced block collapses into one paragraph in command output
+  expect(r.text).not.toContain('```')
+  expect(r.text!.split('\n')[0]).toContain('╭')
 })
 
 test('a long turn turns the spinner into coffee, with the real seconds', async ($, on) => {
@@ -260,3 +266,16 @@ test('a long turn turns the spinner into coffee, with the real seconds', async (
   expect(t).toContain('thinking:')
 })
 
+
+test('after /clear exo starts over for the new session: journal, modules, status line', async ($, on) => {
+  const { session } = engine(on)
+  await start($)
+  await $.session.end({ reason: 'clear', sessionId: 'sess-test', resume: { id: 'sess-test' } } as any)
+  // the engine fires no session.start after /clear; the next prompt is the first sign
+  session.id = 'sess-after-clear'
+  await $.prompt.submit({ text: 'weiter' } as any)
+  const r = await $.command.run({ command: 'exo', args: '' } as any)
+  expect(r.text).toContain('session sess-after-clear')
+  const ui = await $.ui.mount({ ...HINT, surface: 'terminal', viewport: { columns: 120, rows: 40 } } as any)
+  expect(await all(ui)).toContain('⛨ exo')
+})

@@ -200,6 +200,44 @@ async function live($: EngineInterface): Promise<{ rt: Runtime; host: Host } | n
   return (await killReason(rt, host)) ? null : { rt, host }
 }
 
+/**
+ * Everything that starts a conversation: modules, journal, liveness, the
+ * ticker. Runs on `session.start` and again after a `/clear` or a resume,
+ * for which the engine fires no `session.start` (the process goes on under a
+ * new session id, with fresh `$.state`).
+ */
+async function begin($: EngineInterface, rt: Runtime, host: Host, cwd: string): Promise<void> {
+  if (rt.home) void pruneSnapshots(host, rt.store, rt.home, await $.clock.now()).catch(() => undefined)
+  await startModules(rt, host)
+  if (rt.journal.size() === 0 || rt.journal.last('session.start')?.sessionId !== rt.journal.sessionId)
+    await log(rt, host, { type: 'session.start', sessionId: rt.journal.sessionId, project: (await host.repoRoot().catch(() => null)) ?? cwd })
+  if (rt.rules.errors.length && !rt.rulesWarned) {
+    rt.rulesWarned = true
+    host.toast(L.rulesWarning, 8000)
+  }
+  rt.shownLiveness = undefined
+  await refreshLiveness(rt, host)
+  tick?.cancel()
+  tick = $.clock.every(TICK_MS, () => {
+    void (async () => {
+      await afterClear($)
+      await refreshLiveness(await ensure($), hostOf($))
+    })().catch(() => undefined)
+  })
+}
+
+/** Set by `session.end` when the conversation ends but the process goes on. */
+let cleared = false
+
+/** After a `/clear` or a resume: a fresh runtime for the new session, then `begin`. */
+async function afterClear($: EngineInterface): Promise<void> {
+  if (!cleared) return
+  cleared = false
+  runtime = undefined
+  const rt = await ensure($)
+  await begin($, rt, hostOf($), await $.session.cwd())
+}
+
 export const register: Register = (on, options) => {
   opts = options
   runtime = undefined
@@ -221,21 +259,8 @@ export const register: Register = (on, options) => {
       commandNames.set(final, name)
       await $.command.register({ name: final, description, argumentHint, immediate: true })
     }
-    if (rt.home) void pruneSnapshots(host, rt.store, rt.home, await $.clock.now()).catch(() => undefined)
     await $.command.register({ name: CHANGES, description: 'exo: files changed in this session, with diff', immediate: true })
-    await startModules(rt, host)
-    if (rt.journal.size() === 0 || rt.journal.last('session.start')?.sessionId !== rt.journal.sessionId)
-      await log(rt, host, { type: 'session.start', sessionId: rt.journal.sessionId, project: (await host.repoRoot().catch(() => null)) ?? e.cwd })
-    if (rt.rules.errors.length && !rt.rulesWarned) {
-      rt.rulesWarned = true
-      host.toast(L.rulesWarning, 8000)
-    }
-    rt.shownLiveness = undefined
-    await refreshLiveness(rt, host)
-    tick?.cancel()
-    tick = $.clock.every(TICK_MS, () => {
-      void refreshLiveness(rt, host).catch(() => undefined)
-    })
+    await begin($, rt, host, e.cwd)
     return next(e)
   })
 
@@ -263,6 +288,7 @@ export const register: Register = (on, options) => {
   })
 
   on('prompt.submit', async ($, e, next) => {
+    await afterClear($).catch(() => undefined)
     const l = await live($).catch(() => null)
     if (!l) return next(e)
     await log(l.rt, l.host, { type: 'prompt.submit', chars: e.text.length }).catch(() => undefined)
@@ -271,6 +297,7 @@ export const register: Register = (on, options) => {
   })
 
   on('turn.start', async ($, e, next) => {
+    await afterClear($).catch(() => undefined)
     const l = await live($).catch(() => null)
     if (l) {
       l.rt.journal.turnId = e.turnId
@@ -300,7 +327,9 @@ export const register: Register = (on, options) => {
     } catch {
       // ending fast matters more than the last journal line
     }
-    tick?.cancel()
+    // after /clear or a resume the process goes on without a session.start
+    if (e.reason === 'clear' || e.reason === 'resume') cleared = true
+    else tick?.cancel()
     return next(e)
   })
 
@@ -323,7 +352,8 @@ export const register: Register = (on, options) => {
     on('command.run', { command: name }, async $ => {
       const rt = await ensure($)
       const noColor = !!(await $.env.get('NO_COLOR'))
-      return { text: '```\n' + (await achievementsCard(moduleEnv(rt, hostOf($)), noColor)) + '\n```' }
+      // plain text: a fenced block loses its line breaks in command output
+      return { text: await achievementsCard(moduleEnv(rt, hostOf($)), noColor) }
     })
   }
 

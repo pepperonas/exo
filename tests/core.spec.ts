@@ -353,3 +353,16 @@ test('kill switch: a failing file check does not switch exo off', async () => {
   h.failExists = true
   assert.equal(await new KillSwitch().reason(h, '/home/u', false), null)
 })
+
+test('/exo status table: every column starts at the same position, whatever the module name', async () => {
+  const { statusText } = await import('../core/exo-command')
+  const { createRuntime } = await import('../core/runtime')
+  const { FakeHost } = await import('./fake-host')
+  const host = new FakeHost()
+  const rt = await createRuntime(host, {}, true)
+  const rows = (await statusText(rt, host)).split('\n').filter(l => /\(\w+\)\s/.test(l))
+  assert.ok(rows.length >= 14, String(rows.length))
+  const stateCol = (l: string) => l.search(/\)\s+\S/) + l.slice(l.search(/\)\s+\S/)).search(/\S(?<!\))/)
+  const cols = new Set(rows.map(stateCol))
+  assert.equal(cols.size, 1, rows.join('\n'))
+})

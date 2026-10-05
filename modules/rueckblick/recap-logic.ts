@@ -50,6 +50,9 @@ export function facts(events: readonly JournalEvent[], sessionId: string, projec
   }
 }
 
+/** `1 turn`, `2 turns`. */
+export const count = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
+
 const testText = (t?: SessionFacts['testsLast']) => (!t ? '–' : t.green !== undefined ? (t.ok ? `${t.green}/${t.green}` : `${t.red ?? '?'} red`) : t.ok ? 'green' : 'red')
 const minutes = (ms: number) => `${Math.max(0, Math.round(ms / 60_000))} min`
 const money = (usd: number) => `$${usd.toFixed(2)}`
@@ -63,7 +66,7 @@ function ago(ms: number): string {
 
 /** One line for the "Last session …" band. */
 export function shortLine(f: SessionFacts, now: number): string {
-  const parts = [minutes(f.endedAt - f.startedAt), `${f.turns} turns`, `${f.files.length} files`]
+  const parts = [minutes(f.endedAt - f.startedAt), count(f.turns, 'turn'), count(f.files.length, 'file')]
   if (f.testsLast) parts.push(`Tests ${testText(f.testsLast)}`)
   return `Last session in ${projectName(f.project)} (${ago(now - f.endedAt)}): ${parts.join(' · ')}`
 }
@@ -75,7 +78,7 @@ export function card(f: SessionFacts, openPoints: string[] | null, date: string)
   const lines = [
     `## Recap – ${projectName(f.project)} · ${date}`,
     '',
-    `- Duration: ${minutes(f.endedAt - f.startedAt)} (active ${hm(f.activeSec)}) · ${f.turns} turns${f.costUsd !== undefined ? ` · cost ${money(f.costUsd)}` : ''}`,
+    `- Duration: ${minutes(f.endedAt - f.startedAt)} (active ${hm(f.activeSec)}) · ${count(f.turns, 'turn')}${f.costUsd !== undefined ? ` · cost ${money(f.costUsd)}` : ''}`,
     `- Files: ${f.files.length ? `${f.files.length} changed (+${added} −${removed}): ${names.join(', ')}${f.files.length > names.length ? ' …' : ''}` : 'none'}`,
     `- Tests: ${f.testsFirst ? `${testText(f.testsFirst)} → ${testText(f.testsLast)}` : 'no test run'}`,
   ]

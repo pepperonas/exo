@@ -33,3 +33,22 @@ test('the 256-colour cube and grey ramp', () => {
 test('trailing blank lines (even with colour codes) are trimmed', () => {
   assert.equal(trimCapture('a\nb\n\x1b[0m  \n\n'), 'a\nb')
 })
+
+test('a crop starts at the last line with the marker and keeps every line after it', async () => {
+  const { cropFrom } = await import('../tools/screens')
+  const text = 'a\n\x1b[1m❯ /exo\x1b[0m\nold\n❯ /exo\nnew\nlast'
+  assert.equal(cropFrom(text, '❯ /exo'), '❯ /exo\nnew\nlast')
+  assert.equal(cropFrom(text, 'missing'), text)
+  assert.equal(cropFrom(text, undefined), text)
+})
+
+test('every crop marker is found in its capture', async () => {
+  const { CROPS, cropFrom } = await import('../tools/screens')
+  const { readFileSync, existsSync } = await import('node:fs')
+  for (const [name, from] of Object.entries(CROPS)) {
+    const f = new URL(`../docs/screens/${name}.ans`, import.meta.url)
+    assert.ok(existsSync(f), name)
+    const t = readFileSync(f, 'utf8')
+    assert.notEqual(cropFrom(t, from), t, `${name}: marker not found`)
+  }
+})
