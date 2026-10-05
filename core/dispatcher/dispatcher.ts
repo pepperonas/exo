@@ -31,6 +31,7 @@ import type { CwdGuess } from '../cwd'
 import { READ_TOOLS } from '../tools'
 import { KEEP, QUESTION, REVERT, describe, diffControl, readControl, undo } from '../integrity'
 import type { ControlState } from '../integrity'
+import type { StoreBox } from '../store/store'
 import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
 
 export interface ToolCall {
@@ -71,6 +72,8 @@ export interface CallCtx {
   cmdCwd: CwdGuess
   /** Scratch space shared by a step's before and after. */
   memo: Record<string, unknown>
+  /** exo's store, for modules that keep state across sessions. */
+  store: StoreBox | undefined
 }
 
 export type BeforeResult = { deny: string } | { input: Record<string, unknown> } | undefined | void
@@ -94,6 +97,7 @@ export interface DispatchDeps {
   home?: string
   /** The Bash tool's working directory as exo follows it. */
   cwd?: CwdGuess
+  store?: StoreBox
   /** Sum of the before steps' own time allowed per call, in ms. */
   budgetMs?: number
   clock?: () => number
@@ -150,6 +154,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     cwd: deps.cwd ?? { cwd: '/', known: false },
     cmdCwd: deps.cwd ?? { cwd: '/', known: false },
     memo: {},
+    store: deps.store,
     async untimed<T>(work: Promise<T>): Promise<T> {
       const t0 = clock()
       try {
@@ -164,6 +169,9 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     ctx.cmdCwd = ctx.parsed?.ok ? cwdAfter(ctx.parsed.script, ctx.cwd, ctx.home) : ctx.cwd
   }
   setCmdCwd()
+
+  /** The person already said yes to changing a switch: no second question after. */
+  let approvedControl = false
 
   // Self protection: always on, whatever the module switches say.
   try {
@@ -181,6 +189,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
         deps.journal.push({ type: 'tool.end', id: call.id ?? '', tool: call.tool, ms: 0, ok: false, denied: 'self' }, clock())
         return { deny: CONTROL_DENIED }
       }
+      approvedControl = true
     }
   } catch (err) {
     const msg = errorText(err)
@@ -233,7 +242,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
   }
 
   // Effect check: the switches before a call that can change things …
-  const guardEffects = deps.home !== undefined && !READ_TOOLS.has(call.tool)
+  const guardEffects = deps.home !== undefined && !READ_TOOLS.has(call.tool) && !approvedControl
   let before: ControlState | null = null
   if (guardEffects) before = await readControl(deps.host, deps.home!).catch(() => null)
 

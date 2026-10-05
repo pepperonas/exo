@@ -20,6 +20,7 @@ import type { CwdGuess } from './cwd'
 import { parse } from './shell/parse'
 import { RESERVED } from './statusline/statusline'
 import { StoreBox } from './store/store'
+import { createSteps } from '../modules'
 
 export interface Runtime {
   home: string | undefined
@@ -42,8 +43,6 @@ export interface Runtime {
 
 export const rulesPath = (home: string) => `${exoDir(home)}/rules.json`
 
-/** The modules' dispatcher steps; empty in stage 1, filled from stage 2 on. */
-export const STEPS: Step[] = []
 
 export async function createRuntime(host: Host, options: Readonly<Record<string, unknown>>, interactive = true): Promise<Runtime> {
   const home = await host.env('HOME').catch(() => undefined)
@@ -72,7 +71,7 @@ export async function createRuntime(host: Host, options: Readonly<Record<string,
   journal.restore(await store.get('journal:current').catch(() => undefined), sessionId)
 
   const cwd = await host.cwd().catch(() => '/')
-  return { home, options, prefs, config, rules, journal, health, store, kill: new KillSwitch(), interactive, steps: STEPS, rulesWarned: false, bashCwd: { cwd, known: true } }
+  return { home, options, prefs, config, rules, journal, health, store, kill: new KillSwitch(), interactive, steps: createSteps(), rulesWarned: false, bashCwd: { cwd, known: true } }
 }
 
 /** Applies new prefs: recomputes the config and stores them. */
@@ -111,6 +110,7 @@ export async function toolCall(rt: Runtime, host: Host, call: ToolCall, next: (i
       killed: () => killReason(rt, host),
       home: rt.home,
       cwd: rt.bashCwd,
+      store: rt.store,
     },
     call,
     next,

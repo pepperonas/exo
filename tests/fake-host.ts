@@ -42,6 +42,10 @@ export class FakeHost implements Host {
     if (f === undefined) throw new Error(`ENOENT ${path}`)
     return { kind: 'file', size: f.length, mtimeMs: this.t }
   }
+  async list(path: string) {
+    const pre = path.replace(/\/$/, '') + '/'
+    return [...new Set([...this.files.keys()].filter(f => f.startsWith(pre)).map(f => f.slice(pre.length).split('/')[0]!))]
+  }
   links = new Map<string, string>()
   async realPath(path: string) {
     for (const [from, to] of this.links) if (path === from || path.startsWith(from + '/')) return to + path.slice(from.length)

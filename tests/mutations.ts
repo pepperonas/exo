@@ -18,6 +18,10 @@ const SHELL = ['tests/shell.spec.ts']
 const DISP = ['tests/dispatcher.spec.ts']
 const CORE = ['tests/core.spec.ts']
 const INTEG = ['tests/integrity.spec.ts']
+const SEC = ['tests/secrets.spec.ts']
+const PROD = ['tests/prod.spec.ts']
+const BRAKE = ['tests/brake.spec.ts']
+const DIET = ['tests/diet.spec.ts']
 
 export const MUTATIONS: Mutation[] = [
   // ---- shell parser
@@ -73,6 +77,50 @@ export const MUTATIONS: Mutation[] = [
   { id: 'eff-settings', file: 'core/integrity.ts', find: "  for (const f of Object.keys(b.settings)) if (a.settings[f] !== b.settings[f])", replace: "  for (const f of Object.keys(b.settings)) if (false)", tests: INTEG, breaks: 'settings.json-Änderung wird nicht bemerkt' },
   { id: 'eff-prefs', file: 'core/integrity.ts', find: "  if (a.prefs !== b.prefs) out.push({ kind: 'prefs', before: a.prefs })", replace: '', tests: INTEG, breaks: '/exo-Schalter im Store unbemerkt geändert' },
   { id: 'eff-keep-others', file: 'core/integrity.ts', find: "  for (const k of Object.keys(pc)) if (k === 'exo' || k.startsWith('exo@')) delete pc[k]", replace: '  for (const k of Object.keys(pc)) delete pc[k]', tests: INTEG, breaks: 'Rücksetzen löscht fremde Plugin-Einstellungen' },
+  { id: 'eff-approved', file: 'core/dispatcher/dispatcher.ts', find: ' && !approvedControl', replace: '', tests: INTEG, breaks: 'nach Zulassen wird ein zweites Mal gefragt (und rückgängig gemacht)' },
+  // ---- secrets
+  { id: 'sec-anthropic', file: 'modules/waechter/secrets-logic.ts', find: "{ kind: 'Anthropic-API-Schlüssel', re: /\\bsk-ant-[A-Za-z0-9_-]{20,}/g },", replace: '', tests: SEC, breaks: 'Anthropic-Schlüssel werden nicht erkannt' },
+  { id: 'sec-github', file: 'modules/waechter/secrets-logic.ts', find: "{ kind: 'GitHub-Token', re: /\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\\b/g },", replace: '', tests: SEC, breaks: 'GitHub-Tokens werden nicht erkannt' },
+  { id: 'sec-pem', file: 'modules/waechter/secrets-logic.ts', find: "{ kind: 'Privater Schlüssel (PEM)', re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g },", replace: '', tests: SEC, breaks: 'private Schlüssel werden nicht erkannt' },
+  { id: 'sec-mask', file: 'modules/waechter/secrets-logic.ts', find: '  return `${prefix}…${tail}`', replace: '  return value', tests: SEC, breaks: 'Meldungen zeigen das Geheimnis im Klartext' },
+  { id: 'sec-password', file: 'modules/waechter/secrets-logic.ts', find: "        if (value.length >= 8 && !/^\\d+$/.test(value)) add('Passwort in Zuweisung', value)", replace: '', tests: SEC, breaks: 'Passwörter in Zuweisungen fallen durch' },
+  { id: 'sec-entropy', file: 'modules/waechter/secrets-logic.ts', find: '      if (entropy(v) < 4.3) continue', replace: '      continue', tests: SEC, breaks: 'Zeichenketten mit hoher Entropie fallen durch' },
+  { id: 'sec-placeholder', file: 'modules/waechter/secrets-logic.ts', find: '      if (isPlaceholder(value)) continue', replace: '', tests: SEC, breaks: 'Platzhalter lösen Fehlalarm aus' },
+  { id: 'sec-uuid', file: 'modules/waechter/secrets-logic.ts', find: "      if (/^[0-9a-f]+$/i.test(v) || UUID.test(v) || /^sha(?:1|256|384|512)-/.test(v)) continue", replace: '', tests: SEC, breaks: 'Hashes und UUIDs lösen Fehlalarm aus' },
+  { id: 'sec-allow', file: 'modules/waechter/secrets-logic.ts', find: '    if (line.includes(ALLOW_COMMENT)) return', replace: '', tests: SEC, breaks: 'exo-allow-secret wirkt nicht' },
+  { id: 'sec-diff-added', file: 'modules/waechter/secrets-logic.ts', find: "    if (raw.startsWith('+') && file && file !== '/dev/null') {", replace: "    if ((raw.startsWith('+') || raw.startsWith('-')) && file && file !== '/dev/null') {", tests: SEC, breaks: 'auch entfernte Zeilen gelten als Fund' },
+  { id: 'sec-env', file: 'modules/waechter/secrets.ts', find: '  if (isEnvFile(path)) {\n    if (!(await gitIgnores(ctx, path)))', replace: '  if (false) {\n    if (!(await gitIgnores(ctx, path)))', tests: SEC, breaks: 'ignorierte .env wird blockiert' },
+  { id: 'sec-commit', file: 'modules/waechter/secrets.ts', find: "      if (r.exitCode === 0) hits.push(...scanDiff(r.stdout, skip))\n    }\n    if (g.sub === 'push') {", replace: "    }\n    if (g.sub === 'push') {", tests: SEC, breaks: 'der Staging-Diff wird nicht geprüft' },
+  { id: 'sec-push', file: 'modules/waechter/secrets.ts', find: "      const r = await ctx.untimed(ctx.host.run(['git', '-C', dir, 'log',", replace: "      const r = { exitCode: 1, stdout: '' } || await ctx.untimed(ctx.host.run(['git', '-C', dir, 'log',", tests: SEC, breaks: 'zu pushende Commits werden nicht geprüft' },
+  { id: 'sec-redirect', file: 'modules/waechter/secrets.ts', find: '  if (relevant.length) for (const h of scanText(raw))', replace: '  if (false) for (const h of scanText(raw))', tests: SEC, breaks: 'echo KEY > datei geht durch' },
+  // ---- prod shield
+  { id: 'prod-alias', file: 'modules/waechter/prod-logic.ts', find: '    for (const [alias, target] of ssh) if (target === addr || target === name || alias === name) idx.set(alias, h)', replace: '', tests: PROD, breaks: 'ssh-Aliase auf Prod werden nicht erkannt' },
+  { id: 'prod-user', file: 'modules/waechter/prod-logic.ts', find: "    .replace(/^.*@/, '')", replace: '', tests: PROD, breaks: 'user@host wird nicht erkannt' },
+  { id: 'prod-scp', file: 'modules/waechter/prod-logic.ts', find: "    if (c.program === 'scp' || c.program === 'rsync' || c.program === 'sftp') {", replace: '    if (false) {', tests: PROD, breaks: 'scp/rsync auf Prod gehen durch' },
+  { id: 'prod-service', file: 'modules/waechter/prod-logic.ts', find: "      if (verb && SERVICE_VERBS.has(verb)) out.push(", replace: '      if (false) out.push(', tests: PROD, breaks: 'systemctl restart auf Prod wird nicht gemeldet' },
+  { id: 'prod-sql-where', file: 'modules/waechter/prod-logic.ts', find: "    if (/^DELETE\\s+FROM\\b/i.test(s) && !/\\bWHERE\\b/i.test(s)) return true", replace: "    if (/^DELETE\\s+FROM\\b/i.test(s)) return true", tests: PROD, breaks: 'DELETE mit WHERE gilt als zerstörerisch' },
+  { id: 'prod-sql-drop', file: 'modules/waechter/prod-logic.ts', find: "    if (/^DROP\\s+(TABLE|DATABASE|SCHEMA|VIEW|INDEX|USER|ROLE)\\b/i.test(s)) return true", replace: '', tests: PROD, breaks: 'DROP TABLE geht durch' },
+  { id: 'prod-plus', file: 'modules/waechter/prod-logic.ts', find: "    if (m && (force || r.startsWith('+'))) return m[1]!", replace: '    if (m && force) return m[1]!', tests: PROD, breaks: '+main als Force-Push übersehen' },
+  { id: 'prod-branch', file: 'modules/waechter/prod-logic.ts', find: "  if (force && refspecs.length === 0 && currentBranch && /^(main|master)$/.test(currentBranch)) return currentBranch", replace: '', tests: PROD, breaks: 'git push --force auf main ohne Refspec geht durch' },
+  { id: 'prod-dry-drop', file: 'modules/waechter/prod-logic.ts', find: "    if (!m || /['\"`\\\\$]/.test(st) || !out.includes(st)) return null", replace: "    if (!out.includes(st)) return null", tests: PROD, breaks: 'Trockenlauf für DROP wird erfunden' },
+  { id: 'prod-noui', file: 'modules/waechter/prod.ts', find: '  if (!ctx.interactive) return { deny:', replace: '  if (false) return { deny:', tests: PROD, breaks: 'ohne UI läuft ein Prod-Befehl ungefragt' },
+  { id: 'prod-esc', file: 'modules/waechter/prod.ts', find: '    answer = CANCEL // Esc', replace: '    answer = RUN', tests: PROD, breaks: 'Esc führt den Prod-Befehl aus' },
+  { id: 'prod-rule', file: 'modules/waechter/prod.ts', find: '      if (blocked.length) return { deny:', replace: '      if (false) return { deny:', tests: PROD, breaks: 'Hausregel (certbot) wird ignoriert' },
+  { id: 'prod-unparsable', file: 'modules/waechter/prod.ts', find: '        if (!named) return\n', replace: '        return\n', tests: PROD, breaks: 'unlesbare Befehle mit Prod-Bezug gehen durch' },
+  // ---- brake
+  { id: 'brake-rf', file: 'modules/waechter/brake-logic.ts', find: "  return (f.has('r') || f.has('R') || f.has('--recursive')) && (f.has('f') || f.has('--force'))", replace: "  return f.has('r') && f.has('f')", tests: BRAKE, breaks: 'rm -Rf / --recursive --force werden übersehen' },
+  { id: 'brake-feeder', file: 'modules/waechter/brake-logic.ts', find: '      if (feeder) {', replace: '      if (false) {', tests: BRAKE, breaks: 'xargs rm -rf wird still nicht gesichert' },
+  { id: 'brake-vars', file: 'modules/waechter/brake-logic.ts', find: '        if (w.expansion) plan.unresolved.push(w.text)', replace: '        if (false) plan.unresolved.push(w.text)', tests: BRAKE, breaks: 'rm -rf "$X" wird ohne Rückfrage ausgeführt' },
+  { id: 'brake-clean-n', file: 'modules/waechter/brake-logic.ts', find: "      const cleanArgs = ['-n', ...", replace: "      const cleanArgs = [...", tests: BRAKE, breaks: 'die Sicherung führt git clean echt aus' },
+  { id: 'brake-ref', file: 'modules/waechter/brake.ts', find: "      const r = await run(ctx, ['git', '-C', root, 'update-ref', ref, s]).catch(() => null)", replace: '      const r = { exitCode: 0 }', tests: BRAKE, breaks: 'Stash-Commit ohne Ref (gc räumt ihn weg)' },
+  { id: 'brake-untracked', file: 'modules/waechter/brake.ts', find: "    if (r?.exitCode === 0) for (const rel of parseCleanDryRun(r.stdout)) tarPaths.push(joinPath(p.cwd, rel, undefined))", replace: '', tests: BRAKE, breaks: 'git clean: ungetrackte Dateien nicht gesichert' },
+  { id: 'brake-limit', file: 'modules/waechter/brake.ts', find: '        if (meta.bytes > ctx.config.snapshotMaxMb * 1048576) {', replace: '        if (false) {', tests: BRAKE, breaks: 'Größenlimit ohne Rückfrage' },
+  { id: 'brake-overwrite', file: 'modules/waechter/undo.ts', find: '    if (exists.length) {', replace: '    if (false) {', tests: BRAKE, breaks: '/undo-last überschreibt ungefragt' },
+  { id: 'brake-retention', file: 'modules/waechter/brake-logic.ts', find: '  return sorted.filter((s, i) => i >= KEEP_COUNT || now - s.at > KEEP_MS)', replace: '  return sorted.filter((s, i) => i >= KEEP_COUNT)', tests: BRAKE, breaks: 'alte Schnappschüsse bleiben ewig' },
+  // ---- diet
+  { id: 'diet-range', file: 'modules/waechter/diet-logic.ts', find: '  if (i.hasRange || i.justCut || SPECIAL.test(i.path)) return null', replace: '  if (SPECIAL.test(i.path)) return null', tests: DIET, breaks: 'gezielte Reads werden trotzdem gekürzt / Endlosschleife' },
+  { id: 'diet-guard', file: 'modules/waechter/diet.ts', find: '      lastCut = path\n', replace: '', tests: DIET, breaks: 'zweites Lesen derselben Datei wird wieder gekürzt' },
+  { id: 'diet-tail', file: 'modules/waechter/diet.ts', find: '          if (r.exitCode === 0) tail = capTail(r.stdout)', replace: '', tests: DIET, breaks: 'das Ende der Datei fehlt' },
   // ---- dispatcher
   { id: 'fail-closed', file: 'core/dispatcher/dispatcher.ts', find: "      if (policyOf(step.id) === 'closed') {", replace: '      if (false) {', tests: DISP, breaks: 'ein gestörter Wächter lässt durch' },
   { id: 'deny-stops', file: 'core/dispatcher/dispatcher.ts', find: '      return { deny: out.deny }', replace: '      void 0', tests: DISP, breaks: 'eine Ablehnung wird ignoriert' },

@@ -14,9 +14,18 @@ import { catchDecision, createRuntime, killReason, log, refreshLiveness, saveJou
 import type { Runtime } from '../core/runtime'
 import { KillSwitch } from '../core/killswitch'
 import { DISMISS, pressBanner } from '../core/statusline/banners'
+import { pruneSnapshots } from '../modules/waechter/brake'
+import { undoLast, undoList } from '../modules/waechter/undo'
 import { layout } from '../core/statusline/statusline'
 
 const COMMAND = 'exo'
+/** Commands besides /exo: name, description, argument hint. */
+const COMMANDS: [string, string, string][] = [
+  ['undo-last', 'exo: letzten Schnappschuss der Aufräum-Bremse wiederherstellen', '[id]'],
+  ['undo-list', 'exo: Schnappschüsse der Aufräum-Bremse anzeigen', ''],
+]
+/** Registered name → command it stands for (exo-undo-last when undo-last is taken). */
+const commandNames = new Map<string, string>()
 const TICK_MS = 2_000
 
 // exo's `$.state` values; the engine reads their refs from this file.
@@ -39,6 +48,7 @@ function hostOf($: EngineInterface): Host {
       const s = await $.fs.stat(path)
       return { kind: s.kind, size: s.size, mtimeMs: s.mtimeMs }
     },
+    list: async path => (await $.fs.list(path)).map(e => e.name),
     realPath: async path => {
       const s = await $.fs.stat(path, { resolve: true })
       // No answer is no resolution: never fall back to the unresolved path.
@@ -131,6 +141,13 @@ export const register: Register = (on, options) => {
       argumentHint: '[on|off [modul]|reset <modul>|rules|help]',
       immediate: true,
     })
+    const taken = new Set((await $.command.list()).filter(c => c.plugin !== 'exo').map(c => c.name))
+    for (const [name, description, argumentHint] of COMMANDS) {
+      const final = taken.has(name) ? `exo-${name}` : name
+      commandNames.set(final, name)
+      await $.command.register({ name: final, description, argumentHint, immediate: true })
+    }
+    if (rt.home) void pruneSnapshots(host, rt.store, rt.home, await $.clock.now()).catch(() => undefined)
     if (rt.journal.size() === 0 || rt.journal.last('session.start')?.sessionId !== rt.journal.sessionId)
       await log(rt, host, { type: 'session.start', sessionId: rt.journal.sessionId, project: (await host.repoRoot().catch(() => null)) ?? e.cwd })
     if (rt.rules.errors.length && !rt.rulesWarned) {
@@ -205,6 +222,16 @@ export const register: Register = (on, options) => {
     tick?.cancel()
     return next(e)
   })
+
+  for (const name of ['undo-last', 'undo-list', 'exo-undo-last', 'exo-undo-list'] as const) {
+    on('command.run', { command: name }, async ($, e) => {
+      const rt = await ensure($)
+      const host = hostOf($)
+      const base = commandNames.get(name) ?? name.replace(/^exo-/, '')
+      if (base === 'undo-list') return { text: await undoList(rt.store, await $.clock.now()) }
+      return { text: await undoLast(host, rt.store, e.args.trim() || undefined) }
+    })
+  }
 
   on('command.run', { command: COMMAND }, async ($, e) => {
     const rt = await ensure($)

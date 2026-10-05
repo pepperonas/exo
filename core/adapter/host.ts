@@ -37,6 +37,8 @@ export interface Host {
   writeFile(path: string, text: string): Promise<void>
   exists(path: string): Promise<boolean>
   stat(path: string): Promise<FileStat>
+  /** Names in a directory. */
+  list(path: string): Promise<string[]>
   /** The path with every symlink and `..` resolved; rejects when it does not exist. */
   realPath(path: string): Promise<string>
   run(argv: readonly string[], options?: RunOptions): Promise<RunResult>

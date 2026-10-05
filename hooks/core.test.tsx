@@ -33,6 +33,14 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
     fs.set(e.path, e.text)
     return { value: undefined }
   })
+  on('fs.stat', (_$: any, e: any) => {
+    if (e.path !== '/' && !fs.has(e.path) && ![...fs.keys()].some(k => k.startsWith(e.path + '/'))) throw new Error('ENOENT')
+    return { value: { kind: fs.has(e.path) ? 'file' : 'dir', size: fs.get(e.path)?.length ?? 0, mtimeMs: 0, isLink: false, realPath: e.path } }
+  })
+  on('fs.list', () => ({ value: [] }))
+  on('command.list', () => ({ value: [] }))
+  on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr: '' } }))
+  on('session.cwd', () => ({ value: '/work/proj' }))
   on('session.id', () => ({ value: 'sess-test' }))
   on('session.repo', () => ({ value: { root: '/work/proj', remote: null, internal: false, name: null } }))
   on('session.start', (_$: any, e: any) => ({ cwd: e.cwd }))
@@ -124,4 +132,25 @@ test('/exo off is remembered in the store and lets calls through', async ($, on)
   await $.tool.call({ tool: 'Bash', command: 'pwd' } as any)
   expect(ran).toEqual(['pwd'])
   expect(store.get('prefs')).toEqual({ allOff: true, modules: {} })
+})
+
+// Assembled at run time: no literal key in this file.
+const KEY = ['sk-', 'ant-', 'api03-Zk3q9XvT2mLw8RbN4cYp7Hd1Fs6Gj5Ke0Ua2', 'a1b2'].join('') // exo-allow-secret: test fixture
+
+test('the secret guard denies a Write with a key, masked', async ($, on) => {
+  const { ran } = engine(on)
+  await start($)
+  const r: any = await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/k.ts', content: `export const k = "${KEY}"` } as any)
+  const text = String(r.deny ?? r.text ?? '')
+  expect(text).toContain('Secret-Wächter')
+  expect(text).toContain('sk-ant-…a1b2')
+  expect(text.includes(KEY)).toBe(false)
+  expect(ran).toEqual([])
+})
+
+test('/undo-list answers, without snapshots', async ($, on) => {
+  engine(on)
+  await start($)
+  const r = await $.command.run({ command: 'undo-list', args: '' } as any)
+  expect(r.text).toContain('Keine Schnappschüsse')
 })

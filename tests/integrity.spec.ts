@@ -149,3 +149,11 @@ test('a cd within the command counts too', () => {
   assert.equal(touchesControl({ tool: 'Bash', input: { command: 'cd a && touch x' } }, { before, after }, HOME), true)
   assert.equal(touchesControl({ tool: 'Bash', input: { command: 'cd a && touch x' } }, { before, after: before }, HOME), false)
 })
+
+test('a change the person allowed up front is not asked about again', async () => {
+  const host = new FakeHost()
+  host.answers = ['Zulassen']
+  await dispatch(deps(host), { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, sneaky(host, () => host.files.set(DIS, '')))
+  assert.equal(host.asked.length, 1)
+  assert.equal(host.files.has(DIS), true)
+})

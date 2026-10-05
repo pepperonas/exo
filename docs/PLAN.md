@@ -490,6 +490,26 @@ erst, wenn Martin Enter drückt.
 
 ---
 
+### 4.7 Stand Etappe 2 (2026-10-05) – Abweichungen und Ergänzungen
+
+- **Arbeitsverzeichnis:** Das Bash-Werkzeug behält sein Verzeichnis zwischen Aufrufen; exo
+  verfolgt die `cd`s jedes Aufrufs (`core/cwd.ts`). Secrets (Ziele von `>`/`tee`, Git-Verzeichnis),
+  Bremse (relative Pfade) und Selbstschutz rechnen damit. Bei `cd -`/`cd $X` ist es unbekannt.
+- **Secrets:** Werte, die mit `/` beginnen (Regex-Literale, Pfade), gelten nicht als Passwort.
+  `git push` prüft `git log -p HEAD --not --remotes` (alles, was noch auf keinem Remote liegt) statt
+  `@{u}..HEAD` – das trifft auch einen ersten Push ohne Upstream.
+- **Prod-Schild:** Ein Force-Push ohne Refspec fragt Git nach dem Branch; ist der nicht ermittelbar,
+  wird `main` angenommen (Vorsicht vor Bequemlichkeit). Ein ssh-Fehler (Exit 255) bei einer
+  Hausregel-Prüfung heißt „Prüfung nicht möglich“ – im Dialog vermerkt, Entscheidung beim Menschen.
+- **Bremse:** `xargs rm -rf` und `find -exec rm -rf {}` bekommen ihre Pfade erst zur Laufzeit –
+  das gilt als „nicht sicherbar“ und fragt. Ohne UI läuft die Bremse mit einem Hinweis weiter (sie
+  ist ein Komfort-Wächter; ein headless Skript soll nicht an ihr hängen).
+- **Selbstschutz + Wirkungsprüfung:** Wurde eine Steueränderung im Dialog zugelassen, fragt die
+  Wirkungsprüfung danach nicht noch einmal.
+- **Befehle:** `/undo-last [id]`, `/undo-list`; belegte Namen weichen auf `exo-<name>` aus.
+- **Testdaten:** Die Fake-Schlüssel der Tests tragen `exo-allow-secret`, sonst blockierte exo
+  die Commits seines eigenen Repos (Selbsttest mit dem eigenen Scanner: 0 Funde).
+
 ## 5. Zustandsvertrag (`types/index.d.ts`)
 
 `PluginState['exo']`: `status` (Statuszeilen-Slots), `banner` (AbovePrompt-Einträge),
