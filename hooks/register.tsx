@@ -39,6 +39,10 @@ function hostOf($: EngineInterface): Host {
       const s = await $.fs.stat(path)
       return { kind: s.kind, size: s.size, mtimeMs: s.mtimeMs }
     },
+    realPath: async path => {
+      const s = await $.fs.stat(path, { resolve: true })
+      return s.realPath ?? path
+    },
     run: async (argv, o) => {
       const r = await $.process.run(argv, o)
       return { exitCode: r.exitCode, stdout: r.stdout, stderr: r.stderr }

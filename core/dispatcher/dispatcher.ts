@@ -26,7 +26,7 @@ import type { ParseResult } from '../shell/parse'
 import { commands, summarize } from '../shell/words'
 import type { Cmd } from '../shell/words'
 import { KILL_HINT } from '../killswitch'
-import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControl } from '../selfprotect'
+import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
 
 export interface ToolCall {
   tool: string
@@ -142,7 +142,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
 
   // Self protection: always on, whatever the module switches say.
   try {
-    if (touchesControl(ctx.call)) {
+    if (await touchesControlResolved(ctx.call, p => deps.host.realPath(p))) {
       const what = isBash ? summarize(String(input.command ?? '')) : String(input.file_path ?? input.notebook_path ?? '')
       let allowed = false
       if (deps.interactive) {

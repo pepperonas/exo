@@ -308,7 +308,7 @@ test('liveness with the DISABLED file', async () => {
 })
 
 // ---- security review 2026-10-05: Claude must not switch its own guard off
-import { touchesControl } from '../core/selfprotect'
+import { touchesControl, touchesControlResolved } from '../core/selfprotect'
 
 const CONTROL_WRITES: [string, Record<string, unknown>][] = [
   ['Bash', { command: 'touch ~/.claude/exo/DISABLED' }],
@@ -324,17 +324,51 @@ const CONTROL_WRITES: [string, Record<string, unknown>][] = [
   ['Edit', { file_path: '/home/u/.claude/exo/rules.json', old_string: 'a', new_string: 'b' }],
   ['Edit', { file_path: '/home/u/.claude/settings.json', old_string: '"secrets": true', new_string: '"secrets": false' , replace_all: false }],
   ['Write', { file_path: '/home/u/.claude/settings.local.json', content: '{"pluginConfigs":{"exo":{}}}' }],
+  // second review: quoting, separate cd, >&, exec-capable readers, paths, other tools
+  ['Bash', { command: 'touch ~/.cla""ude/e""xo/DIS""ABLED' }],
+  ['Bash', { command: 'touch DISABLED' }],
+  ['Bash', { command: 'touch "DISAB"LED' }],
+  // deliberately over-cautious: the bare name plus a write asks, because the
+  // Bash tool keeps its working directory between calls
+  ['Bash', { command: 'echo DISABLED > notes.txt' }],
+  ['Bash', { command: 'echo x >& ~/.claude/exo/DISABLED' }],
+  ['Bash', { command: 'cat ~/.claude/exo/rules.json >& ~/.claude/exo/DISABLED' }],
+  ['Bash', { command: 'rg --pre "touch ~/.claude/exo/DISABLED" x ~/.claude/exo' }],
+  ['Bash', { command: 'LESSOPEN="|touch ~/.claude/exo/DISABLED" less ~/.claude/exo/rules.json' }],
+  ['Bash', { command: 'cp /tmp/x rules.json' }],
+  ['Bash', { command: 'cd ~/.claude/exo && touch disabled' }],
+  ['Write', { file_path: '/home/u/.claude//exo/DISABLED', content: '' }],
+  ['Write', { file_path: '/home/u/.claude/./exo/DISABLED', content: '' }],
+  ['Write', { file_path: '/home/u/.claude/x/../exo/DISABLED', content: '' }],
+  ['Write', { file_path: '/home/u/.Claude/EXO/DISABLED', content: '' }],
+  ['Write', { file_path: '/home/u/.claude/Settings.json', content: '{"pluginConfigs":{"exo":{}}}' }],
+  ['mcp__fs__write_file', { path: '/home/u/.claude/exo/DISABLED', content: '' }],
+  ['mcp__fs__move_file', { source: '/tmp/x', destination: '/home/u/.claude/exo/rules.json' }],
 ]
 const HARMLESS: [string, Record<string, unknown>][] = [
   ['Bash', { command: 'cat ~/.claude/exo/rules.json' }],
   ['Bash', { command: 'ls -la ~/.claude/exo && wc -l ~/.claude/exo/rules.json' }],
   ['Bash', { command: 'grep -n DISABLED ~/.claude/exo/rules.json' }],
   ['Bash', { command: 'npm test' }],
-  ['Bash', { command: 'echo DISABLED > notes.txt' }],
   ['Read', { file_path: '/home/u/.claude/exo/rules.json' }],
   ['Edit', { file_path: '/home/u/.claude/settings.json', old_string: '"theme": "dark"', new_string: '"theme": "light"' }],
   ['Write', { file_path: '/work/proj/src/exo.ts', content: 'export const exo = 1' }],
+  ['Bash', { command: 'echo "feature disabled" > log.txt' }],
+  ['Bash', { command: 'cat ~/.claude/exo/rules.json 2>&1 | head' }],
+  ['Bash', { command: 'grep -c x ~/.claude/exo/rules.json > /dev/null' }],
+  ['Grep', { pattern: 'x', path: '/home/u/.claude/exo' }],
+  ['mcp__fs__read_file', { path: '/work/proj/a.txt' }],
 ]
+
+test('symlinked paths are resolved before deciding', async () => {
+  const real = async (p: string) => (p.startsWith('/tmp/link') ? p.replace('/tmp/link', '/home/u/.claude/exo') : p)
+  assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/tmp/link/DISABLED', content: '' } }, real), true)
+  assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/work/a.ts', content: '' } }, real), false)
+  const broken = async () => {
+    throw new Error('ENOENT')
+  }
+  assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/work/new/a.ts', content: '' } }, broken), false)
+})
 for (const [tool, input] of CONTROL_WRITES)
   test(`control file change detected: ${tool} ${JSON.stringify(input).slice(0, 70)}`, () => assert.equal(touchesControl({ tool, input }), true))
 for (const [tool, input] of HARMLESS)

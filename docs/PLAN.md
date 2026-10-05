@@ -193,7 +193,16 @@ erkennt Schreibzugriffe auf `~/.claude/exo/` und auf exo-Einträge in
 „nur lesend?“-Prüfung: ausschließlich Leseprogramme ohne schreibende Umleitung). Solche
 Aufrufe brauchen ein **Zulassen** im Dialog; Esc oder fehlende UI → Ablehnung. Läuft im
 Dispatcher direkt nach dem Notausschalter, **unabhängig von den Modulschaltern**, fail closed.
-Grenze: Ein Agent mit Shell findet andere Wege (den Mod selbst ändern, ein Skript anderswo) –
+Zweite Prüfrunde (gleicher Tag): Bash wird auf dem Rohtext **und** auf den von der Shell
+„gekochten“ Wörtern geprüft (`DIS""ABLED`); der bloße Dateiname `DISABLED` bzw. `rules.json`
+reicht, weil das Bash-Werkzeug sein Arbeitsverzeichnis zwischen Aufrufen behält (`cd` im einen,
+`touch DISABLED` im nächsten Aufruf) – bewusst übervorsichtig, `echo DISABLED > notiz.txt` fragt
+deshalb nach. „Nur lesend“ heißt: Programme, die keine anderen starten können (ohne `rg --pre`,
+`less`/`LESSOPEN`), keine Umgebungs-Präfixe, keine schreibende Umleitung inkl. `>&datei`. Pfade
+werden normalisiert (`//`, `.`, `..`), ohne Groß-/Kleinschreibung verglichen (macOS) und über
+`$.fs.stat(…, { resolve: true })` durch Symlinks aufgelöst. Unbekannte Werkzeuge (MCP) werden
+auf jeden Pfad nach `~/.claude/exo` geprüft.
+Grenze: Ein Agent mit Shell findet andere Wege (den Mod selbst ändern, base64 in eine Shell) –
 Sicherheitsgurt, keine Sandbox.
 
 ### 3.5 Statuszeile
