@@ -1,0 +1,34 @@
+{
+  "name": "pepperonas-exo",
+  "owner": {
+    "name": "Martin Pfeffer",
+    "email": "martin.pfeffer@celox.io",
+    "url": "https://celox.io"
+  },
+  "metadata": {
+    "description": "exo — an exoskeleton for Claude Code, by Martin Pfeffer (celox.io)"
+  },
+  "plugins": [
+    {
+      "name": "exo",
+      "source": "./",
+      "description": "An exoskeleton for Claude Code: guards against costly mistakes, a cockpit while working, a recap at the end and a few extras",
+      "version": "0.1.0",
+      "author": {
+        "name": "Martin Pfeffer",
+        "url": "https://celox.io"
+      },
+      "homepage": "https://github.com/pepperonas/exo",
+      "license": "MIT",
+      "category": "productivity",
+      "tags": [
+        "mod",
+        "safety",
+        "guard",
+        "secrets",
+        "statusline",
+        "recap"
+      ]
+    }
+  ]
+}

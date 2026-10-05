@@ -42,8 +42,8 @@ export function scanHistory(): string[] {
   const addrs = prodAddresses()
   const addrRe = addrs.length ? new RegExp(addrs.map(a => `(?<![\\w.])${escape(a)}(?![\\w])`).join('|')) : null
   const check = (where: string, line: string, secrets: boolean, path = '') => {
-    if (addrRe?.test(line)) findings.push(`${where}: Prod-Adresse`)
-    if (PRIVATE.test(line)) findings.push(`${where}: private IP-Adresse`)
+    if (addrRe?.test(line)) findings.push(`${where}: prod address`)
+    if (PRIVATE.test(line)) findings.push(`${where}: private IP address`)
     // lockfiles: known key formats only (integrity hashes look random by design)
     if (secrets) for (const h of scanText(line, { lockfile: LOCKFILES.test(path) })) findings.push(`${where}: ${h.kind} (${h.masked})`)
   }
@@ -56,19 +56,19 @@ export function scanHistory(): string[] {
   }
   for (const block of git('log', '--all', '--format=%h%x00%B%x01').split('\x01')) {
     const [h, msg] = block.split('\x00')
-    if (h && msg) for (const l of msg.split('\n')) check(`${h.trim()} Commit-Nachricht`, l, true)
+    if (h && msg) for (const l of msg.split('\n')) check(`${h.trim()} commit message`, l, true)
   }
   return findings
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const f = scanHistory()
-  console.log(`Geprüft: ${repo}`)
-  console.log(`Prod-Adressen aus den lokalen Settings: ${prodAddresses().length}`)
+  console.log(`Scanned: ${repo}`)
+  console.log(`Prod addresses from local settings: ${prodAddresses().length}`)
   if (f.length) {
-    console.log(`${f.length} Fund(e):`)
+    console.log(`${f.length} finding(s):`)
     for (const x of f) console.log(`  ${x}`)
     process.exit(1)
   }
-  console.log('Keine Funde.')
+  console.log('No findings.')
 }

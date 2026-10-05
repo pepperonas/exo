@@ -1,14 +1,15 @@
 # Changelog
 
-Das Format folgt [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), die Versionen [Semantic Versioning](https://semver.org/lang/de/).
+All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] – 2026-10-05
+## [0.1.0] - 2026-10-05
 
-### Neu
-- **Kern:** Dispatcher mit fester Reihenfolge und Fehlerpolitik (Wächter fail closed, Komfort fail open), Journal, Bash-Parser (Substitutionen, Arithmetik, Parameterexpansion, `bash -c`, `ssh`-Remote-Befehle, `find -exec`, Wrapper), Statuszeile und Band, Store mit Budgets und Migrationen, `/exo`.
-- **Notausschalter:** `~/.claude/exo/DISABLED`, `EXO_DISABLE=1`, `/exo off`.
-- **Selbstschutz:** Änderungen an exos Schaltern brauchen ein Zulassen; Wirkungsprüfung setzt unbestätigte Änderungen zurück.
-- **Wächter:** Secret-Wächter, Prod-Schild mit Hausregeln und Trockenlauf, Aufräum-Bremse mit `/undo-last` und `/undo-list`, Kontext-Diät.
-- **Cockpit:** Testampel (mit Zustimmung pro Projekt), Fertig-Prüfer, Änderungs-Seitenleiste (`/changes`), CI-Ampel.
-- **Rückblick:** Recap (`/recap`), Lehren-Sammler, Zeiterfassung (`/hours`).
-- **Extras:** Erfolge (`/achievements`), Spinner-Kino, Gummi-Ente (`/duck`).
+### Added
+- **Core:** dispatcher with a fixed order and an error policy (guards fail closed, comfort modules fail open), journal, Bash parser (substitutions, arithmetic, parameter expansion, `bash -c`, remote commands of `ssh`, `find -exec`, wrappers), status line and band, store with budgets and migrations, `/exo`.
+- **Kill switch:** `~/.claude/exo/DISABLED`, `EXO_DISABLE=1`, `/exo off`.
+- **Self-protection:** changes to exo's switches need an *allow*; an effect check reverts changes that were not confirmed.
+- **Guards:** secret guard, prod shield with house rules and dry run, cleanup brake with `/undo-last` and `/undo-list`, context diet.
+- **Cockpit:** test light (with consent per project), done check, changes sidebar (`/changes`), CI light.
+- **Review:** recap (`/recap`), lessons, time tracking (`/hours`).
+- **Extras:** achievements (`/achievements`), spinner cinema, rubber duck (`/duck`).
+- **Tooling:** mutation probe (`npm run mutate`), git history scan (`npm run history-scan`), social card (`npm run social`), plugin marketplace (`/plugin install exo@pepperonas-exo`).

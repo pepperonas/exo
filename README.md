@@ -1,61 +1,160 @@
-# exo
+<div align="center">
 
-**Ein Exoskelett für Claude Code.** Ein Mod, der vor teuren Fehlern schützt, während der Arbeit den Überblick behält, am Ende zurückblickt – und ein paar Extras mitbringt, die Spaß machen und trotzdem helfen.
+<a href="https://github.com/pepperonas/exo"><img src="docs/social.png" alt="exo — an exoskeleton for Claude Code: guards, cockpit, recap and extras" width="100%"></a>
 
-Gebaut auf der Mod-Schnittstelle von Claude Code 2.1.289 (Function Hooks).
+# 🛡️ exo
 
-<!-- Screenshot: exo-Statuszeile unter dem Prompt (⛨ exo · ● 48/48 · ● CI grün · ⏱ 3:12 heute) -->
-<!-- GIF: Prod-Schild-Dialog mit Trockenlauf -->
+**An exoskeleton for Claude Code: one mod that stops the expensive mistakes before they happen, keeps a cockpit in view while you work, looks back when you're done — and brings a few extras that are fun and still useful.**
 
-> ⚠️ **exo ist ein Sicherheitsgurt, keine Sandbox.** Es fängt die häufigen, teuren Fehler ab – ein absichtlich verschleierter Befehl oder ein Agent, der den Mod selbst umschreibt, kommt durch. Details unter [Grenzen](#grenzen).
+<p>
+  <a href="#-install"><img alt="Install in 10 seconds" height="56" src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_Install-in_10_seconds-2E9E5B?style=for-the-badge"></a>
+  &nbsp;
+  <a href="#-modules"><img alt="14 modules in one mod" height="56" src="https://img.shields.io/badge/%F0%9F%A7%A9_Modules-14_in_one_mod-7B4DFF?style=for-the-badge"></a>
+</p>
+
+<h3>👉 <code>/plugin marketplace add pepperonas/exo</code> · <code>/plugin install exo@pepperonas-exo</code> — that's it.</h3>
+
+[![version](https://img.shields.io/badge/version-0.1.0-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
+[![node tests](https://img.shields.io/badge/node%20tests-512-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
+[![engine tests](https://img.shields.io/badge/engine%20tests-22-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
+[![mutations](https://img.shields.io/badge/mutations-165%2F165%20caught-FF6F00?style=for-the-badge&logo=testinglibrary&logoColor=white)](docs/MUTATIONS.md)
+[![lines of code](https://img.shields.io/badge/lines%20of%20code-6.9k-4B6BDF?style=for-the-badge&logo=typescript&logoColor=white)](core)
+
+[![CI](https://img.shields.io/github/actions/workflow/status/pepperonas/exo/ci.yml?branch=main&label=CI&logo=github)](https://github.com/pepperonas/exo/actions/workflows/ci.yml)
+[![Claude Code mod](https://img.shields.io/badge/Claude%20Code-mod-D97757?logo=anthropic&logoColor=white)](https://code.claude.com/docs/en/plugins/mods/overview)
+[![tested with](https://img.shields.io/badge/tested%20with-Claude%20Code%202.1.289-D97757?logo=anthropic&logoColor=white)](#requirements)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Node](https://img.shields.io/badge/Node-%E2%89%A520-339933?logo=nodedotjs&logoColor=white)](package.json)
+[![runtime deps](https://img.shields.io/badge/runtime%20dependencies-0-2E9E5B?logo=npm&logoColor=white)](package.json)
+[![modules](https://img.shields.io/badge/modules-14-8A63FF?logo=databricks&logoColor=white)](#-modules)
+[![UI language](https://img.shields.io/badge/UI-Deutsch-0E7C86?logo=googletranslate&logoColor=white)](#-faq)
+[![telemetry](https://img.shields.io/badge/telemetry-none-2E9E5B?logo=letsencrypt&logoColor=white)](#-privacy)
+[![kill switch](https://img.shields.io/badge/kill%20switch-3%20ways-F2CC60?logo=powerapps&logoColor=black)](#-kill-switch)
+[![Keep a Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-E05735?logo=keepachangelog&logoColor=white)](CHANGELOG.md)
+[![SemVer](https://img.shields.io/badge/SemVer-0.x-3F4551?logo=semver&logoColor=white)](https://semver.org)
+[![last commit](https://img.shields.io/github/last-commit/pepperonas/exo?logo=git&logoColor=white)](https://github.com/pepperonas/exo/commits/main)
+[![open issues](https://img.shields.io/github/issues/pepperonas/exo?logo=github)](https://github.com/pepperonas/exo/issues)
+[![repo size](https://img.shields.io/github/repo-size/pepperonas/exo?logo=github)](https://github.com/pepperonas/exo)
+[![stars](https://img.shields.io/github/stars/pepperonas/exo?logo=github)](https://github.com/pepperonas/exo/stargazers)
+[![forks](https://img.shields.io/github/forks/pepperonas/exo?logo=github)](https://github.com/pepperonas/exo/forks)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?logo=github)](#-contributing)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+[![Donate with PayPal](https://img.shields.io/badge/PayPal-support%20this%20project-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.com/donate/?business=martin.pfeffer@celox.io&currency_code=EUR&item_name=exo)
+[![Rate celox.io on Google](https://img.shields.io/badge/Google-rate%20celox.io-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://g.page/r/CXgdRV3QysvxEBM/review)
+
+</div>
 
 ---
 
-## Module
+> [!WARNING]
+> **exo is a seat belt, not a sandbox.** It catches the common, expensive mistakes — a key in a commit,
+> `systemctl restart` on production, `rm -rf` without a way back. A deliberately obfuscated command,
+> or an agent that rewrites the mod itself, can get past it. See [Limits](#%EF%B8%8F-limits).
 
-| Gruppe | Modul | Was es tut | Befehl |
+> [!NOTE]
+> **The interface speaks German.** Status line, dialogs, toasts and command output are in German;
+> this documentation, the code and the commits are in English.
+
+## 📸 Screenshots
+
+<!-- Screenshot: the exo status line under the prompt (⛨ exo · ● 48/48 · ● CI grün · ⏱ 3:12 heute) -->
+<!-- GIF: the prod shield dialog with dry run -->
+<!-- Screenshot: /exo status table -->
+<!-- Screenshot: /changes sidebar with diff -->
+<!-- Screenshot: /achievements card -->
+<!-- GIF: spinner cinema (excavator during npm install) -->
+
+<sub>Screenshots are on their way. Until then, the card at the top shows exo's own texts — it is rendered by <code>npm run social</code>, not drawn by hand.</sub>
+
+## ✨ Features
+
+- **Fourteen modules, one mod** — guards, cockpit, review and extras share one dispatcher with a fixed order, one journal and one status line. Every module switches on and off on its own.
+- **Guards fail closed** — if a guard crashes, only the call it was checking is refused. Comfort modules fail open and never get in your way.
+- **Risky steps are reversible** — before `rm -rf`, `git reset --hard` or `git clean`, exo takes a snapshot; `/undo-last` brings it back.
+- **Asks instead of just blocking** — production commands open a dialog with *run*, *cancel* and *dry run*, and your own house rules are checked first.
+- **Sees inside shell commands** — a real Bash parser follows `$(…)`, backticks, arithmetic, `bash -c`, `ssh host '…'`, `find -exec`, `sudo`/`env`/`xargs` wrappers and heredocs, so a destructive command can't hide in a substitution.
+- **Protects itself** — Claude can't switch exo off. Changes to exo's own settings need your *allow*; if a call changes them anyway, exo notices the effect afterwards and puts them back.
+- **A cockpit while you work** — tests run in the background after each change, the CI state sits under the prompt, every changed file is one click from its diff.
+- **A recap at the end** — duration, active time, files, tests before and after, cost, open points, and lessons for your `CLAUDE.md` that are only written when you tick them.
+- **No telemetry, no runtime dependencies** — the only network use is `gh` for the CI light and one model call when you ask for `/recap`.
+
+## 🧩 Modules
+
+| Group | Module | What it does | Command |
 |---|---|---|---|
-| Wächter | **Secret-Wächter** (`secrets`) | Prüft Write/Edit, Bash-Schreibvorgänge (`>`, `>>`, `tee`, Heredocs), `git commit` (Nachricht und Diff) und `git push` auf API-Schlüssel, Tokens, private Schlüssel, Passwörter und Zeichenketten mit hoher Entropie. Meldungen zeigen nur die maskierte Form (`sk-ant-…a1b2`). | – |
-| Wächter | **Prod-Schild** (`prodShield`) | Fragt vor `ssh`/`scp`/`rsync`/`sftp` auf Produktionshosts (auch über `~/.ssh/config`-Aliase, `-J`, `-o HostName`), vor `systemctl restart/stop/reload` dort, vor `DROP`/`TRUNCATE`/`DELETE`/`UPDATE` ohne `WHERE` und vor Force-Push auf `main`/`master`. Dialog: Ausführen / Abbrechen / Trockenlauf. Prüft vorher die Hausregeln. | – |
-| Wächter | **Aufräum-Bremse** (`brake`) | Schnappschuss vor `rm -rf`, `git reset --hard`, `git checkout -- .`, `git restore`, `git clean -f…` – getrackte Änderungen als Stash-Commit (mit Ref gesichert), ungetrackte Dateien als tar. | `/undo-last [id]`, `/undo-list` |
-| Wächter | **Kontext-Diät** (`diet`) | Große, lange oder generierte Dateien (Lockfiles, `*.min.js`, `*.map`, Logs) liest Claude als Anfang + Ende statt ganz, mit Hinweis und geschätzter Ersparnis. | – |
-| Cockpit | **Testampel** (`testLight`) | Nach Änderungen laufen die betroffenen Tests im Hintergrund (vitest, jest, `node --test`, pytest, cargo, gradle, go). Anzeige `● 48/48` / `● 2 rot`; rote Tests gehen in den nächsten Prompt. Fragt pro Projekt um Erlaubnis. | – |
-| Cockpit | **Fertig-Prüfer** (`doneCheck`) | Behauptet eine Antwort „fertig“ oder „funktioniert“, obwohl Dateien geändert wurden und danach kein grüner Test lief: dezenter Hinweis unter der Antwort. | – |
-| Cockpit | **Änderungs-Seitenleiste** (`sidebar`) | Alle in der Sitzung geänderten Dateien mit `+/−`, Diff und Zurücksetzen (mit Rückfrage und Schnappschuss). | `/changes` |
-| Cockpit | **CI-Ampel** (`ci`) | Zustand der GitHub-Actions-Läufe des Branches (braucht `gh`). Bei Rot: Toast und Knopf „Log an Claude geben“. | – |
-| Rückblick | **Recap** (`recap`) | Karte mit Dauer, aktiver Zeit, Turns, Dateien, Tests vorher/nachher, Kosten, offenen Punkten. Hinweis „Letzte Sitzung …“ beim nächsten Start im Projekt. | `/recap [md\|copy]` |
-| Rückblick | **Lehren-Sammler** (`lessons`) | Schlägt 1–3 Lehren aus der Sitzung für die Projekt-`CLAUDE.md` vor. Nichts wird ohne Häkchen geschrieben. | (in `/recap`) |
-| Rückblick | **Zeiterfassung** (`hours`) | Aktive Zeit je Projekt (Lücke über 5 min = Pause), Tagesstand in der Hinweiszeile. | `/hours [export csv\|json]` |
-| Extras | **Erfolge** (`achievements`) | 15 Abzeichen, z. B. „Zehn grüne Turns“, „Früher Vogel“, „Pac-Man hat nie den Geist gesehen“. | `/achievements` |
-| Extras | **Spinner-Kino** (`cinema`) | Kleine Filme im Spinner je Tätigkeit: Bagger bei `npm install`, Rakete beim Deploy, Detektiv bei `grep`, Kaffee bei langen Turns. | – |
-| Extras | **Gummi-Ente** (`duck`) | Fünf Fragen zur Fehlersuche, daraus ein sauberer Prompt zum Bearbeiten. | `/duck` |
+| 🛡 Guards | **Secret guard** (`secrets`) | Checks Write/Edit, Bash writes (`>`, `>>`, `tee`, heredocs), `git commit` (message and diff) and `git push` for API keys, tokens, private keys, passwords and high-entropy strings. Messages only ever show the masked form (`sk-ant-…a1b2`). | – |
+| 🛡 Guards | **Prod shield** (`prodShield`) | Asks before `ssh`/`scp`/`rsync`/`sftp` to production hosts (also via `~/.ssh/config` aliases, `-J`, `-o HostName`), before `systemctl restart/stop/reload` there, before `DROP`/`TRUNCATE`/`DELETE`/`UPDATE` without `WHERE` and before a force push to `main`/`master`. Dialog: run / cancel / dry run. Checks the house rules first. | – |
+| 🛡 Guards | **Cleanup brake** (`brake`) | Snapshot before `rm -rf`, `git reset --hard`, `git checkout -- .`, `git restore`, `git clean -f…` — tracked changes as a stash commit (kept alive by a ref), untracked files as a tarball. | `/undo-last [id]`, `/undo-list` |
+| 🛡 Guards | **Context diet** (`diet`) | Large, long or generated files (lockfiles, `*.min.js`, `*.map`, logs) are read as head + tail instead of whole, with a note and the estimated saving. | – |
+| 🧭 Cockpit | **Test light** (`testLight`) | After changes, the affected tests run in the background (vitest, jest, `node --test`, pytest, cargo, gradle, go). Shows `● 48/48` or `● 2 rot`; red tests go into your next prompt. Asks for permission per project. | – |
+| 🧭 Cockpit | **Done check** (`doneCheck`) | When an answer claims "done" or "works" although files changed and no green test ran afterwards: a quiet note under the answer. | – |
+| 🧭 Cockpit | **Changes sidebar** (`sidebar`) | Every file changed in the session with `+/−`, its diff, and revert (with confirmation and a snapshot). | `/changes` |
+| 🧭 Cockpit | **CI light** (`ci`) | State of the branch's GitHub Actions runs (needs `gh`). On red: a toast and a button that hands the log to Claude. | – |
+| 🔁 Review | **Recap** (`recap`) | A card with duration, active time, turns, files, tests before/after, cost and open points. A "last session …" hint the next time you start in that project. | `/recap [md\|copy]` |
+| 🔁 Review | **Lessons** (`lessons`) | Suggests 1–3 lessons from the session for the project's `CLAUDE.md`. Nothing is written without a tick. | (in `/recap`) |
+| 🔁 Review | **Time tracking** (`hours`) | Active time per project (a gap over 5 min is a break), today's total in the hint line. | `/hours [export csv\|json]` |
+| 🎉 Extras | **Achievements** (`achievements`) | 15 badges — ten green turns in a row, early bird, Pac-Man never saw the ghost, … | `/achievements` |
+| 🎉 Extras | **Spinner cinema** (`cinema`) | Small films in the spinner per activity: an excavator during `npm install`, a rocket on deploy, a detective during `grep`, coffee on long turns. | – |
+| 🎉 Extras | **Rubber duck** (`duck`) | Five debugging questions, turned into a clean prompt you can edit. | `/duck` |
 
-Dazu der Kern: **`/exo`** zeigt Zustand, Zeitverbrauch und letzte Fehler aller Module und schaltet sie.
+And the core: **`/exo`** shows state, time spent and last errors of every module, and switches them.
 
-<!-- Screenshot: /exo Statustabelle -->
-<!-- Screenshot: /changes Seitenleiste mit Diff -->
-<!-- Screenshot: /achievements Karte -->
-<!-- GIF: Spinner-Kino (Bagger bei npm install) -->
+## 📥 Install
 
----
+### Requirements
 
-## Installation
+- **Claude Code with mods** — exo is tested with **2.1.289**.
+- **Optional:** `gh` (logged in) for the CI light; `git` for the cleanup brake's stash snapshots; macOS for sound.
 
-exo ist ein einzelner Mod. Zum Ausprobieren aus einem Klon:
+### Option 1 — marketplace (recommended)
+
+The repository is its own plugin marketplace. In Claude Code:
+
+```
+/plugin marketplace add pepperonas/exo
+/plugin install exo@pepperonas-exo
+```
+
+or from the shell:
+
+```bash
+claude plugin marketplace add pepperonas/exo
+claude plugin install exo@pepperonas-exo
+```
+
+Update with `/plugin marketplace update pepperonas-exo`, then `claude plugin update exo@pepperonas-exo`. Settings: `/plugin configure exo@pepperonas-exo` — every option has a default, so you can skip it.
+
+### Option 2 — skills folder
+
+Claude Code loads a plugin it finds in `~/.claude/skills/<name>` by itself, in every session:
+
+```bash
+git clone https://github.com/pepperonas/exo ~/.claude/skills/exo
+```
+
+Update with `git -C ~/.claude/skills/exo pull`. If you also install it from the marketplace, the marketplace copy wins.
+
+### Option 3 — one session
 
 ```bash
 git clone https://github.com/pepperonas/exo
-cd exo && npm ci && npm test
-claude --plugin-dir /pfad/zu/exo
+claude --plugin-dir ./exo
 ```
 
-Oder dauerhaft über `CLAUDE_CODE_PLUGIN_DIRS` in der Umgebung bzw. im `env`-Block von `~/.claude/settings.json`.
+### Option 4 — desktop app and SDK hosts
 
-exo funktioniert ohne Einrichtung. Ohne eingetragene Produktionshosts ist der Prod-Schild nur für SQL und Force-Push aktiv.
+Where you can't pass a flag, name the folder in `CLAUDE_CODE_PLUGIN_DIRS` — in your shell environment or in the `env` block of `~/.claude/settings.json`:
 
-### Produktionshosts eintragen
+```json
+{ "env": { "CLAUDE_CODE_PLUGIN_DIRS": "~/src/exo" } }
+```
 
-In `~/.claude/settings.json` (nie ins Repository):
+exo works without any setup. Without production hosts, the prod shield only covers SQL and force pushes.
+
+### Production hosts
+
+In `~/.claude/settings.json` — never in a repository:
 
 ```json
 {
@@ -69,45 +168,61 @@ In `~/.claude/settings.json` (nie ins Repository):
 }
 ```
 
-Der Prod-Schild erkennt die Hosts über Name, Adresse und alle `Host`-Einträge in `~/.ssh/config`, deren `HostName` darauf zeigt. Ändern geht auch über `/config`.
+The prod shield recognises a host by its name, its address and every `Host` entry in `~/.ssh/config` whose `HostName` points to it. You can also change the list in `/config`.
 
----
+## 🕹️ Usage
 
-## Konfiguration
+| Command | What it does |
+|---|---|
+| `/exo` | Status of every module: on/off, time spent, last error, kill switch, rules |
+| `/exo on` · `/exo off` | Everything on / off (stored) |
+| `/exo on\|off <module>` | One module, e.g. `/exo off cinema` |
+| `/exo reset <module>` | Clears a module's broken mark |
+| `/exo rules` | The house rules in force |
+| `/undo-last [id]` · `/undo-list` | Restore a cleanup-brake snapshot · list them |
+| `/changes` | The changes sidebar |
+| `/recap [md\|copy]` | Recap of this session; `md` saves it as `.exo/recap-<date>.md` in the project, `copy` puts it on the clipboard |
+| `/hours [export csv\|json]` | Active time per project this week; export for your own use |
+| `/achievements` | Your badges |
+| `/duck` | Rubber-duck debugging |
 
-Alle Optionen über `/config` oder `pluginConfigs.exo.options` in `~/.claude/settings.json`.
+If another plugin already owns a name, exo registers its command as `/exo-<name>` instead.
 
-| Option | Typ | Standard | Bedeutung |
+## ⚙️ Configuration
+
+All options are in `/config` under **exo**, or in `pluginConfigs.exo.options` in `~/.claude/settings.json`.
+
+| Option | Type | Default | Meaning |
 |---|---|---|---|
-| `secrets` | Schalter | an | Secret-Wächter |
-| `prodShield` | Schalter | an | Prod-Schild |
-| `brake` | Schalter | an | Aufräum-Bremse |
-| `diet` | Schalter | an | Kontext-Diät |
-| `testLight` | Schalter | an | Testampel |
-| `doneCheck` | Schalter | an | Fertig-Prüfer |
-| `sidebar` | Schalter | an | Änderungs-Seitenleiste |
-| `ci` | Schalter | an | CI-Ampel |
-| `recap` | Schalter | an | Recap |
-| `lessons` | Schalter | an | Lehren-Sammler |
-| `hours` | Schalter | an | Zeiterfassung |
-| `achievements` | Schalter | an | Erfolge |
-| `cinema` | Schalter | an | Spinner-Kino |
-| `duck` | Schalter | an | Gummi-Ente |
-| `prodHosts` | Liste `name=adresse` | leer | Produktionshosts |
-| `secretAllowPaths` | Liste von Globs | `**/test/fixtures/**`, `**/*.example`, `**/.env.example` | Pfade, in denen Geheimnisse erlaubt sind |
-| `snapshotMaxMb` | Zahl | 500 | Darüber fragt die Aufräum-Bremse statt still zu sichern |
-| `dietMaxKb` | Zahl | 256 | Ab dieser Größe liest Claude nur Anfang und Ende |
-| `dietMaxLines` | Zahl | 2000 | Ab dieser Zeilenzahl ebenso |
-| `testCommand` | Text | leer | Überschreibt die Runner-Erkennung; `{files}` wird durch die geänderten Dateien ersetzt |
-| `quietHours` | `HH-HH` | `22-07` | In dieser Zeit keine Erfolgs-Toasts und -Töne |
-| `sound` | Schalter | aus | Ton bei neuen Abzeichen (nur macOS) |
-| `reducedMotion` | Schalter | aus | Spinner-Kino als Standbild |
+| `secrets` | switch | on | Secret guard |
+| `prodShield` | switch | on | Prod shield |
+| `brake` | switch | on | Cleanup brake |
+| `diet` | switch | on | Context diet |
+| `testLight` | switch | on | Test light |
+| `doneCheck` | switch | on | Done check |
+| `sidebar` | switch | on | Changes sidebar |
+| `ci` | switch | on | CI light |
+| `recap` | switch | on | Recap |
+| `lessons` | switch | on | Lessons |
+| `hours` | switch | on | Time tracking |
+| `achievements` | switch | on | Achievements |
+| `cinema` | switch | on | Spinner cinema |
+| `duck` | switch | on | Rubber duck |
+| `prodHosts` | list of `name=address` | empty | Production hosts |
+| `secretAllowPaths` | list of globs | `**/test/fixtures/**`, `**/*.example`, `**/.env.example` | Paths where secrets are allowed |
+| `snapshotMaxMb` | number | 500 | Above this the cleanup brake asks instead of saving silently |
+| `dietMaxKb` | number | 256 | From this size Claude reads head and tail only |
+| `dietMaxLines` | number | 2000 | Likewise from this many lines |
+| `testCommand` | text | empty | Overrides runner detection; `{files}` becomes the changed files |
+| `quietHours` | `HH-HH` | `22-07` | No achievement toasts or sounds during these hours |
+| `sound` | switch | off | Sound on new badges (macOS only) |
+| `reducedMotion` | switch | off | Spinner cinema as a still image |
 
-`/exo on|off <modul>` überschreibt die Schalter für dich dauerhaft (gespeichert im Store von exo).
+`/exo on|off <module>` overrides the switches for you, persistently (kept in exo's store).
 
-### Hausregeln (`~/.claude/exo/rules.json`)
+### House rules (`~/.claude/exo/rules.json`)
 
-Regeln, die der Prod-Schild vor einem Befehl prüft. Fehlt die Datei, legt exo sie mit dieser Standardregel an:
+Rules the prod shield checks before a command. If the file is missing, exo creates it with this default rule:
 
 ```json
 {
@@ -125,71 +240,142 @@ Regeln, die der Prod-Schild vor einem Befehl prüft. Fehlt die Datei, legt exo s
 }
 ```
 
-| Feld | Bedeutung |
+| Field | Meaning |
 |---|---|
-| `id` | Kleinbuchstaben, Ziffern, `-` |
-| `hosts` | Namen aus `prodHosts` oder `*` |
-| `match` | Regulärer Ausdruck auf den Befehl |
-| `check` | Prüfbefehl als argv; `{host}` wird zur Adresse |
-| `blockWhen` | `exit0` (blockieren, wenn die Prüfung 0 liefert) oder `exitNonZero` |
-| `text` | Begründung bei Ablehnung |
+| `id` | Lower-case letters, digits, `-` |
+| `hosts` | Names from `prodHosts`, or `*` |
+| `match` | Regular expression on the command |
+| `check` | Check command as argv; `{host}` becomes the address |
+| `blockWhen` | `exit0` (block when the check exits 0) or `exitNonZero` |
+| `text` | Reason shown when the command is refused |
 
-Eine kaputte oder ungültige Datei bringt exo nicht zum Absturz: Es gelten die eingebauten Regeln, und `/exo` sowie ein Toast zeigen, was nicht stimmt.
+A broken or invalid file never crashes exo: the built-in rules apply, and `/exo` plus a toast tell you what's wrong.
 
----
+## 🚨 Kill switch
 
-## Notausschalter
+Three ways to switch exo off completely:
 
-Drei Wege, exo komplett abzuschalten:
+1. **`touch ~/.claude/exo/DISABLED`** — works immediately, from a second terminal too, even if exo is blocking Bash in this session.
+2. **`EXO_DISABLE=1 claude …`** — for the whole session.
+3. **`/exo off`** — stored; `/exo on` lifts it.
 
-1. **`touch ~/.claude/exo/DISABLED`** – wirkt sofort, auch aus einem zweiten Terminal, auch wenn exo in dieser Sitzung gerade Bash blockiert.
-2. **`EXO_DISABLE=1 claude …`** – für die ganze Sitzung.
-3. **`/exo off`** – gespeichert, `/exo on` hebt es auf.
+Claude itself can't switch exo off: changes to `~/.claude/exo/`, to exo's entries in the settings and to its stored switches need your **allow** in a dialog. If a call changes them anyway (say, through an obfuscated command), exo asks afterwards whether the change should stay, and reverts it without your consent.
 
-Claude selbst kann exo nicht abschalten: Änderungen an `~/.claude/exo/`, an exos Einträgen in den Settings und an den gespeicherten Schaltern brauchen dein **Zulassen** im Dialog. Ändert ein Aufruf sie trotzdem (etwa über einen verschleierten Befehl), fragt exo danach, ob die Änderung bleiben soll, und setzt sie ohne Zustimmung zurück.
+## 🧠 How it works
 
----
-
-## Grenzen
-
-- **Sicherheitsgurt, keine Sandbox.** Erkannt wird, was in Befehlen und Dateiinhalten erkennbar ist. Absichtlich verschleierte Befehle (z. B. in Skripten, die Claude vorher schreibt), Werkzeuge außerhalb von Claude Code und ein Agent, der exo selbst umschreibt, sind nicht abgedeckt.
-- **Lädt das Modul nicht, schützt es nicht.** Claude Code lässt bei einem fehlerhaften Mod alles durch. `/exo` zeigt den Zustand; fehlt `⛨ exo` unter dem Prompt, ist exo nicht aktiv.
-- **Ein Wächter, der abstürzt,** lehnt nur den betroffenen Aufruf ab (fail closed); Komfortmodule laufen bei Fehlern weiter (fail open). Fällt exos Kern aus, gehen nur reine Lesewerkzeuge durch.
-- **Dialoge brauchen eine Oberfläche.** Unter `claude -p` lehnt der Prod-Schild ab, die Testampel startet nichts, Steueränderungen werden zurückgesetzt.
-- **Arbeitsverzeichnis von Bash:** exo verfolgt die `cd`s zwischen Aufrufen. Nach `cd -` oder `cd $VAR` kennt es den Ort nicht mehr sicher.
-- **Seitenleiste und Fertig-Prüfer** sehen Änderungen über Write/Edit, nicht über Bash (`sed -i`, Skripte).
-- **`~/.ssh/config`:** `Include` und `Match` werden nicht ausgewertet.
-- **Testampel:** Bei `node --test`/`npm test` läuft die ganze Suite (keine verlässliche Zuordnung Datei → Test). Sie führt Befehle aus deinem Projekt aus – deshalb fragt sie pro Projekt und erneut, wenn sich die Test-Konfiguration ändert.
-- **Schreibvorgänge von exo selbst** (CLAUDE.md, Recap-Dateien) prüfen, dass der Pfad aufgelöst im Projekt liegt. Zwischen Prüfung und Schreiben bleibt ein kurzes Zeitfenster (`$.fs` kennt kein atomares Umbenennen).
-- **Ton** nur auf macOS (`afplay`).
-
----
-
-## Daten und Datenschutz
-
-- **Keine Telemetrie.** Netzwerk nutzen nur `gh` (CI-Ampel) und der eigene Modellaufruf für offene Punkte bei `/recap` (über die Sitzung von Claude Code).
-- **Gespeichert** in exos Plugin-Store (höchstens ~3 MiB): Schalter, Journal der laufenden Sitzung (Befehle nur ohne Argumente, keine Prompt- oder Antworttexte), Sitzungsfakten, Stunden, Erfolge, Testampel-Zustimmungen.
-- **Auf der Platte** unter `~/.claude/exo/`: `rules.json`, Schnappschüsse (`snapshots/`, 20 Stück oder 7 Tage), Ausgangsstände der Seitenleiste (`originals/`), Stunden-Exporte.
-- **Geheimnisse** erscheinen nie im Klartext in Meldungen, Journal oder Store.
-
----
-
-## Entwicklung
-
-```bash
-npm test            # Logik, ohne Claude Code (node --test)
-npm run test:engine # Hooks gegen die echte Engine (claude plugin test)
-npm run check       # tsc --strict + claude plugin validate
-npm run mutate      # Mutationsprobe: jeder sicherheitsrelevante Test einmal rot gesehen
+```
+ tool.call ─► kill switch? ─► parse Bash once ─► self-protection (text check)
+                                                        │
+   ┌────────────────────────────────────────────────────┘
+   ▼
+ secrets ─► prodShield ─► diet ─► brake ─► testLight · sidebar · doneCheck · ci · recap · …
+ (fail closed)            (fail open)       (comfort modules, fail open)
+   │
+   ▼
+ next() ─► journal file.changed ─► effect check (control state before/after) ─► after-steps
 ```
 
-Aufbau: `hooks/register.tsx` ist die einzige Stelle, die mit der Engine spricht (Adapter `hostOf($)`); der Kern (`core/`) und die Module (`modules/`) arbeiten gegen das Interface `Host`. Alle `tool.call`-Aufrufe laufen durch einen Dispatcher mit fester Reihenfolge. Details: [`docs/PLAN.md`](docs/PLAN.md), Mutationsprotokoll: [`docs/MUTATIONS.md`](docs/MUTATIONS.md).
+- **One adapter.** `hooks/register.tsx` is the only file that talks to Claude Code's engine (`$`). Core and modules work against a small `Host` interface — which is why 503 tests run on plain Node.
+- **A fixed order with an error policy.** Guards fail closed, comfort modules fail open; every step has a 50 ms budget.
+- **Text check *and* effect check.** The text check warns before a call; the effect check compares exo's control state before and after, and that is what actually holds — four review rounds kept finding new spellings that slip past any text check.
+- **One journal.** Every module reads the same session journal (commands without arguments, never prompt or answer text); recap, hours and achievements are built on it.
+- **A real shell parser.** Words carry quoting, expansions, globs and nested substitutions; parsing never throws and is bounded in depth and size.
 
----
+### 🔒 Privacy
 
-## Lizenz
+- **No telemetry.** The only network use is `gh` (CI light) and one model call through Claude Code's own session when `/recap` lists open points.
+- **Stored** in exo's plugin store (at most ~3 MiB): switches, the journal of the current session (commands without arguments, no prompt or answer text), session facts, hours, achievements, test-light consents.
+- **On disk** under `~/.claude/exo/`: `rules.json`, snapshots (`snapshots/`, newest 20 or 7 days), the sidebar's originals (`originals/`), hour exports.
+- **Secrets** never appear in plain text in messages, the journal or the store.
 
-MIT – siehe [LICENSE](LICENSE).
+## ⚠️ Limits
+
+- **A seat belt, not a sandbox.** exo catches what is recognisable in commands and file contents. Deliberately obfuscated commands (in scripts Claude wrote beforehand, for example), tools outside Claude Code and an agent that rewrites exo itself are not covered.
+- **If the module doesn't load, it doesn't protect.** Claude Code lets everything through when a mod fails to load. `/exo` shows the state; if `⛨ exo` is missing under the prompt, exo is not active.
+- **A crashing guard** refuses only the call it was checking (fail closed); comfort modules keep running on errors (fail open). If exo's core fails, only read-only tools get through.
+- **Dialogs need a surface.** Under `claude -p` the prod shield refuses, the test light starts nothing, and control changes are reverted.
+- **Bash working directory:** exo follows the `cd`s between calls. After `cd -` or `cd $VAR` it no longer knows the place for sure.
+- **The sidebar and the done check** see changes made through Write/Edit, not through Bash (`sed -i`, scripts).
+- **`~/.ssh/config`:** `Include` and `Match` are not evaluated.
+- **Test light:** with `node --test`/`npm test` the whole suite runs (there is no reliable file → test mapping). It runs commands from your project — so it asks per project, and again when the test configuration changes.
+- **exo's own writes** (`CLAUDE.md`, recap files) check that the resolved path lies inside the project. Between check and write there is a short window (`$.fs` has no atomic rename).
+- **Sound** on macOS only (`afplay`).
+
+## 🏛️ Architecture
+
+| Path | Role |
+|---|---|
+| [`hooks/register.tsx`](hooks/register.tsx) | The mod: registration, the `hostOf($)` adapter, `$.state` atoms, render hooks, commands |
+| [`core/adapter/host.ts`](core/adapter/host.ts) | The `Host` interface everything else works against |
+| [`core/dispatcher/`](core/dispatcher) | Fixed step order, error policy, budgets |
+| [`core/shell/`](core/shell) | Bash parser, command words, `git` calls |
+| [`core/selfprotect.ts`](core/selfprotect.ts) · [`core/integrity.ts`](core/integrity.ts) | Text check and effect check for exo's own control state |
+| [`core/journal/`](core/journal) · [`core/store/`](core/store) | Session journal; store with budgets and migrations |
+| [`core/statusline/`](core/statusline) | Status line slots and banners |
+| [`modules/waechter/`](modules/waechter) | Guards: secret guard, prod shield, cleanup brake, context diet |
+| [`modules/cockpit/`](modules/cockpit) | Test light, done check, changes sidebar, CI light |
+| [`modules/rueckblick/`](modules/rueckblick) | Review: recap, lessons, time tracking |
+| [`modules/extras/`](modules/extras) | Achievements, spinner cinema, rubber duck |
+| [`tools/`](tools) | Mutation probe, history scan, social card |
+| [`docs/PLAN.md`](docs/PLAN.md) | The design and its decisions |
+
+Detection logic is pure and engine-free (`*-logic.ts`); the modules around it do the I/O.
+
+## 🧪 Testing
+
+**Node suite** — `tests/*.spec.ts`, plain `node:test`, no Claude Code needed; this is what CI runs. Parser, detection rules, dispatcher order and error policy, self-protection, effect check, snapshots against a real temporary repository, and **drift guards** that hold this README to the code: every option, module and command, the default house rule, the version, and the test-count badges.
+
+**Engine suite** — `hooks/*.test.tsx`, run by `claude plugin test .` against Claude Code's own engine: registration, the status line, refusals, dialogs, the kill switch.
+
+**Every security-relevant test is seen red once.** `npm run mutate` copies the repo, puts a bug back (proven by checksum), and expects the named tests to fail — **165 of 165** mutations are caught. The protocol is in [`docs/MUTATIONS.md`](docs/MUTATIONS.md).
+
+```bash
+npm install              # dev tools only; the mod itself has no dependencies
+npm test                 # node suite (CI)
+npm run test:engine      # engine suite (claude plugin test .)
+npm run check            # tsc --strict + claude plugin validate
+npm run mutate           # mutation probe
+npm run history-scan     # git history: prod addresses, private IPs, secrets
+npm run social           # re-render docs/social.png and the icon (needs `npx playwright install chromium`)
+```
+
+## ❓ FAQ
+
+**Is there an English interface?** Not yet. The interface texts are German by design; an English set is on the list.
+
+**exo blocked something harmless.** Each refusal names the module. `/exo off <module>` switches it off; for the secret guard, add the path to `secretAllowPaths` or mark the line with `exo-allow-secret`.
+
+**The test light doesn't run.** It needs your permission per project (a dialog the first time) and asks again when the test configuration changes. `testCommand` overrides the detection.
+
+**Where are my snapshots?** `/undo-list`. Tracked changes are stash commits under `refs/exo/snapshots/`, untracked files tarballs under `~/.claude/exo/snapshots/`; the newest 20 are kept, for at most 7 days.
+
+**Does exo send anything anywhere?** No. See [Privacy](#-privacy).
+
+**I only want the extras.** Switch the other modules off in `/config` or with `/exo off <module>` — every module is independent.
+
+## 📝 Changelog
+
+The full history is in [CHANGELOG.md](CHANGELOG.md) ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)).
+
+- **0.1.0** — first release: core, kill switch, self-protection, guards, cockpit, review and extras.
+
+## 🤝 Contributing
+
+Issues and pull requests are welcome. Please keep both suites green (`npm test`, `npm run test:engine`), run `npm run check`, and put the bug back once before you trust a new security test (`npm run mutate`). A change to a command, a module or a setting usually needs its counterpart in this README in the same PR — the drift guards will point at it. Never put real hosts or addresses in the repository; examples use `203.0.113.x`, `198.51.100.x` and `example.com`.
+
+## 💛 Support
+
+exo is free and stays that way. If it saved you from one bad command:
+
+- ⭐ **Star the repo** — it helps others find it.
+- 💶 **[Donate with PayPal](https://www.paypal.com/donate/?business=martin.pfeffer@celox.io&currency_code=EUR&item_name=exo)** — keeps it maintained.
+- 📝 **[Rate celox.io on Google](https://g.page/r/CXgdRV3QysvxEBM/review)** — helps just as much.
+
+## 📄 License
+
+MIT © 2026 **Martin Pfeffer** · [celox.io](https://celox.io). See [LICENSE](LICENSE).
+
+exo is an independent community project and is not affiliated with or endorsed by Anthropic. *Claude* and *Claude Code* are trademarks of Anthropic, PBC.
 
 ---
 
