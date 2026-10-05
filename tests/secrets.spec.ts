@@ -233,3 +233,18 @@ test('a clean commit passes', async () => {
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'git commit -m "x"' } }, ok(log))
   assert.equal(log.length, 1)
 })
+
+// ---- review 2026-10-05: git add in the same command
+test('git add && git commit: changes and new files staged by the same command are scanned', async () => {
+  const host = new FakeHost()
+  host.files.set('/work/proj/new.ts', `export const k = "${GITHUB}"\n`)
+  host.runResult = argv => {
+    const a = argv.join(' ')
+    if (a.includes('ls-files')) return { exitCode: 0, stdout: 'new.ts\n', stderr: '' }
+    if (a.includes('rev-parse --show-toplevel')) return { exitCode: 0, stdout: '/work/proj\n', stderr: '' }
+    return { exitCode: 0, stdout: '', stderr: '' }
+  }
+  const r = await dispatch(deps(host), { tool: 'Bash', input: { command: 'git add -A && git commit -m "x"' } }, ok([]))
+  assert.ok(r.deny?.includes('new.ts:1'), JSON.stringify(r))
+  assert.ok(host.runs.some(x => x.argv.includes('diff') && x.argv.includes('HEAD')))
+})

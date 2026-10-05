@@ -99,9 +99,13 @@ async function bash(ctx: CallCtx): Promise<{ deny: string } | void> {
     const skip = (f: string) => matchesAny(f, ctx.config.secretAllowPaths)
     if (g.sub === 'commit') {
       for (const h of scanText(raw)) hits.push({ ...h, file: '(Commit-Nachricht)' })
-      const all = flags(g.args).has('a') || flags(g.args).has('--all')
+      // `git add … && git commit`: the diff is read before the add runs, so
+      // everything the add would stage counts (tracked changes, new files)
+      const adds = ctx.cmds.map(gitCall).filter(x => x?.sub === 'add')
+      const all = flags(g.args).has('a') || flags(g.args).has('--all') || adds.length > 0
       const r = await ctx.untimed(ctx.host.run(['git', '-C', dir, 'diff', all ? 'HEAD' : '--cached', '-U0', '--no-color', '--no-ext-diff'], { timeoutMs: 20_000 }))
       if (r.exitCode === 0) hits.push(...scanDiff(r.stdout, skip))
+      if (adds.length) hits.push(...(await untrackedHits(ctx, dir, adds.flatMap(a => a!.args), skip)))
     }
     if (g.sub === 'push') {
       const r = await ctx.untimed(ctx.host.run(['git', '-C', dir, 'log', '-p', '-U0', '--no-color', '--no-ext-diff', 'HEAD', '--not', '--remotes'], { timeoutMs: 20_000 }))
@@ -110,6 +114,33 @@ async function bash(ctx: CallCtx): Promise<{ deny: string } | void> {
     }
   }
   if (hits.length) return { deny: denyText(hits) }
+}
+
+const UNTRACKED_MAX = 200
+
+/** New files a `git add <pathspec>` would stage, scanned whole. */
+async function untrackedHits(ctx: CallCtx, dir: string, addArgs: string[], skip: (f: string) => boolean): Promise<Located[]> {
+  const r = await ctx.untimed(ctx.host.run(['git', '-C', dir, 'ls-files', '--others', '--exclude-standard'], { timeoutMs: 20_000 })).catch(() => null)
+  if (!r || r.exitCode !== 0) return []
+  const specs = addArgs.filter(a => !a.startsWith('-'))
+  const everything = specs.length === 0 || specs.some(a => a === '.' || a === ':/' || a === '*') || addArgs.some(a => a === '-A' || a === '--all')
+  const files = r.stdout
+    .split('\n')
+    .filter(Boolean)
+    .filter(f => everything || specs.some(p => f === p || f.startsWith(p.replace(/\/$/, '') + '/')))
+    .slice(0, UNTRACKED_MAX)
+  const out: Located[] = []
+  for (const f of files) {
+    if (skip(f)) continue
+    let text: string
+    try {
+      text = await ctx.untimed(ctx.host.readFile(`${dir}/${f}`))
+    } catch {
+      continue // too big or unreadable: git add would take it, the diff check of the next commit will see it
+    }
+    for (const h of scanText(text, { lockfile: LOCKFILES.test(f) })) out.push({ ...h, file: f })
+  }
+  return out
 }
 
 export function secretsStep(): Step {

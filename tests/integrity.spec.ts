@@ -150,10 +150,42 @@ test('a cd within the command counts too', () => {
   assert.equal(touchesControl({ tool: 'Bash', input: { command: 'cd a && touch x' } }, { before, after: before }, HOME), false)
 })
 
-test('a change the person allowed up front is not asked about again', async () => {
+test('a Write the person allowed up front is not asked about again', async () => {
   const host = new FakeHost()
   host.answers = ['Zulassen']
-  await dispatch(deps(host), { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, sneaky(host, () => host.files.set(DIS, '')))
+  await dispatch(deps(host), { tool: 'Write', input: { file_path: DIS, content: '' } }, sneaky(host, () => host.files.set(DIS, '')))
   assert.equal(host.asked.length, 1)
   assert.equal(host.files.has(DIS), true)
+})
+
+test('after a Bash approval the effect is asked about once more (the text does not show it)', async () => {
+  const host = new FakeHost()
+  runRm(host)
+  host.answers = ['Zulassen', 'Behalten']
+  await dispatch(deps(host), { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, sneaky(host, () => host.files.set(DIS, '')))
+  assert.equal(host.asked.length, 2)
+  assert.equal(host.files.has(DIS), true)
+})
+
+test('an approved change of one switch does not cover another one', async () => {
+  const host = new FakeHost()
+  runRm(host)
+  host.answers = ['Zulassen'] // allows the rules.json edit it was shown …
+  await dispatch(deps(host), { tool: 'Bash', input: { command: 'cp /tmp/r ~/.claude/exo/rules.json' } }, sneaky(host, () => {
+    host.files.set(RULES, '{}')
+    host.files.set(DIS, '') // … but the command also switched exo off
+  }))
+  assert.equal(host.files.has(DIS), false)
+})
+
+test('a Write the person allowed is kept, other switches are still checked', async () => {
+  const host = new FakeHost()
+  runRm(host)
+  host.answers = ['Zulassen']
+  await dispatch(deps(host), { tool: 'Write', input: { file_path: RULES, content: '{}' } }, sneaky(host, () => {
+    host.files.set(RULES, '{}')
+    host.files.set(DIS, '')
+  }))
+  assert.equal(host.files.get(RULES), '{}')
+  assert.equal(host.files.has(DIS), false)
 })

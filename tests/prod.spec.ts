@@ -253,3 +253,16 @@ test('secrets in the command are masked in the dialog', async () => {
   assert.ok(!host.asked[0]!.question.includes(key))
   assert.ok(host.asked[0]!.question.includes('sk-ant-…a1b2'))
 })
+
+// ---- review 2026-10-05: hosts named another way
+test('ssh: HostName override, jump hosts, trailing dot, upper case', () => {
+  assert.deepEqual(kinds('ssh -o HostName=203.0.113.10 harmless ls'), ['remote@vps'])
+  assert.deepEqual(kinds('ssh -oHostname=vps harmless'), ['remote@vps'])
+  assert.deepEqual(kinds('ssh -J vps inner ls'), ['remote@vps'])
+  assert.deepEqual(kinds('ssh -J a@other,root@vps:22 inner'), ['remote@vps'])
+  assert.deepEqual(kinds('ssh -o ProxyJump=vps inner'), ['remote@vps'])
+  assert.deepEqual(kinds('ssh VPS. ls'), ['remote@vps'])
+  assert.deepEqual(kinds('scp -o HostName=203.0.113.10 f harmless:/x'), ['remote@vps'])
+  assert.deepEqual(kinds('rsync -e "ssh -J vps" -a d/ inner:/x'), ['remote@vps'])
+  assert.deepEqual(kinds('rsync -a d/ vps.:/x'), ['remote@vps'])
+})

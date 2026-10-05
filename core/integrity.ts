@@ -70,6 +70,17 @@ export function diffControl(a: ControlState, b: ControlState): ControlChange[] {
   return out
 }
 
+const norm = (p: string) => p.replace(/\/+/g, '/').toLowerCase()
+
+/** Whether a change is the one to the file at `path`. */
+export function changeIs(c: ControlChange, path: string): boolean {
+  const p = norm(path)
+  if (c.kind === 'disabled') return p.endsWith('/.claude/exo/disabled')
+  if (c.kind === 'rules') return p.endsWith('/.claude/exo/rules.json')
+  if (c.kind === 'settings') return norm(c.file) === p
+  return false
+}
+
 export function describe(c: ControlChange): string {
   switch (c.kind) {
     case 'disabled':

@@ -29,7 +29,7 @@ import { KILL_HINT } from '../killswitch'
 import { cwdAfter } from '../cwd'
 import type { CwdGuess } from '../cwd'
 import { READ_TOOLS } from '../tools'
-import { KEEP, QUESTION, REVERT, describe, diffControl, readControl, undo } from '../integrity'
+import { KEEP, QUESTION, REVERT, changeIs, describe, diffControl, readControl, undo } from '../integrity'
 import type { ControlState } from '../integrity'
 import type { StoreBox } from '../store/store'
 import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
@@ -170,8 +170,12 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
   }
   setCmdCwd()
 
-  /** The person already said yes to changing a switch: no second question after. */
-  let approvedControl = false
+  /**
+   * The file a Write/Edit the person allowed was shown to change: that one
+   * change is not asked about again. A Bash approval covers nothing, since a
+   * command's text does not show everything it does.
+   */
+  let approvedPath: string | null = null
 
   // Self protection: always on, whatever the module switches say.
   try {
@@ -189,7 +193,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
         deps.journal.push({ type: 'tool.end', id: call.id ?? '', tool: call.tool, ms: 0, ok: false, denied: 'self' }, clock())
         return { deny: CONTROL_DENIED }
       }
-      approvedControl = true
+      if (!isBash) approvedPath = String(input.file_path ?? input.notebook_path ?? '') || null
     }
   } catch (err) {
     const msg = errorText(err)
@@ -242,7 +246,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
   }
 
   // Effect check: the switches before a call that can change things …
-  const guardEffects = deps.home !== undefined && !READ_TOOLS.has(call.tool) && !approvedControl
+  const guardEffects = deps.home !== undefined && !READ_TOOLS.has(call.tool)
   let before: ControlState | null = null
   if (guardEffects) before = await readControl(deps.host, deps.home!).catch(() => null)
 
@@ -268,6 +272,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
       const changes = diffControl(before, await readControl(deps.host, deps.home!))
       const undone: string[] = []
       for (const c of changes) {
+        if (approvedPath && changeIs(c, approvedPath)) continue
         let keep = false
         if (deps.interactive) {
           try {

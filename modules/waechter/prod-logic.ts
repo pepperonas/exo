@@ -47,6 +47,7 @@ const stripHost = (h: string) =>
     .replace(/^.*@/, '')
     .replace(/^\[(.*)\](?::\d+)?$/, '$1')
     .replace(/:\d+$/, '')
+    .replace(/\.$/, '')
     .toLowerCase()
 
 /** `[user@]host:path`, `host::module`, `rsync://[user@]host[:port]/x` → host. */
@@ -56,6 +57,39 @@ export function remoteHostOf(arg: string): string | null {
   if (arg.startsWith('/') || arg.startsWith('./') || arg.startsWith('~')) return null
   const m = /^((?:[^@/:\s]+@)?(?:\[[^\]]+\]|[^:/\s]+)):/.exec(arg)
   return m ? stripHost(m[1]!) : null
+}
+
+/**
+ * Every host an ssh-style call reaches besides its destination: jump hosts
+ * (`-J a,b`, `-o ProxyJump=`) and a `-o HostName=` that replaces the name.
+ */
+export function sshExtraHosts(argv: readonly string[]): string[] {
+  const out: string[] = []
+  const opt = (v: string) => {
+    const m = /^(hostname|proxyjump)\s*(?:=|\s)\s*(.+)$/i.exec(v.trim())
+    if (!m) return
+    if (m[1]!.toLowerCase() === 'hostname') out.push(m[2]!)
+    else out.push(...m[2]!.split(','))
+  }
+  for (let i = 1; i < argv.length; i++) {
+    const t = argv[i]!
+    if (t === '-J') out.push(...(argv[++i] ?? '').split(','))
+    else if (t.startsWith('-J')) out.push(...t.slice(2).split(','))
+    else if (t === '-o') opt(argv[++i] ?? '')
+    else if (t.startsWith('-o')) opt(t.slice(2))
+  }
+  return out.filter(Boolean)
+}
+
+/** The ssh command line rsync is told to use (`-e "ssh -J x"`, `--rsh=…`). */
+export function rsyncShell(argv: readonly string[]): string[] {
+  for (let i = 1; i < argv.length; i++) {
+    const t = argv[i]!
+    if (t === '-e' || t === '--rsh') return (argv[i + 1] ?? '').split(/\s+/)
+    if (t.startsWith('--rsh=')) return t.slice(6).split(/\s+/)
+    if (/^-e./.test(t)) return t.slice(2).split(/\s+/)
+  }
+  return []
 }
 
 // ------------------------------------------------------------------ findings
@@ -171,16 +205,18 @@ export function inspect(cmds: readonly Cmd[], index: ReadonlyMap<string, ProdHos
     const viaHost = prodOf(remoteVia?.host)
     const line = c.argv.join(' ')
 
+    const remote = (h: ProdHost | undefined) => {
+      if (h && !out.some(f => f.kind === 'remote' && f.host === h && f.subject === line)) out.push({ kind: 'remote', host: h, what: `${c.program === 'ssh' ? 'ssh auf' : `${c.program} mit`} ${h.name}`, subject: line })
+    }
     if (c.program === 'ssh' && c.ssh) {
-      const h = prodOf(c.ssh.host)
-      if (h) out.push({ kind: 'remote', host: h, what: `ssh auf ${h.name}`, subject: line })
+      remote(prodOf(c.ssh.host))
+      for (const x of sshExtraHosts(c.argv)) remote(prodOf(x))
     }
     if (c.program === 'scp' || c.program === 'rsync' || c.program === 'sftp') {
       const targets = c.program === 'sftp' ? [c.argv.slice(1).find(a => !a.startsWith('-')) ?? ''] : c.argv.slice(1).filter(a => !a.startsWith('-'))
-      for (const t of targets) {
-        const h = prodOf(c.program === 'sftp' ? t : remoteHostOf(t))
-        if (h && !out.some(f => f.kind === 'remote' && f.host === h && f.subject === line)) out.push({ kind: 'remote', host: h, what: `${c.program} mit ${h.name}`, subject: line })
-      }
+      for (const t of targets) remote(prodOf(c.program === 'sftp' ? t : remoteHostOf(t)))
+      for (const x of sshExtraHosts(c.argv)) remote(prodOf(x))
+      if (c.program === 'rsync') for (const x of sshExtraHosts(rsyncShell(c.argv))) remote(prodOf(x))
     }
     if (viaHost && c.program === 'systemctl') {
       const verb = c.argv.slice(1).find(a => !a.startsWith('-'))
