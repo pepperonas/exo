@@ -26,7 +26,11 @@ import type { ParseResult } from '../shell/parse'
 import { commands, summarize } from '../shell/words'
 import type { Cmd } from '../shell/words'
 import { KILL_HINT } from '../killswitch'
+import { cwdAfter } from '../cwd'
+import type { CwdGuess } from '../cwd'
 import { READ_TOOLS } from '../tools'
+import { KEEP, QUESTION, REVERT, describe, diffControl, readControl, undo } from '../integrity'
+import type { ControlState } from '../integrity'
 import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
 
 export interface ToolCall {
@@ -59,6 +63,14 @@ export interface CallCtx {
   untimed<T>(work: Promise<T>): Promise<T>
   /** Lines added to the model's context after the result. */
   notes: string[]
+  /** The user's home directory, when known. */
+  home: string | undefined
+  /** Where the Bash tool stands before this call (exo's guess, see core/cwd). */
+  cwd: CwdGuess
+  /** Where the command itself ends up after its own top-level `cd`s. */
+  cmdCwd: CwdGuess
+  /** Scratch space shared by a step's before and after. */
+  memo: Record<string, unknown>
 }
 
 export type BeforeResult = { deny: string } | { input: Record<string, unknown> } | undefined | void
@@ -79,6 +91,9 @@ export interface DispatchDeps {
   interactive: boolean
   /** Returns the kill reason, or null when exo is on. */
   killed(): Promise<string | null>
+  home?: string
+  /** The Bash tool's working directory as exo follows it. */
+  cwd?: CwdGuess
   /** Sum of the before steps' own time allowed per call, in ms. */
   budgetMs?: number
   clock?: () => number
@@ -131,6 +146,10 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     journal: deps.journal,
     interactive: deps.interactive,
     notes: [],
+    home: deps.home,
+    cwd: deps.cwd ?? { cwd: '/', known: false },
+    cmdCwd: deps.cwd ?? { cwd: '/', known: false },
+    memo: {},
     async untimed<T>(work: Promise<T>): Promise<T> {
       const t0 = clock()
       try {
@@ -141,9 +160,14 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     },
   }
 
+  const setCmdCwd = () => {
+    ctx.cmdCwd = ctx.parsed?.ok ? cwdAfter(ctx.parsed.script, ctx.cwd, ctx.home) : ctx.cwd
+  }
+  setCmdCwd()
+
   // Self protection: always on, whatever the module switches say.
   try {
-    if (await touchesControlResolved(ctx.call, p => deps.host.realPath(p))) {
+    if (await touchesControlResolved(ctx.call, p => deps.host.realPath(p), { before: ctx.cwd, after: ctx.cmdCwd }, ctx.home)) {
       const what = isBash ? summarize(String(input.command ?? '')) : String(input.file_path ?? input.notebook_path ?? '')
       let allowed = false
       if (deps.interactive) {
@@ -197,6 +221,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
         bash = parseBash(input)
         ctx.parsed = bash.parsed
         ctx.cmds = bash.cmds
+        setCmdCwd()
       }
     }
   }
@@ -206,6 +231,11 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     deps.health.budgetHit('core')
     deps.journal.push({ type: 'budget.exceeded', module: 'dispatcher', ms: ownMs }, clock())
   }
+
+  // Effect check: the switches before a call that can change things …
+  const guardEffects = deps.home !== undefined && !READ_TOOLS.has(call.tool)
+  let before: ControlState | null = null
+  if (guardEffects) before = await readControl(deps.host, deps.home!).catch(() => null)
 
   const summary = isBash ? summarize(String(input.command ?? '')) : typeof input.file_path === 'string' ? input.file_path : ''
   deps.journal.push({ type: 'tool.start', id: call.id ?? '', tool: call.tool, summary }, clock())
@@ -222,6 +252,33 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     },
     clock(),
   )
+
+  // … and after it: a change is put to the person, undone without a yes.
+  if (before) {
+    try {
+      const changes = diffControl(before, await readControl(deps.host, deps.home!))
+      const undone: string[] = []
+      for (const c of changes) {
+        let keep = false
+        if (deps.interactive) {
+          try {
+            keep = (await ctx.untimed(deps.host.ask(QUESTION(describe(c)), [KEEP, REVERT]))) === KEEP
+          } catch {
+            keep = false
+          }
+        }
+        if (!keep && (await undo(deps.host, deps.home!, c))) undone.push(describe(c))
+      }
+      if (undone.length) {
+        const text = `exo: rückgängig gemacht – ${undone.join('; ')}. exo abschalten kannst nur du selbst (touch ~/.claude/exo/DISABLED im eigenen Terminal oder /exo off).`
+        ctx.notes.push(text)
+        deps.host.toast(text, 8000)
+        deps.journal.push({ type: 'module.error', module: 'self', message: `Steueränderung rückgängig: ${undone.length}` }, clock())
+      }
+    } catch (err) {
+      deps.health.fail('core', errorText(err), clock())
+    }
+  }
 
   for (const step of steps) {
     if (!step.after || !deps.config.enabled[step.id]) continue

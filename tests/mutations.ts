@@ -17,6 +17,7 @@ export interface Mutation {
 const SHELL = ['tests/shell.spec.ts']
 const DISP = ['tests/dispatcher.spec.ts']
 const CORE = ['tests/core.spec.ts']
+const INTEG = ['tests/integrity.spec.ts']
 
 export const MUTATIONS: Mutation[] = [
   // ---- shell parser
@@ -44,7 +45,7 @@ export const MUTATIONS: Mutation[] = [
   { id: 'ssh-proxy', file: 'core/shell/words.ts', find: '        if (m) localCommands.push(m[2]!)', replace: '', tests: SHELL, breaks: 'ssh -o ProxyCommand führt unsichtbar lokal aus' },
   { id: 'find-exec', file: 'core/shell/words.ts', find: "      if (!/^-(exec|execdir|ok|okdir)$/.test(words[i]!.text)) continue", replace: '      continue', tests: SHELL, breaks: 'find -exec rm bleibt unsichtbar' },
   // ---- self protection
-  { id: 'self-off', file: 'core/dispatcher/dispatcher.ts', find: '    if (await touchesControlResolved(ctx.call, p => deps.host.realPath(p))) {', replace: '    if (false) {', tests: DISP, breaks: 'Claude kann den Notausschalter selbst setzen' },
+  { id: 'self-off', file: 'core/dispatcher/dispatcher.ts', find: '    if (await touchesControlResolved(ctx.call, p => deps.host.realPath(p), { before: ctx.cwd, after: ctx.cmdCwd }, ctx.home)) {', replace: '    if (false) {', tests: DISP, breaks: 'Claude kann den Notausschalter selbst setzen' },
   { id: 'self-esc', file: 'core/dispatcher/dispatcher.ts', find: '          allowed = false // Esc, or nobody to ask', replace: '          allowed = true', tests: DISP, breaks: 'Esc im Dialog erlaubt die Änderung' },
   { id: 'self-path', file: 'core/selfprotect.ts', find: '    if (isExoPath(path)) return true', replace: '', tests: DISP, breaks: 'Write auf ~/.claude/exo/ geht ungefragt durch' },
   { id: 'self-readonly', file: 'core/selfprotect.ts', find: "  return cmds.every(c => READ_ONLY.has(c.program) && c.assigns.length === 0 && !c.via.some(v => v.kind === 'env' || v.kind === 'xargs') && !c.redirects.some(r => writes(r.op, r.target?.text)))", replace: '  return true', tests: DISP, breaks: 'jeder Bash-Befehl gilt als nur lesend' },
@@ -60,6 +61,18 @@ export const MUTATIONS: Mutation[] = [
   { id: 'self-opaque', file: 'core/selfprotect.ts', find: '    if (opaque(r.script, cmds)) return true', replace: '', tests: DISP, breaks: 'base64 -d | sh umgeht den Schutz' },
   { id: 'self-unresolved', file: 'core/selfprotect.ts', find: '    if (real === null) return true', replace: '', tests: DISP, breaks: 'ein nicht auflösbarer Pfad gilt als harmlos' },
   { id: 'self-pluginconfigs', file: 'core/selfprotect.ts', find: '    /pluginConfigs/i.test(t) ||', replace: '', tests: DISP, breaks: 'exo-Optionen über einen Symlink auf settings.json' },
+  { id: 'self-cwd-dir', file: 'core/selfprotect.ts', find: '      if (dirs.some(inClaudeDir)) return true', replace: '', tests: INTEG, breaks: 'cd ~/.claude/exo, dann touch x' },
+  { id: 'self-cwd-rel', file: 'core/selfprotect.ts', find: '        if (isExoPath(abs) || isSettings(abs)) return true', replace: '', tests: INTEG, breaks: 'relative Ziele nach ~/.claude/exo' },
+  { id: 'self-cwd-after', file: 'core/selfprotect.ts', find: '      const dirs = [cwd.before, cwd.after]', replace: '      const dirs = [cwd.before]', tests: INTEG, breaks: 'cd innerhalb des Befehls wird übersehen' },
+  // ---- effect check
+  { id: 'eff-off', file: 'core/dispatcher/dispatcher.ts', find: '  if (guardEffects) before = await readControl(deps.host, deps.home!).catch(() => null)', replace: '', tests: INTEG, breaks: 'verschleierte Befehle setzen DISABLED unbemerkt' },
+  { id: 'eff-esc', file: 'core/dispatcher/dispatcher.ts', find: '          } catch {\n            keep = false\n          }', replace: '          } catch {\n            keep = true\n          }', tests: INTEG, breaks: 'Esc behält die Änderung' },
+  { id: 'eff-noui', file: 'core/dispatcher/dispatcher.ts', find: '        let keep = false\n        if (deps.interactive) {', replace: '        let keep = true\n        if (deps.interactive) {', tests: INTEG, breaks: 'ohne UI bleibt die Änderung' },
+  { id: 'eff-disabled', file: 'core/integrity.ts', find: "  if (!a.disabled && b.disabled) out.push({ kind: 'disabled' })", replace: '', tests: INTEG, breaks: 'DISABLED wird nicht bemerkt' },
+  { id: 'eff-rules', file: 'core/integrity.ts', find: "  if (a.rules !== b.rules) out.push({ kind: 'rules', before: a.rules })", replace: '', tests: INTEG, breaks: 'rules.json-Änderung wird nicht bemerkt' },
+  { id: 'eff-settings', file: 'core/integrity.ts', find: "  for (const f of Object.keys(b.settings)) if (a.settings[f] !== b.settings[f])", replace: "  for (const f of Object.keys(b.settings)) if (false)", tests: INTEG, breaks: 'settings.json-Änderung wird nicht bemerkt' },
+  { id: 'eff-prefs', file: 'core/integrity.ts', find: "  if (a.prefs !== b.prefs) out.push({ kind: 'prefs', before: a.prefs })", replace: '', tests: INTEG, breaks: '/exo-Schalter im Store unbemerkt geändert' },
+  { id: 'eff-keep-others', file: 'core/integrity.ts', find: "  for (const k of Object.keys(pc)) if (k === 'exo' || k.startsWith('exo@')) delete pc[k]", replace: '  for (const k of Object.keys(pc)) delete pc[k]', tests: INTEG, breaks: 'Rücksetzen löscht fremde Plugin-Einstellungen' },
   // ---- dispatcher
   { id: 'fail-closed', file: 'core/dispatcher/dispatcher.ts', find: "      if (policyOf(step.id) === 'closed') {", replace: '      if (false) {', tests: DISP, breaks: 'ein gestörter Wächter lässt durch' },
   { id: 'deny-stops', file: 'core/dispatcher/dispatcher.ts', find: '      return { deny: out.deny }', replace: '      void 0', tests: DISP, breaks: 'eine Ablehnung wird ignoriert' },

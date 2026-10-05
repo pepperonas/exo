@@ -15,6 +15,9 @@ import { L } from './i18n'
 import { Journal } from './journal/journal'
 import type { JournalSnapshot, NewEvent } from './journal/journal'
 import { KillSwitch, exoDir } from './killswitch'
+import { cwdAfter } from './cwd'
+import type { CwdGuess } from './cwd'
+import { parse } from './shell/parse'
 import { RESERVED } from './statusline/statusline'
 import { StoreBox } from './store/store'
 
@@ -30,6 +33,8 @@ export interface Runtime {
   kill: KillSwitch
   interactive: boolean
   steps: Step[]
+  /** The Bash tool's working directory as exo follows it. */
+  bashCwd: CwdGuess
   /** Last liveness text drawn, to skip redundant state writes. */
   shownLiveness?: string
   rulesWarned: boolean
@@ -66,7 +71,8 @@ export async function createRuntime(host: Host, options: Readonly<Record<string,
   journal.sessionId = sessionId
   journal.restore(await store.get('journal:current').catch(() => undefined), sessionId)
 
-  return { home, options, prefs, config, rules, journal, health, store, kill: new KillSwitch(), interactive, steps: STEPS, rulesWarned: false }
+  const cwd = await host.cwd().catch(() => '/')
+  return { home, options, prefs, config, rules, journal, health, store, kill: new KillSwitch(), interactive, steps: STEPS, rulesWarned: false, bashCwd: { cwd, known: true } }
 }
 
 /** Applies new prefs: recomputes the config and stores them. */
@@ -103,10 +109,16 @@ export async function toolCall(rt: Runtime, host: Host, call: ToolCall, next: (i
       steps: rt.steps,
       interactive: rt.interactive,
       killed: () => killReason(rt, host),
+      home: rt.home,
+      cwd: rt.bashCwd,
     },
     call,
     next,
   )
+  if (call.tool === 'Bash' && result.deny === undefined) {
+    const r = parse(String(call.input.command ?? ''))
+    rt.bashCwd = r.ok ? cwdAfter(r.script, rt.bashCwd, rt.home) : { ...rt.bashCwd, known: false }
+  }
   saveJournalLater(rt)
   return result
 }

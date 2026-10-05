@@ -211,8 +211,17 @@ Steueränderung; `pluginConfigs`, `claude plugin disable … exo` und `~/.claude
 Ein Pfad, der sich gar nicht auflösen lässt, gilt als betroffen (fail closed), und der Adapter
 fällt nie auf den unaufgelösten Pfad zurück. Fällt der Kern aus, lässt der `.catch`-Pfad nur
 noch reine Lesewerkzeuge (`core/tools.ts`) durch.
-Grenze: Ein Agent mit Shell findet andere Wege (den Mod selbst ändern, Pfadstücke ohne
-erkennbares Fragment) – Sicherheitsgurt, keine Sandbox.
+Vierte Prüfrunde – **Wirkungsprüfung** (`core/integrity.ts`): Eine Textprüfung ist nie
+vollständig; deshalb vergleicht exo vor und nach jedem Aufruf, der etwas ändern kann (alles außer
+`core/tools.ts`), den Zustand seiner Schalter (`DISABLED`, `rules.json`, exo-Einträge in
+`~/.claude/settings*.json`, `/exo`-Prefs im Store). Eine Änderung wird dem Menschen vorgelegt
+(Behalten / Rückgängig); ohne Antwort oder ohne UI wird sie zurückgesetzt. exo *einschalten*
+(DISABLED gelöscht) wird nie zurückgedreht. Zusätzlich bezieht die Textprüfung das verfolgte
+Arbeitsverzeichnis ein (`core/cwd.ts`): in `~/.claude` zählt jeder schreibende Befehl, relative
+Ziele werden aufgelöst. Unbekanntes Arbeitsverzeichnis (`cd -`, `cd $X`) löst bewusst *keine*
+Dauer-Rückfrage aus – das deckt die Wirkungsprüfung.
+Grenze: Ein Agent mit Shell kann den Mod selbst ändern; das deckt keine der beiden Prüfungen ab –
+Sicherheitsgurt, keine Sandbox.
 
 ### 3.5 Statuszeile
 

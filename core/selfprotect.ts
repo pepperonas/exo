@@ -31,6 +31,8 @@ import { READ_TOOLS } from './tools'
 import { parse } from './shell/parse'
 import { SHELLS, commands } from './shell/words'
 import type { Cmd } from './shell/words'
+import { joinPath } from './cwd'
+import type { CwdGuess } from './cwd'
 
 /** Programs that only read and cannot run another program. */
 const READ_ONLY = new Set(['cat', 'head', 'tail', 'ls', 'wc', 'stat', 'file', 'grep', 'egrep', 'fgrep', 'jq', 'diff', 'cmp', 'echo', 'printf', 'test', '[', 'pwd', 'cd', 'true', 'md5', 'md5sum', 'shasum', 'sha256sum'])
@@ -167,8 +169,15 @@ export function targetPaths(call: ToolCall): string[] {
   return strings(input).filter(s => s.startsWith('/') && !s.includes('\n') && s.length < 4096)
 }
 
-/** Whether a tool call would change exo's switches (without the file system). */
-export function touchesControl(call: ToolCall): boolean {
+/** Inside ~/.claude (exo's folder included): every write there counts. */
+const inClaudeDir = (cwd: string) => /(^|\/)\.claude(\/|$)/.test(normPath(cwd))
+
+/**
+ * Whether a tool call would change exo's switches (without the file
+ * system). `cwd` are the Bash tool's working directories before and after
+ * the command's own `cd`s, when exo follows them.
+ */
+export function touchesControl(call: ToolCall, cwd?: { before: CwdGuess; after: CwdGuess }, home?: string): boolean {
   const input = call.input
   if (call.tool === 'Bash') {
     const raw = typeof input.command === 'string' ? input.command : ''
@@ -178,6 +187,17 @@ export function touchesControl(call: ToolCall): boolean {
     if (opaque(r.script, cmds)) return true
     if (onlyReads(cmds)) return false
     if (namesControl(raw) || namesControl(cookedText(cmds))) return true
+    if (cwd) {
+      const dirs = [cwd.before, cwd.after].filter(g => g.known).map(g => g.cwd)
+      // standing in ~/.claude or below: any write may hit a switch by a relative name
+      if (dirs.some(inClaudeDir)) return true
+      // relative targets resolved against the working directory
+      const rel = cmds.flatMap(c => [...c.argv.slice(1), ...c.redirects.map(x => x.target?.text ?? '')]).filter(t => t && !t.startsWith('-') && !t.startsWith('/'))
+      for (const d of dirs) for (const t of rel) {
+        const abs = joinPath(d, t, home)
+        if (isExoPath(abs) || isSettings(abs)) return true
+      }
+    }
     const words = cmds.flatMap(c => [...c.words, ...c.redirects.flatMap(x => (x.target ? [x.target] : []))])
     if (words.some(w => w.glob && globHitsControl(w.text))) return true
     // Pieces in variables (`a=.cla; touch ~/${a}ude/exo`): with an expansion
@@ -206,8 +226,13 @@ export function touchesControl(call: ToolCall): boolean {
  * symlinks (`realPath` from the engine). A path that does not resolve yet
  * (a new file) is judged by its parent's real path.
  */
-export async function touchesControlResolved(call: ToolCall, realPath: (path: string) => Promise<string>): Promise<boolean> {
-  if (touchesControl(call)) return true
+export async function touchesControlResolved(
+  call: ToolCall,
+  realPath: (path: string) => Promise<string>,
+  cwd?: { before: CwdGuess; after: CwdGuess },
+  home?: string,
+): Promise<boolean> {
+  if (touchesControl(call, cwd, home)) return true
   for (const p of targetPaths(call)) {
     let real: string | null = null
     for (let cur = p, tail = ''; ; ) {
