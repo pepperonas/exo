@@ -279,3 +279,45 @@ test('after /clear exo starts over for the new session: journal, modules, status
   const ui = await $.ui.mount({ ...HINT, surface: 'terminal', viewport: { columns: 120, rows: 40 } } as any)
   expect(await all(ui)).toContain('⛨ exo')
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`typing /exo lists what may follow, in place of exo's line (${surface})`, async ($, on) => {
+    engine(on)
+    let draft = ''
+    on('prompt.read', () => ({ value: { text: draft, cursor: draft.length } }))
+    await start($)
+    const mount = async () => all(await $.ui.mount({ ...HINT, surface, viewport: { columns: 120, rows: 40 } } as any))
+    let t = await mount()
+    expect(t).toContain('⛨ exo')
+    expect(t).not.toContain('⌨')
+
+    draft = '/exo r'
+    t = await mount()
+    expect(t).toContain('r|eset')
+    expect(t).toContain('r|ules')
+    expect(t).not.toContain('⛨ exo')
+    expect(t).toContain('? for shortcuts')
+
+    draft = '/exo rules'
+    expect(await mount()).toContain('house rules in force')
+
+    draft = '/exo off pro'
+    t = await mount()
+    expect(t).toContain('pro|dShield')
+    expect(t).toContain('switch off: Prod shield')
+
+    draft = '/exo rules '
+    t = await mount()
+    expect(t).toContain('⛨ exo')
+    expect(t).not.toContain('⌨')
+  })
+}
+
+test('the list shows even when exo is switched off', async ($, on) => {
+  engine(on, { '/home/u/.claude/exo/DISABLED': '' })
+  on('prompt.read', () => ({ value: { text: '/exo he', cursor: 7 } }))
+  await start($)
+  const t = await all(await $.ui.mount({ ...HINT, surface: 'terminal', viewport: { columns: 120, rows: 40 } } as any))
+  expect(t).toContain('he|lp')
+  expect(t).toContain('all commands')
+})

@@ -14,10 +14,10 @@
 
 <h3>👉 <code>/plugin marketplace add pepperonas/exo</code> · <code>/plugin install exo@pepperonas-exo</code> — that's it.</h3>
 
-[![version](https://img.shields.io/badge/version-0.1.0-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
-[![node tests](https://img.shields.io/badge/node%20tests-524-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
-[![engine tests](https://img.shields.io/badge/engine%20tests-23-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
-[![mutations](https://img.shields.io/badge/mutations-165%2F165%20caught-FF6F00?style=for-the-badge&logo=testinglibrary&logoColor=white)](docs/MUTATIONS.md)
+[![version](https://img.shields.io/badge/version-0.2.0-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
+[![node tests](https://img.shields.io/badge/node%20tests-534-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
+[![engine tests](https://img.shields.io/badge/engine%20tests-26-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
+[![mutations](https://img.shields.io/badge/mutations-174%2F174%20caught-FF6F00?style=for-the-badge&logo=testinglibrary&logoColor=white)](docs/MUTATIONS.md)
 [![lines of code](https://img.shields.io/badge/lines%20of%20code-6.9k-4B6BDF?style=for-the-badge&logo=typescript&logoColor=white)](core)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/pepperonas/exo/ci.yml?branch=main&label=CI&logo=github)](https://github.com/pepperonas/exo/actions/workflows/ci.yml)
@@ -214,6 +214,8 @@ The prod shield recognises a host by its name, its address and every `Host` entr
 | `/achievements` | Your badges |
 | `/duck` | Rubber-duck debugging |
 
+**While you type `/exo `** the line under the prompt lists what may follow and narrows as you type — `status · on · off · reset · rules · help`, then the module ids after `on`, `off` or `reset`; with one match left it says what it does. It is a list to read, not tab completion: Claude Code completes command names, but gives mods no way to complete arguments.
+
 If another plugin already owns a name, exo registers its command as `/exo-<name>` instead.
 
 ## ⚙️ Configuration
@@ -355,7 +357,7 @@ Detection logic is pure and engine-free (`*-logic.ts`); the modules around it do
 
 **Engine suite** — `hooks/*.test.tsx`, run by `claude plugin test .` against Claude Code's own engine: registration, the status line, refusals, dialogs, the kill switch.
 
-**Every security-relevant test is seen red once.** `npm run mutate` copies the repo, puts a bug back (proven by checksum), and expects the named tests to fail — **165 of 165** mutations are caught. The protocol is in [`docs/MUTATIONS.md`](docs/MUTATIONS.md).
+**Every security-relevant test is seen red once.** `npm run mutate` copies the repo, puts a bug back (proven by checksum), and expects the named tests to fail — **174 of 174** mutations are caught. The protocol is in [`docs/MUTATIONS.md`](docs/MUTATIONS.md).
 
 ```bash
 npm install              # dev tools only; the mod itself has no dependencies
@@ -384,6 +386,7 @@ npm run screens          # re-render the screenshots from docs/screens/*.ans
 
 The full history is in [CHANGELOG.md](CHANGELOG.md) ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)).
 
+- **0.2.0** — `/exo` lists its arguments while you type; real screenshots; fixes after `/clear`, `/achievements`, the `/exo` table.
 - **0.1.0** — first release: core, kill switch, self-protection, guards, cockpit, review and extras.
 
 ## 🤝 Contributing

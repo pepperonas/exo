@@ -1,6 +1,6 @@
 {
   "name": "exo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Claude Code mod: guards against costly mistakes, a cockpit while working, a recap at the end and a few extras",
   "type": "module",
@@ -11,8 +11,8 @@
     "test": "node --import tsx --test tests/*.spec.ts",
     "test:engine": "claude plugin test .",
     "typecheck": "tsc -p .",
-    "validate": "claude plugin validate .",
-    "check": "tsc -p . && claude plugin validate .",
+    "validate": "claude plugin validate --strict .",
+    "check": "tsc -p . && claude plugin validate --strict .",
     "mutate": "node --import tsx tools/mutate.ts",
     "history-scan": "node --import tsx tools/history-scan.ts",
     "social": "node --import tsx tools/social.ts",

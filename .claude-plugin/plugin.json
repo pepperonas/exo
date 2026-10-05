@@ -1,6 +1,6 @@
 {
   "name": "exo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "An exoskeleton for Claude Code: guards against costly mistakes, a cockpit while working, a recap at the end and a few extras",
   "types": "./types/index.d.ts",
   "userConfig": {

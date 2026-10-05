@@ -60,7 +60,7 @@ test('numeric defaults in the README match the manifest', () => {
 })
 
 test('README and docs use documentation addresses only', () => {
-  for (const f of ['README.md', 'CLAUDE.md', 'docs/PLAN.md', 'docs/SCREENSHOTS.md']) {
+  for (const f of ['README.md', '.claude/CLAUDE.md', 'docs/PLAN.md', 'docs/SCREENSHOTS.md']) {
     for (const ip of read(f).match(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g) ?? []) assert.ok(/^(203\.0\.113|198\.51\.100|192\.0\.2)\./.test(ip), `${f}: ${ip}`)
   }
 })
@@ -133,7 +133,12 @@ test('no lockfile in the plugin root: Claude Code would install the dev tools fo
 })
 
 test('docs are English: no German prose headings left in README, CHANGELOG, CLAUDE.md, PLAN', () => {
-  for (const f of ['README.md', 'CHANGELOG.md', 'CLAUDE.md', 'docs/PLAN.md', 'docs/MUTATIONS.md']) {
+  for (const f of ['README.md', 'CHANGELOG.md', '.claude/CLAUDE.md', 'docs/PLAN.md', 'docs/MUTATIONS.md', 'docs/SCREENSHOTS.md']) {
     for (const h of read(f).match(/^#{1,4} .*$/gm) ?? []) assert.doesNotMatch(h, /\b(Konfiguration|Grenzen|Hausregeln|Notausschalter|Lizenz|Entwicklung|Neu|Aufbau|Ergebnis|Mutationsprobe|Etappe)\b/, `${f}: ${h}`)
   }
+})
+
+test('no CLAUDE.md in the plugin root: validate --strict would fail on it', () => {
+  assert.ok(!existsSync(join(root, 'CLAUDE.md')))
+  assert.ok(existsSync(join(root, '.claude/CLAUDE.md')))
 })

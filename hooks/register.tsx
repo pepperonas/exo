@@ -7,6 +7,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Banner, ChangeRow, DuckState, Slot } from '../types'
 import type { Host, Timer } from '../core/adapter/host'
+import { complete, isOurs } from '../core/complete'
 import { exoCommand } from '../core/exo-command'
 import { errorText } from '../core/health/health'
 import { L } from '../core/i18n'
@@ -45,6 +46,16 @@ const COMMANDS: [string, string, string][] = [
 /** Registered name → command it stands for (exo-undo-last when undo-last is taken). */
 const commandNames = new Map<string, string>()
 const TICK_MS = 2_000
+
+/** Whether the line under the prompt is listing `/exo` arguments right now. */
+let listing = false
+
+/** Redraw for a draft that is `/exo …`, or that just stopped being one. */
+function redrawIfOurs($: EngineInterface, text: string): void {
+  const ours = isOurs(text)
+  if (ours || listing) $.ui.invalidate('ui.render')
+  listing = ours
+}
 
 // exo's `$.state` values; the engine reads their refs from this file.
 const slotsA = atom({ plugin: 'exo', key: 'slots' } as const, {} as Record<string, Slot>)
@@ -290,10 +301,25 @@ export const register: Register = (on, options) => {
   on('prompt.submit', async ($, e, next) => {
     await afterClear($).catch(() => undefined)
     const l = await live($).catch(() => null)
-    if (!l) return next(e)
+    if (!l) {
+      const r = await next(e)
+      redrawIfOurs($, '')
+      return r
+    }
     await log(l.rt, l.host, { type: 'prompt.submit', chars: e.text.length }).catch(() => undefined)
     const extra = await promptContexts(l.rt, l.host).catch(() => [])
-    return next(extra.length ? { ...e, context: [...(e.context ?? []), ...extra] } : e)
+    const r = await next(extra.length ? { ...e, context: [...(e.context ?? []), ...extra] } : e)
+    redrawIfOurs($, '')
+    return r
+  })
+
+  // Claude Code completes the command's name, not its arguments, so the line
+  // under the prompt lists what may follow while the draft is `/exo …`.
+  // Only such drafts redraw: typing a normal prompt costs nothing.
+  on('prompt.edit', async ($, e, next) => {
+    const r = await next(e)
+    redrawIfOurs($, r.text)
+    return r
   })
 
   on('turn.start', async ($, e, next) => {
@@ -471,6 +497,29 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    // A surface without a prompt box (or a read that fails) just shows the line.
+    const draft = (await $.prompt.read().catch(() => undefined))?.text ?? ''
+    const options = complete(draft)
+    if (options) {
+      const { Box, Text } = $.ui.resolve(e)
+      const one = options.length === 1 ? options[0] : undefined
+      return (
+        <Box flexDirection="column">
+          {await next(e)}
+          <Box key="exo-complete" flexDirection="row">
+            <Text dimColor>{'⌨ '}</Text>
+            {options.map((o, i) => (
+              <Text key={o.word} wrap="truncate-end">
+                {i > 0 ? <Text dimColor>{' · '}</Text> : null}
+                <Text bold color="#d2a8ff">{o.word.slice(0, o.typed)}</Text>
+                <Text>{o.word.slice(o.typed)}</Text>
+              </Text>
+            ))}
+            {one ? <Text dimColor wrap="truncate-end">{`  — ${one.hint}`}</Text> : null}
+          </Box>
+        </Box>
+      )
+    }
     const slots = Object.values(await read($, slotsA))
     if (!slots.length) return next(e)
     const columns = Math.max(10, (e.viewport?.columns ?? 100) - 2)

@@ -32,7 +32,7 @@ Changing the number of tests means changing the `node tests`/`engine tests` badg
 - `prompt.context` fires **once per conversation** – text for the next prompt goes through `prompt.submit` → `context`.
 - `turn.complete`: a returned `text` different from the answer appears **beneath** the answer.
 - `$.fs.stat(p, { resolve: true })`: `isLink` is true for a dangling symlink too, and `realPath` is missing then.
-- `claude plugin validate` warns that a `CLAUDE.md` at the plugin root is not loaded as project context. Expected: this file is for working **on** the repo, not context exo ships. exo ships no skill.
+- This file lives in `.claude/CLAUDE.md`, not the repo root: at the plugin root `claude plugin validate` warns that it is not shipped as context, and `--strict` fails on it. Claude Code reads `.claude/CLAUDE.md` as project instructions just the same.
 
 ### Test kit (claude plugin test)
 - No real file system (`no implementation for fs.stat`). A hook that throws is **skipped** – "file missing" can't be simulated that way.

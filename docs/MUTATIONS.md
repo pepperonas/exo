@@ -1,11 +1,20 @@
 # Mutation probe
 
-As of 2026-10-05 · `npm run mutate` · 165/165 caught
+As of 2026-10-05 · `npm run mutate` · 174/174 caught
 
 Each row breaks one safety-relevant behaviour on purpose. *caught* means: the mutation provably took effect (checksum before → after) and the named tests turned red. *INVALID* means the anchor moved or the mutant does not run; *BLIND* means all tests stayed green — a weak test or redundant code.
 
 | Mutation | File | Breaks | Result |
 |---|---|---|---|
+| `c-prefix` | `core/complete.ts` | a started word does not narrow the list | caught: 4 test(s) red · b537d5bd14a8→1eb983a65124 |
+| `c-case` | `core/complete.ts` | upper case finds nothing | caught: 2 test(s) red · b537d5bd14a8→225ad0d16af8 |
+| `c-second` | `core/complete.ts` | no module list after on/off/reset | caught: 2 test(s) red · b537d5bd14a8→20c7d4617784 |
+| `c-many` | `core/complete.ts` | a list after too many words | caught: 1 test(s) red · b537d5bd14a8→a8e39838ef45 |
+| `c-name` | `core/complete.ts` | other commands starting with /exo get the list | caught: 1 test(s) red · b537d5bd14a8→379a1f905d9f |
+| `c-core` | `core/complete.ts` | reset core is not offered | caught: 1 test(s) red · b537d5bd14a8→b7b86cd6376e |
+| `c-drift-extra` | `core/complete.ts` | a word the handler does not understand is offered | caught: 3 test(s) red · b537d5bd14a8→cdbb86ba60a1 |
+| `c-handler` | `core/exo-command.ts` | the list offers a word the handler dropped | caught: 1 test(s) red · 6b6d92e9653f→4c87d5304c82 |
+| `c-drift-missing` | `core/complete.ts` | a subcommand the handler answers is not offered | caught: 2 test(s) red · b537d5bd14a8→2246c81f8eb1 |
 | `sq-quote` | `core/shell/parse.ts` | single quotes stay in the word | caught: 6 test(s) red · b5c4399c301e→9bcb282fc969 |
 | `and-op` | `core/shell/parse.ts` | && is not recognised as an operator | caught: 10 test(s) red · b5c4399c301e→79c4fcabd675 |
 | `dq-escape` | `core/shell/parse.ts` | escapes inside double quotes | caught: 3 test(s) red · b5c4399c301e→d7ad3e4828b3 |

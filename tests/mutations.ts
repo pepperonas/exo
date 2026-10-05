@@ -25,8 +25,20 @@ const DIET = ['tests/diet.spec.ts']
 const COCK = ['tests/cockpit.spec.ts']
 const RUECK = ['tests/rueckblick.spec.ts']
 const EXTRAS = ['tests/extras.spec.ts']
+const COMPL = ['tests/complete.spec.ts']
 
 export const MUTATIONS: Mutation[] = [
+  // ---- /exo argument list
+  { id: 'c-prefix', file: 'core/complete.ts', find: 'pool.filter(e => e.word.toLowerCase().startsWith(current))', replace: 'pool.filter(() => true)', tests: COMPL, breaks: 'a started word does not narrow the list' },
+  { id: 'c-case', file: 'core/complete.ts', find: "const rest = text.slice(COMMAND.length + 1).toLowerCase()", replace: 'const rest = text.slice(COMMAND.length + 1)', tests: COMPL, breaks: 'upper case finds nothing' },
+  { id: 'c-second', file: 'core/complete.ts', find: 'else if (done.length === 1) pool = SECOND[done[0]!]', replace: '', tests: COMPL, breaks: 'no module list after on/off/reset' },
+  { id: 'c-many', file: 'core/complete.ts', find: 'if (done.length === 0) pool = SUBCOMMANDS', replace: 'if (done.length !== 1) pool = SUBCOMMANDS', tests: COMPL, breaks: 'a list after too many words' },
+  { id: 'c-name', file: 'core/complete.ts', find: "if (!text.startsWith(`${COMMAND} `)) return null", replace: "if (!text.startsWith(COMMAND)) return null", tests: COMPL, breaks: 'other commands starting with /exo get the list' },
+  { id: 'c-core', file: 'core/complete.ts', find: ", { word: 'core', hint: \"clear the core's broken mark\" }]", replace: ']', tests: COMPL, breaks: 'reset core is not offered' },
+  { id: 'c-drift-extra', file: 'core/complete.ts', find: "  { word: 'help', hint: 'all commands' },", replace: "  { word: 'help', hint: 'all commands' },\n  { word: 'flip', hint: 'x' },", tests: COMPL, breaks: 'a word the handler does not understand is offered' },
+  { id: 'c-handler', file: 'core/exo-command.ts', find: "if (sub === 'rules' || sub === 'regeln') {", replace: "if (sub === 'regeln') {", tests: COMPL, breaks: 'the list offers a word the handler dropped' },
+  { id: 'c-drift-missing', file: 'core/complete.ts', find: "  { word: 'status', hint: 'state of all modules' },", replace: '', tests: COMPL, breaks: 'a subcommand the handler answers is not offered' },
+
   // ---- shell parser
   { id: 'sq-quote', file: 'core/shell/parse.ts', find: 'w.text += this.s.slice(this.i + 1, end)', replace: 'w.text += this.s.slice(this.i, end)', tests: SHELL, breaks: 'single quotes stay in the word' },
   { id: 'and-op', file: 'core/shell/parse.ts', find: "if (this.at('&&')) return (this.i += 2), '&&'", replace: '', tests: SHELL, breaks: '&& is not recognised as an operator' },
