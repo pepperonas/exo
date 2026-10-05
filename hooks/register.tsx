@@ -41,7 +41,9 @@ function hostOf($: EngineInterface): Host {
     },
     realPath: async path => {
       const s = await $.fs.stat(path, { resolve: true })
-      return s.realPath ?? path
+      // No answer is no resolution: never fall back to the unresolved path.
+      if (!s.realPath) throw new Error('realPath nicht verfügbar')
+      return s.realPath
     },
     run: async (argv, o) => {
       const r = await $.process.run(argv, o)

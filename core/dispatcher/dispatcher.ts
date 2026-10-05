@@ -26,6 +26,7 @@ import type { ParseResult } from '../shell/parse'
 import { commands, summarize } from '../shell/words'
 import type { Cmd } from '../shell/words'
 import { KILL_HINT } from '../killswitch'
+import { READ_TOOLS } from '../tools'
 import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
 
 export interface ToolCall {
@@ -93,8 +94,8 @@ export function ordered(steps: readonly Step[]): Step[] {
   return [...steps].sort((a, b) => rank(a) - rank(b))
 }
 
-/** Tools whose calls exo denies when its own dispatcher fails. */
-export const GUARDED_TOOLS = new Set(['Bash', 'Write', 'Edit', 'NotebookEdit'])
+/** When exo's own dispatcher fails, only tools that cannot change anything pass. */
+export const isGuardedTool = (tool: string) => !READ_TOOLS.has(tool)
 
 export function failClosedMessage(id: ModuleId | 'core', err: string): string {
   const label = id === 'core' ? 'Kern' : moduleInfo(id).label
@@ -247,6 +248,6 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
  */
 export function catchDecision(tool: string, killed: boolean, alreadyRan: boolean, err: string): 'pass' | 'leave' | { deny: string } {
   if (alreadyRan) return 'leave'
-  if (killed || !GUARDED_TOOLS.has(tool)) return 'pass'
+  if (killed || !isGuardedTool(tool)) return 'pass'
   return { deny: failClosedMessage('core', err) }
 }

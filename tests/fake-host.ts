@@ -45,7 +45,7 @@ export class FakeHost implements Host {
   links = new Map<string, string>()
   async realPath(path: string) {
     for (const [from, to] of this.links) if (path === from || path.startsWith(from + '/')) return to + path.slice(from.length)
-    if (!this.files.has(path) && ![...this.files.keys()].some(f => f.startsWith(path + '/'))) throw new Error(`ENOENT ${path}`)
+    if (path !== '/' && !this.files.has(path) && ![...this.files.keys()].some(f => f.startsWith(path + '/'))) throw new Error(`ENOENT ${path}`)
     return path
   }
   async run(argv: readonly string[], options?: RunOptions) {

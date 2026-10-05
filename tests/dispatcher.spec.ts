@@ -344,6 +344,16 @@ const CONTROL_WRITES: [string, Record<string, unknown>][] = [
   ['Write', { file_path: '/home/u/.claude/Settings.json', content: '{"pluginConfigs":{"exo":{}}}' }],
   ['mcp__fs__write_file', { path: '/home/u/.claude/exo/DISABLED', content: '' }],
   ['mcp__fs__move_file', { source: '/tmp/x', destination: '/home/u/.claude/exo/rules.json' }],
+  // third review: globs, split expansions, settings through a symlink
+  ['Bash', { command: 'touch DIS*' }],
+  ['Bash', { command: 'cp x ~/.c*/exo/' }],
+  ['Bash', { command: 'touch ~/.claude/e?o/[D]ISABLED' }],
+  ['Bash', { command: 'cd ~/.claude/exo && cp /tmp/x rul?s.json' }],
+  ['Bash', { command: 'a=.cla; touch ~/${a}ude/exo/x' }],
+  ['Bash', { command: "jq '.pluginConfigs.exo.options.secrets=false' /tmp/s > /tmp/t && cp /tmp/t /tmp/s" }],
+  ['Bash', { command: 'echo dG91Y2g= | base64 -d | sh' }],
+  ['Bash', { command: 'claude plugin disable exo' }],
+  ['Bash', { command: 'rm ~/.claude/dev-mods/abc/exo' }],
 ]
 const HARMLESS: [string, Record<string, unknown>][] = [
   ['Bash', { command: 'cat ~/.claude/exo/rules.json' }],
@@ -358,16 +368,35 @@ const HARMLESS: [string, Record<string, unknown>][] = [
   ['Bash', { command: 'grep -c x ~/.claude/exo/rules.json > /dev/null' }],
   ['Grep', { pattern: 'x', path: '/home/u/.claude/exo' }],
   ['mcp__fs__read_file', { path: '/work/proj/a.txt' }],
+  // ~/claude is a workspace: writes with variables there are no control change
+  ['Bash', { command: 'cd ~/claude/_mods/exo && rm -rf "$TMPDIR/build"' }],
+  ['Bash', { command: 'npx eslint --rules "$R" src > lint.txt' }],
+  ['Bash', { command: 'rm -rf * && cp *.ts dist/' }],
+  ['Bash', { command: 'mv ~/x/* /tmp/' }],
 ]
+
+test('unresolvable paths count as touching (fail closed)', async () => {
+  const broken = async () => {
+    throw new Error('EIO')
+  }
+  assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/work/a.ts', content: '' } }, broken), true)
+})
+
+test('core failure denies unknown tools too, only read tools pass', () => {
+  assert.equal(typeof catchDecision('mcp__fs__write_file', false, false, 'x'), 'object')
+  assert.equal(catchDecision('Read', false, false, 'x'), 'pass')
+  assert.equal(catchDecision('Grep', false, false, 'x'), 'pass')
+})
 
 test('symlinked paths are resolved before deciding', async () => {
   const real = async (p: string) => (p.startsWith('/tmp/link') ? p.replace('/tmp/link', '/home/u/.claude/exo') : p)
   assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/tmp/link/DISABLED', content: '' } }, real), true)
   assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/work/a.ts', content: '' } }, real), false)
-  const broken = async () => {
+  const fresh = async (p: string) => {
+    if (p === '/work' || p === '/') return p
     throw new Error('ENOENT')
   }
-  assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/work/new/a.ts', content: '' } }, broken), false)
+  assert.equal(await touchesControlResolved({ tool: 'Write', input: { file_path: '/work/new/a.ts', content: '' } }, fresh), false)
 })
 for (const [tool, input] of CONTROL_WRITES)
   test(`control file change detected: ${tool} ${JSON.stringify(input).slice(0, 70)}`, () => assert.equal(touchesControl({ tool, input }), true))

@@ -202,8 +202,17 @@ deshalb nach. „Nur lesend“ heißt: Programme, die keine anderen starten kön
 werden normalisiert (`//`, `.`, `..`), ohne Groß-/Kleinschreibung verglichen (macOS) und über
 `$.fs.stat(…, { resolve: true })` durch Symlinks aufgelöst. Unbekannte Werkzeuge (MCP) werden
 auf jeden Pfad nach `~/.claude/exo` geprüft.
-Grenze: Ein Agent mit Shell findet andere Wege (den Mod selbst ändern, base64 in eine Shell) –
-Sicherheitsgurt, keine Sandbox.
+Dritte Prüfrunde: Globs werden segmentweise gegen die Steuernamen geprüft (`DIS*`,
+`e?o/[D]ISABLED`; ein bloßes `*` nicht, Bash trifft damit keine Punktnamen); Pfadstücke in
+Variablen zählen, wenn der Befehl ein Fragment von `.claude` oder `DISABLED` enthält (bewusst eng:
+`claude`/`exo` allein träfe jeden Schreibbefehl im Workspace `~/claude`); undurchsichtige
+Ausführung (`eval`, `source`, Shell aus einer Pipe, `base64 -d`/`xxd -r`) gilt immer als
+Steueränderung; `pluginConfigs`, `claude plugin disable … exo` und `~/.claude/dev-mods` zählen.
+Ein Pfad, der sich gar nicht auflösen lässt, gilt als betroffen (fail closed), und der Adapter
+fällt nie auf den unaufgelösten Pfad zurück. Fällt der Kern aus, lässt der `.catch`-Pfad nur
+noch reine Lesewerkzeuge (`core/tools.ts`) durch.
+Grenze: Ein Agent mit Shell findet andere Wege (den Mod selbst ändern, Pfadstücke ohne
+erkennbares Fragment) – Sicherheitsgurt, keine Sandbox.
 
 ### 3.5 Statuszeile
 
