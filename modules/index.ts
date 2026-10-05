@@ -7,11 +7,13 @@ import { ciStep } from './cockpit/ci'
 import { donecheckStep } from './cockpit/donecheck'
 import { sidebarStep } from './cockpit/sidebar'
 import { testlightStep } from './cockpit/testlight'
+import { hoursStep } from './rueckblick/hours'
+import { lessonsStep, recapStep } from './rueckblick/recap'
 import { brakeStep } from './waechter/brake'
 import { dietStep } from './waechter/diet'
 import { prodStep } from './waechter/prod'
 import { secretsStep } from './waechter/secrets'
 
 export function createSteps(): Step[] {
-  return [secretsStep(), prodStep(), dietStep(), brakeStep(), testlightStep(), sidebarStep(), donecheckStep(), ciStep()]
+  return [secretsStep(), prodStep(), dietStep(), brakeStep(), testlightStep(), sidebarStep(), donecheckStep(), ciStep(), recapStep(), lessonsStep(), hoursStep()]
 }

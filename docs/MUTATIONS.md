@@ -1,6 +1,6 @@
 # Mutationsprobe
 
-Stand 2026-10-05 · `npm run mutate` · 134/134 erkannt
+Stand 2026-10-05 · `npm run mutate` · 146/146 erkannt
 
 Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“ heißt: die Mutation hat nachweislich gegriffen (Prüfsumme vorher → nachher) und die genannten Tests wurden rot.
 
@@ -29,8 +29,8 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `brace-quoted` | `core/shell/parse.ts` | Befehle in ${x:-'$(…)'} bleiben unsichtbar | erkannt: 1 Test(s) rot · 06f53ae83c3c→86a2a92e373e |
 | `ssh-proxy` | `core/shell/words.ts` | ssh -o ProxyCommand führt unsichtbar lokal aus | erkannt: 4 Test(s) rot · 9fbadc5692e4→4063935d2950 |
 | `find-exec` | `core/shell/words.ts` | find -exec rm bleibt unsichtbar | erkannt: 2 Test(s) rot · 9fbadc5692e4→0f650e186169 |
-| `self-off` | `core/dispatcher/dispatcher.ts` | Claude kann den Notausschalter selbst setzen | erkannt: 4 Test(s) rot · c2ffdfc67292→20ce8d9012f4 |
-| `self-esc` | `core/dispatcher/dispatcher.ts` | Esc im Dialog erlaubt die Änderung | erkannt: 2 Test(s) rot · c2ffdfc67292→f293c3cde624 |
+| `self-off` | `core/dispatcher/dispatcher.ts` | Claude kann den Notausschalter selbst setzen | erkannt: 4 Test(s) rot · 3cfa860a8997→1b4e85a4d628 |
+| `self-esc` | `core/dispatcher/dispatcher.ts` | Esc im Dialog erlaubt die Änderung | erkannt: 2 Test(s) rot · 3cfa860a8997→47baf30644bf |
 | `self-path` | `core/selfprotect.ts` | Write auf ~/.claude/exo/ geht ungefragt durch | erkannt: 7 Test(s) rot · c6cccd80c901→359106802ea0 |
 | `self-readonly` | `core/selfprotect.ts` | jeder Bash-Befehl gilt als nur lesend | erkannt: 29 Test(s) rot · c6cccd80c901→5a6bb51aed35 |
 | `self-settings` | `core/selfprotect.ts` | exo-Optionen in settings.json gehen ungefragt durch | erkannt: 3 Test(s) rot · c6cccd80c901→f158215223ee |
@@ -48,7 +48,7 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `self-cwd-dir` | `core/selfprotect.ts` | cd ~/.claude/exo, dann touch x | erkannt: 1 Test(s) rot · c6cccd80c901→312b313df429 |
 | `self-cwd-rel` | `core/selfprotect.ts` | relative Ziele nach ~/.claude/exo | erkannt: 1 Test(s) rot · c6cccd80c901→30ac45d7ca23 |
 | `self-cwd-after` | `core/selfprotect.ts` | cd innerhalb des Befehls wird übersehen | erkannt: 1 Test(s) rot · c6cccd80c901→bb18881ba01f |
-| `eff-off` | `core/dispatcher/dispatcher.ts` | verschleierte Befehle setzen DISABLED unbemerkt | erkannt: 7 Test(s) rot · c2ffdfc67292→fc00c3d05317 |
+| `eff-off` | `core/dispatcher/dispatcher.ts` | verschleierte Befehle setzen DISABLED unbemerkt | erkannt: 7 Test(s) rot · 3cfa860a8997→e6fd074cdf72 |
 | `eff-esc` | `core/integrity.ts` | Esc behält die Änderung | erkannt: 5 Test(s) rot · a42ffb83bbd4→a8dd7626103e |
 | `eff-noui` | `core/integrity.ts` | ohne UI bleibt die Änderung | erkannt: 1 Test(s) rot · a42ffb83bbd4→fd073fcf32a4 |
 | `eff-disabled` | `core/integrity.ts` | DISABLED wird nicht bemerkt | erkannt: 6 Test(s) rot · a42ffb83bbd4→ea6b3c6265f5 |
@@ -56,9 +56,9 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `eff-settings` | `core/integrity.ts` | settings.json-Änderung wird nicht bemerkt | erkannt: 1 Test(s) rot · a42ffb83bbd4→50841466f564 |
 | `eff-prefs` | `core/integrity.ts` | /exo-Schalter im Store unbemerkt geändert | erkannt: 1 Test(s) rot · a42ffb83bbd4→2ee677bc8c5b |
 | `eff-keep-others` | `core/integrity.ts` | Rücksetzen löscht fremde Plugin-Einstellungen | erkannt: 1 Test(s) rot · a42ffb83bbd4→1636b14d3b6c |
-| `eff-approved` | `core/dispatcher/dispatcher.ts` | nach Zulassen wird ein zweites Mal gefragt (und rückgängig gemacht) | erkannt: 2 Test(s) rot · c2ffdfc67292→5ac5ecc6528e |
-| `eff-approved-scope` | `core/dispatcher/dispatcher.ts` | ein Zulassen deckt auch andere Schalter | erkannt: 1 Test(s) rot · c2ffdfc67292→f791510adea2 |
-| `eff-approved-bash` | `core/dispatcher/dispatcher.ts` | ein Bash-Zulassen deckt die Wirkung | erkannt: 1 Test(s) rot · c2ffdfc67292→52ae9162756a |
+| `eff-approved` | `core/dispatcher/dispatcher.ts` | nach Zulassen wird ein zweites Mal gefragt (und rückgängig gemacht) | erkannt: 2 Test(s) rot · 3cfa860a8997→2507b4f635a2 |
+| `eff-approved-scope` | `core/dispatcher/dispatcher.ts` | ein Zulassen deckt auch andere Schalter | erkannt: 1 Test(s) rot · 3cfa860a8997→80c57664ae3c |
+| `eff-approved-bash` | `core/dispatcher/dispatcher.ts` | ein Bash-Zulassen deckt die Wirkung | erkannt: 1 Test(s) rot · 3cfa860a8997→533894e4116c |
 | `sec-anthropic` | `modules/waechter/secrets-logic.ts` | Anthropic-Schlüssel werden nicht erkannt | erkannt: 7 Test(s) rot · 86dbaf356b22→e367341e9924 |
 | `sec-github` | `modules/waechter/secrets-logic.ts` | GitHub-Tokens werden nicht erkannt | erkannt: 4 Test(s) rot · 86dbaf356b22→24e10cef768c |
 | `sec-pem` | `modules/waechter/secrets-logic.ts` | private Schlüssel werden nicht erkannt | erkannt: 1 Test(s) rot · 86dbaf356b22→7e2e3f414d9a |
@@ -120,7 +120,7 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `ci-once` | `modules/cockpit/ci.ts` | Toast bei jedem Abruf erneut | erkannt: 1 Test(s) rot · 00aba8d9b363→3dffbf619a00 |
 | `ci-idle` | `modules/cockpit/ci.ts` | CI wird auch in ruhenden Sitzungen abgefragt | erkannt: 1 Test(s) rot · 00aba8d9b363→b32986d6463c |
 | `ci-backoff` | `modules/cockpit/ci.ts` | kein Backoff bei Fehlern | erkannt: 1 Test(s) rot · 00aba8d9b363→acac5122ad4e |
-| `core-filechanged` | `core/dispatcher/dispatcher.ts` | Dateiänderungen landen nicht im Journal | erkannt: 1 Test(s) rot · c2ffdfc67292→21c5c5057151 |
+| `core-filechanged` | `core/dispatcher/dispatcher.ts` | Dateiänderungen landen nicht im Journal | erkannt: 1 Test(s) rot · 3cfa860a8997→42c1c17d2230 |
 | `tl-consent` | `modules/cockpit/testlight.ts` | Projektbefehle laufen ohne Zustimmung | erkannt: 3 Test(s) rot · 3727cc440ed9→1c46098f7cc0 |
 | `tl-consent-fp` | `modules/cockpit/testlight.ts` | geänderte Test-Konfiguration läuft ohne neue Frage | erkannt: 1 Test(s) rot · 3727cc440ed9→dfe31b31d3d9 |
 | `tl-noui` | `modules/cockpit/testlight.ts` | ohne UI wird trotzdem gefragt/gestartet | erkannt: 1 Test(s) rot · 3727cc440ed9→e81f59c379f2 |
@@ -128,13 +128,25 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `tl-argv-dot` | `modules/cockpit/testlight-logic.ts` | Dateinamen werden als Optionen gelesen | erkannt: 2 Test(s) rot · bdf1e85975ce→069d976af6f5 |
 | `sec-name-core` | `modules/waechter/secrets-logic.ts` | dbpassword/rootpwd rutschen durch | erkannt: 1 Test(s) rot · 86dbaf356b22→2fc0fe177ad7 |
 | `sec-name-digits` | `modules/waechter/secrets-logic.ts` | pass123 rutscht durch | erkannt: 1 Test(s) rot · 86dbaf356b22→f7bf63b73e29 |
-| `fail-closed` | `core/dispatcher/dispatcher.ts` | ein gestörter Wächter lässt durch | erkannt: 2 Test(s) rot · c2ffdfc67292→ac6a5b33539c |
-| `deny-stops` | `core/dispatcher/dispatcher.ts` | eine Ablehnung wird ignoriert | erkannt: 1 Test(s) rot · c2ffdfc67292→3eb1cbbada05 |
-| `kill-first` | `core/dispatcher/dispatcher.ts` | der Notausschalter wirkt nicht im Dispatcher | erkannt: 1 Test(s) rot · c2ffdfc67292→de2a959d16f7 |
-| `step-order` | `core/dispatcher/dispatcher.ts` | die feste Reihenfolge gilt nicht | erkannt: 1 Test(s) rot · c2ffdfc67292→9b9d1a1f22cf |
-| `catch-guarded` | `core/dispatcher/dispatcher.ts` | der Kern-Ausfall lässt Bash durch | erkannt: 2 Test(s) rot · c2ffdfc67292→c5bf52252b92 |
-| `catch-ran` | `core/dispatcher/dispatcher.ts` | ein schon gelaufener Aufruf wird nachträglich abgelehnt | erkannt: 1 Test(s) rot · c2ffdfc67292→930e8fbb9dca |
-| `disabled-off` | `core/dispatcher/dispatcher.ts` | abgeschaltete Module laufen weiter | erkannt: 1 Test(s) rot · c2ffdfc67292→9f395b337d25 |
+| `h-gap` | `modules/rueckblick/hours-logic.ts` | Pausen zählen als Arbeitszeit | erkannt: 1 Test(s) rot · 35599ebfc61d→4634fffb0d90 |
+| `h-project` | `modules/rueckblick/hours-logic.ts` | Projektwechsel wird dem neuen Projekt angerechnet | erkannt: 1 Test(s) rot · 35599ebfc61d→062e02ee4819 |
+| `h-prune` | `modules/rueckblick/hours-logic.ts` | alte Tage bleiben ewig | erkannt: 1 Test(s) rot · 35599ebfc61d→1a3ba479868f |
+| `r-once` | `modules/rueckblick/recap.ts` | Hinweis „Letzte Sitzung“ erscheint jedes Mal | erkannt: 1 Test(s) rot · 5277e14e3a46→cffad91b07ab |
+| `r-week` | `modules/rueckblick/recap.ts` | Hinweis auch nach mehr als sieben Tagen | erkannt: 1 Test(s) rot · 5277e14e3a46→fe847fdf17d8 |
+| `r-same` | `modules/rueckblick/recap.ts` | Hinweis auf die eigene, laufende Sitzung | erkannt: 1 Test(s) rot · 5277e14e3a46→6e73ceccddef |
+| `r-empty` | `modules/rueckblick/recap.ts` | leere Sitzungen verdrängen echte | erkannt: 1 Test(s) rot · 5277e14e3a46→6c0e2458e25d |
+| `l-ticked` | `modules/rueckblick/recap.ts` | Lehren werden ohne Häkchen geschrieben | erkannt: 1 Test(s) rot · 5277e14e3a46→a10879dfff13 |
+| `l-esc` | `modules/rueckblick/recap.ts` | Esc schreibt alle Lehren | erkannt: 1 Test(s) rot · 5277e14e3a46→f378d345b849 |
+| `l-dup` | `modules/rueckblick/recap.ts` | Dubletten zur CLAUDE.md werden erneut angeboten | erkannt: 1 Test(s) rot · 5277e14e3a46→96af5283aba5 |
+| `l-code` | `modules/rueckblick/recap-logic.ts` | Code-Blöcke liefern Scheinlehren | erkannt: 1 Test(s) rot · a7e94c143580→04ae4a8da198 |
+| `l-commas` | `modules/rueckblick/recap-logic.ts` | Kommas zerreißen die Auswahl im Dialog | erkannt: 1 Test(s) rot · a7e94c143580→bd7cb58999da |
+| `fail-closed` | `core/dispatcher/dispatcher.ts` | ein gestörter Wächter lässt durch | erkannt: 2 Test(s) rot · 3cfa860a8997→15e5bf55b34b |
+| `deny-stops` | `core/dispatcher/dispatcher.ts` | eine Ablehnung wird ignoriert | erkannt: 1 Test(s) rot · 3cfa860a8997→8e0a98cf0258 |
+| `kill-first` | `core/dispatcher/dispatcher.ts` | der Notausschalter wirkt nicht im Dispatcher | erkannt: 1 Test(s) rot · 3cfa860a8997→85d43cf6cdb6 |
+| `step-order` | `core/dispatcher/dispatcher.ts` | die feste Reihenfolge gilt nicht | erkannt: 1 Test(s) rot · 3cfa860a8997→84bcbadbf8a0 |
+| `catch-guarded` | `core/dispatcher/dispatcher.ts` | der Kern-Ausfall lässt Bash durch | erkannt: 2 Test(s) rot · 3cfa860a8997→22bc7f70c831 |
+| `catch-ran` | `core/dispatcher/dispatcher.ts` | ein schon gelaufener Aufruf wird nachträglich abgelehnt | erkannt: 1 Test(s) rot · 3cfa860a8997→18b891a7f2f6 |
+| `disabled-off` | `core/dispatcher/dispatcher.ts` | abgeschaltete Module laufen weiter | erkannt: 1 Test(s) rot · 3cfa860a8997→c0121b3116f7 |
 | `kill-file` | `core/killswitch.ts` | die DISABLED-Datei wirkt nicht | erkannt: 2 Test(s) rot · da54bcf5bb3e→47f842ebc53c |
 | `kill-env` | `core/killswitch.ts` | EXO_DISABLE wirkt nicht | erkannt: 1 Test(s) rot · da54bcf5bb3e→7319566b0932 |
 | `kill-cache` | `core/killswitch.ts` | die Datei wird nach dem ersten Blick nie wieder geprüft | erkannt: 1 Test(s) rot · da54bcf5bb3e→efef0eb52577 |

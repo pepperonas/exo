@@ -23,6 +23,7 @@ const PROD = ['tests/prod.spec.ts']
 const BRAKE = ['tests/brake.spec.ts']
 const DIET = ['tests/diet.spec.ts']
 const COCK = ['tests/cockpit.spec.ts']
+const RUECK = ['tests/rueckblick.spec.ts']
 
 export const MUTATIONS: Mutation[] = [
   // ---- shell parser
@@ -155,6 +156,19 @@ export const MUTATIONS: Mutation[] = [
   { id: 'tl-argv-dot', file: 'modules/cockpit/testlight-logic.ts', find: "(f.startsWith(root + '/') ? './' + f.slice(root.length + 1)", replace: "(f.startsWith(root + '/') ? f.slice(root.length + 1)", tests: COCK, breaks: 'Dateinamen werden als Optionen gelesen' },
   { id: 'sec-name-core', file: 'modules/waechter/secrets-logic.ts', find: 'nameParts(name).some(p => PASSWORD_PARTS.has(p) || PASSWORD_CORE.test(p))', replace: 'nameParts(name).some(p => PASSWORD_PARTS.has(p))', tests: SEC, breaks: 'dbpassword/rootpwd rutschen durch' },
   { id: 'sec-name-digits', file: 'modules/waechter/secrets-logic.ts', find: "    .replace(/([A-Za-z])([0-9])/g, '$1 $2')\n", replace: '', tests: SEC, breaks: 'pass123 rutscht durch' },
+  // ---- rueckblick
+  { id: 'h-gap', file: 'modules/rueckblick/hours-logic.ts', find: '  if (gap <= 0 || gap > GAP_MS) return next', replace: '  if (gap <= 0) return next', tests: RUECK, breaks: 'Pausen zählen als Arbeitszeit' },
+  { id: 'h-project', file: 'modules/rueckblick/hours-logic.ts', find: '  if (!last || last.project !== project) return next', replace: '  if (!last) return next', tests: RUECK, breaks: 'Projektwechsel wird dem neuen Projekt angerechnet' },
+  { id: 'h-prune', file: 'modules/rueckblick/hours-logic.ts', find: '  return { ...h, days: Object.fromEntries(Object.entries(h.days).filter(([d]) => d >= cutoff)) }', replace: '  return h', tests: RUECK, breaks: 'alte Tage bleiben ewig' },
+  { id: 'r-once', file: 'modules/rueckblick/recap.ts', find: "      if (!entry || entry.shown ||", replace: "      if (!entry ||", tests: RUECK, breaks: 'Hinweis „Letzte Sitzung“ erscheint jedes Mal' },
+  { id: 'r-week', file: 'modules/rueckblick/recap.ts', find: ' || now - entry.facts.endedAt > WEEK_MS) return', replace: ') return', tests: RUECK, breaks: 'Hinweis auch nach mehr als sieben Tagen' },
+  { id: 'r-same', file: 'modules/rueckblick/recap.ts', find: ' || entry.facts.sessionId === env.sessionId', replace: '', tests: RUECK, breaks: 'Hinweis auf die eigene, laufende Sitzung' },
+  { id: 'r-empty', file: 'modules/rueckblick/recap.ts', find: '      if (!f.turns && !f.files.length) return // nothing happened: nothing worth recalling', replace: '', tests: RUECK, breaks: 'leere Sitzungen verdrängen echte' },
+  { id: 'l-ticked', file: 'modules/rueckblick/recap.ts', find: '  const picked = offer.filter((_, i) => chosen.includes(labels[i]!))', replace: '  const picked = offer', tests: RUECK, breaks: 'Lehren werden ohne Häkchen geschrieben' },
+  { id: 'l-esc', file: 'modules/rueckblick/recap.ts', find: "  } catch {\n    return 'Lehren: nichts übernommen.'\n  }", replace: '  } catch {\n    chosen = labels\n  }', tests: RUECK, breaks: 'Esc schreibt alle Lehren' },
+  { id: 'l-dup', file: 'modules/rueckblick/recap.ts', find: "  const fresh = (await readLessons(env)).filter(l => !isDuplicate(l, existing ?? ''))", replace: '  const fresh = await readLessons(env)', tests: RUECK, breaks: 'Dubletten zur CLAUDE.md werden erneut angeboten' },
+  { id: 'l-code', file: 'modules/rueckblick/recap-logic.ts', find: "    .replace(/```[\\s\\S]*?```/g, ' ')\n", replace: '', tests: RUECK, breaks: 'Code-Blöcke liefern Scheinlehren' },
+  { id: 'l-commas', file: 'modules/rueckblick/recap-logic.ts', find: "s.replace(/,/g, ';')", replace: 's', tests: RUECK, breaks: 'Kommas zerreißen die Auswahl im Dialog' },
   // ---- dispatcher
   { id: 'fail-closed', file: 'core/dispatcher/dispatcher.ts', find: "      if (policyOf(step.id) === 'closed') {", replace: '      if (false) {', tests: DISP, breaks: 'ein gestörter Wächter lässt durch' },
   { id: 'deny-stops', file: 'core/dispatcher/dispatcher.ts', find: '      return { deny: out.deny }', replace: '      void 0', tests: DISP, breaks: 'eine Ablehnung wird ignoriert' },

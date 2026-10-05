@@ -188,3 +188,7 @@ export async function promptContexts(rt: Runtime, host: Host): Promise<string[]>
 export async function turnTexts(rt: Runtime, host: Host, t: TurnEnd): Promise<string[]> {
   return (await each(rt, host, (s, env) => s.turnComplete?.(env, t))).filter((x): x is string => typeof x === 'string' && x.length > 0)
 }
+
+export async function endModules(rt: Runtime, host: Host, reason: string): Promise<void> {
+  await each(rt, host, (s, env) => s.end?.(env, reason))
+}

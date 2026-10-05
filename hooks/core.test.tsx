@@ -40,6 +40,9 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
   on('fs.list', () => ({ value: [] }))
   on('command.list', () => ({ value: [] }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('session.messages', () => ({ value: [{ role: 'assistant', text: 'Erledigt bis auf die README.', toolUses: [] }] }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: {}, rateLimits: [], cost: { usd: 0.42 } } }))
+  on('model.complete', () => ({ value: { isAnswered: true, text: '- README ergänzen', usage: { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } } }))
   on('turn.start', (_$: any, e: any) => ({ turnId: e.turnId }))
   on('turn.complete', (_$: any, e: any) => ({ text: e.answer }))
   on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr: '' } }))
@@ -187,3 +190,22 @@ for (const surface of ['terminal', 'desktop'] as const) {
     expect(await all(ui)).toContain('noch keine Datei')
   })
 }
+
+test('/recap shows the card with open points from the small model', async ($, on) => {
+  engine(on)
+  await start($)
+  await $.turn.start({ text: 'mach', turnId: 't9' } as any)
+  await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/r.ts', content: 'x\n', tool_use_id: 'u9' } as any)
+  await $.turn.complete({ answer: 'Ich habe r.ts angelegt.', durationMs: 5, isAborted: false, turnId: 't9', reason: 'answer' } as any)
+  const r = await $.command.run({ command: 'recap', args: '' } as any)
+  expect(r.text).toContain('## Rückblick')
+  expect(r.text).toContain('README ergänzen')
+  expect(r.text).toContain('Kosten 0,42 $')
+})
+
+test('/hours answers with the week', async ($, on) => {
+  engine(on)
+  await start($)
+  const r = await $.command.run({ command: 'hours', args: '' } as any)
+  expect(r.text).toContain('Woche')
+})

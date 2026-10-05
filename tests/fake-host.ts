@@ -166,4 +166,31 @@ export class FakeHost implements Host {
   async setChanges(rows: ChangeRow[], selected: string | null, diff: string) {
     this.changes = { rows, selected, diff }
   }
+
+  history: { role: 'user' | 'assistant'; text: string }[] = []
+  async messages() {
+    return this.history
+  }
+  completions: string[] = []
+  completeAnswer: string | null = null
+  async complete(prompt: string) {
+    this.completions.push(prompt)
+    return this.completeAnswer
+  }
+  copied: string[] = []
+  async copy(text: string) {
+    this.copied.push(text)
+    return true
+  }
+  cost: number | null = null
+  async sessionCost() {
+    return this.cost
+  }
+  manyAnswers: string[][] = []
+  async askMany(question: string, options: readonly string[]) {
+    this.asked.push({ question, options })
+    const a = this.manyAnswers.shift()
+    if (a === undefined) throw new Error('dismissed')
+    return a
+  }
 }

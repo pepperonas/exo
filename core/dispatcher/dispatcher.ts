@@ -107,6 +107,8 @@ export interface Step {
   start?(env: ModuleEnv): void | Promise<void>
   /** Lines the model reads beside the next prompt. */
   promptContext?(env: ModuleEnv): string[] | Promise<string[]>
+  /** At session end: fast, no model, no process (the engine gives one short bound). */
+  end?(env: ModuleEnv, reason: string): void | Promise<void>
   /** A line shown beneath the answer, or nothing. */
   turnComplete?(env: ModuleEnv, t: TurnEnd): string | undefined | Promise<string | undefined>
   before?(ctx: CallCtx): BeforeResult | Promise<BeforeResult>

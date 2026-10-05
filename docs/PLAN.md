@@ -538,6 +538,21 @@ erst, wenn Martin Enter drückt.
   galt als Passwort, die Namensprüfung suchte die Zeichenfolge `pass`). Jetzt zählen nur ganze
   Namensbestandteile (`db_password`, `dbPassword`, `PWD` ja; `passed`, `compass`, `bypass` nein).
 
+### 4.9 Stand Etappe 4 (2026-10-05)
+
+- **Sitzungsende:** Module haben einen `end`-Haken; er speichert nur (kein Modell, kein Prozess).
+- **Recap:** Fakten aus dem Journal (Dauer, aktive Zeit, Turns, Dateien je Pfad zusammengefasst,
+  erster und letzter Testlauf, Kosten aus `$.session.usage`); leere Sitzungen werden nicht
+  gespeichert. Der Hinweis „Letzte Sitzung …“ erscheint im Band über dem Prompt (wegklickbar),
+  einmal, nur im selben Projekt, nicht für die laufende Sitzung, nicht nach sieben Tagen.
+  `/recap` fragt `haiku` (20 s Timeout) nach offenen Punkten aus den letzten 12 Antworten.
+- **Lehren:** Kandidaten aus Antworten (ohne Code-Blöcke), gespeichert je Sitzung; bei `/recap`
+  höchstens drei, ohne Dubletten zur Projekt-CLAUDE.md, Mehrfachauswahl im nativen Dialog;
+  geschrieben nur Angekreuztes unter `## Lehren (exo)` (Datei wird angelegt, wenn sie fehlt).
+- **Stunden:** Lücke über 5 min = Pause; Projektwechsel schreibt nichts gut. Tagesstand ab
+  einer Minute in der Hinweiszeile, `/hours` Woche Mo–So, `/hours export csv|json` nach
+  `~/.claude/exo/`. 400 Tage Aufbewahrung.
+
 ## 5. Zustandsvertrag (`types/index.d.ts`)
 
 `PluginState['exo']`: `status` (Statuszeilen-Slots), `banner` (AbovePrompt-Einträge),

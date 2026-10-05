@@ -72,6 +72,15 @@ export interface Host {
   /** Puts text into the prompt box as a draft; the person sends it. */
   fillPrompt(text: string): Promise<boolean>
   openPane(id: string, title: string): Promise<boolean>
+  /** The conversation so far: role and text of each message. */
+  messages(): Promise<{ role: 'user' | 'assistant'; text: string }[]>
+  /** One completion with a small model; null when there is no answer (timeout, error). */
+  complete(prompt: string, system?: string): Promise<string | null>
+  copy(text: string): Promise<boolean>
+  /** What the session has cost so far, when the host keeps a ledger. */
+  sessionCost(): Promise<number | null>
+  /** Dialog with several choices; the chosen labels. Rejects on Esc or without UI. */
+  askMany(question: string, options: readonly string[]): Promise<string[]>
   /** Change sidebar: the list, the selected file and its diff. */
   setChanges(changes: ChangeRow[], selected: string | null, diff: string): Promise<void>
 }

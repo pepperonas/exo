@@ -10,11 +10,13 @@ import type { Host, Timer } from '../core/adapter/host'
 import { exoCommand } from '../core/exo-command'
 import { errorText } from '../core/health/health'
 import { L } from '../core/i18n'
-import { catchDecision, createRuntime, killReason, log, moduleEnv, promptContexts, refreshLiveness, saveJournalLater, startModules, toolCall, turnTexts } from '../core/runtime'
+import { catchDecision, createRuntime, endModules, killReason, log, moduleEnv, promptContexts, refreshLiveness, saveJournalLater, startModules, toolCall, turnTexts } from '../core/runtime'
 import type { Runtime } from '../core/runtime'
 import { KillSwitch } from '../core/killswitch'
 import { DISMISS, pressBanner, pressPane } from '../core/statusline/banners'
 import { refreshChanges } from '../modules/cockpit/sidebar'
+import { hoursCommand } from '../modules/rueckblick/hours'
+import { recapCommand } from '../modules/rueckblick/recap'
 import { pruneSnapshots } from '../modules/waechter/brake'
 import { undoLast, undoList } from '../modules/waechter/undo'
 import { layout } from '../core/statusline/statusline'
@@ -30,6 +32,8 @@ function shortPath(p: string, max: number): string {
 const COMMANDS: [string, string, string][] = [
   ['undo-last', 'exo: letzten Schnappschuss der Aufräum-Bremse wiederherstellen', '[id]'],
   ['undo-list', 'exo: Schnappschüsse der Aufräum-Bremse anzeigen', ''],
+  ['recap', 'exo: Rückblick auf diese Sitzung, offene Punkte, Lehren', '[md|copy]'],
+  ['hours', 'exo: aktive Zeit je Projekt diese Woche', '[export csv|json]'],
 ]
 /** Registered name → command it stands for (exo-undo-last when undo-last is taken). */
 const commandNames = new Map<string, string>()
@@ -111,6 +115,17 @@ function hostOf($: EngineInterface): Host {
       return r.isFilled
     },
     openPane: async (id, title) => (await $.ui.open({ id, title })).isPlaced,
+    messages: async () => (await $.session.messages()).map(m => ({ role: m.role, text: m.text })),
+    complete: async (prompt, system) => {
+      const r = await $.model.complete({ model: 'haiku', prompt, system, maxTokens: 800, timeoutMs: 20_000 })
+      return r.isAnswered ? r.text : null
+    },
+    copy: async text => (await $.ui.copy({ text })).isCopied,
+    sessionCost: async () => (await $.session.usage()).cost?.usd ?? null,
+    askMany: async (question, options) => {
+      const answer = await $.ui.ask(question, { options, multiSelect: true })
+      return options.filter(o => answer.split(',').map(x => x.trim()).includes(o))
+    },
     setChanges: async (changes, selected, diff) => {
       await update($, changesA, () => changes)
       await update($, selectedA, () => selected)
@@ -248,6 +263,7 @@ export const register: Register = (on, options) => {
     try {
       const rt = await ensure($)
       rt.journal.push({ type: 'session.end', reason: e.reason }, await $.clock.now())
+      await endModules(rt, hostOf($), e.reason)
       saveJournalLater(rt)
       await rt.store.flush()
     } catch {
@@ -256,6 +272,19 @@ export const register: Register = (on, options) => {
     tick?.cancel()
     return next(e)
   })
+
+  for (const name of ['recap', 'exo-recap'] as const) {
+    on('command.run', { command: name }, async ($, e) => {
+      const rt = await ensure($)
+      return { text: await recapCommand(moduleEnv(rt, hostOf($)), e.args, rt.config.enabled.lessons) }
+    })
+  }
+  for (const name of ['hours', 'exo-hours'] as const) {
+    on('command.run', { command: name }, async ($, e) => {
+      const rt = await ensure($)
+      return { text: await hoursCommand(moduleEnv(rt, hostOf($)), e.args) }
+    })
+  }
 
   for (const name of ['undo-last', 'undo-list', 'exo-undo-last', 'exo-undo-list'] as const) {
     on('command.run', { command: name }, async ($, e) => {
