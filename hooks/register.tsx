@@ -5,7 +5,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Banner, ChangeRow, Slot } from '../types'
+import type { Banner, ChangeRow, DuckState, Slot } from '../types'
 import type { Host, Timer } from '../core/adapter/host'
 import { exoCommand } from '../core/exo-command'
 import { errorText } from '../core/health/health'
@@ -13,10 +13,14 @@ import { L } from '../core/i18n'
 import { catchDecision, createRuntime, endModules, killReason, log, moduleEnv, promptContexts, refreshLiveness, saveJournalLater, startModules, toolCall, turnTexts } from '../core/runtime'
 import type { Runtime } from '../core/runtime'
 import { KillSwitch } from '../core/killswitch'
+import { isMissingError } from '../core/safepath'
 import { DISMISS, pressBanner, pressPane } from '../core/statusline/banners'
 import { refreshChanges } from '../modules/cockpit/sidebar'
 import { hoursCommand } from '../modules/rueckblick/hours'
 import { recapCommand } from '../modules/rueckblick/recap'
+import { achievementsCard } from '../modules/extras/achievements'
+import { spinnerMessage } from '../modules/extras/cinema'
+import { DUCK, QUESTIONS, answer as answerDuck, buildPrompt, done, freshDuck } from '../modules/extras/duck-logic'
 import { pruneSnapshots } from '../modules/waechter/brake'
 import { undoLast, undoList } from '../modules/waechter/undo'
 import { layout } from '../core/statusline/statusline'
@@ -24,6 +28,7 @@ import { layout } from '../core/statusline/statusline'
 const COMMAND = 'exo'
 const CHANGES = 'changes'
 const CHANGES_PANE = 'exo-changes'
+const DUCK_PANE = 'exo-duck'
 
 function shortPath(p: string, max: number): string {
   return p.length <= max ? p : '…' + p.slice(p.length - Math.max(8, max - 1))
@@ -34,6 +39,8 @@ const COMMANDS: [string, string, string][] = [
   ['undo-list', 'exo: Schnappschüsse der Aufräum-Bremse anzeigen', ''],
   ['recap', 'exo: Rückblick auf diese Sitzung, offene Punkte, Lehren', '[md|copy]'],
   ['hours', 'exo: aktive Zeit je Projekt diese Woche', '[export csv|json]'],
+  ['duck', 'exo: Gummi-Ente – Fehlersuche mit fünf Fragen', ''],
+  ['achievements', 'exo: gesammelte Abzeichen', ''],
 ]
 /** Registered name → command it stands for (exo-undo-last when undo-last is taken). */
 const commandNames = new Map<string, string>()
@@ -46,6 +53,7 @@ const killedA = atom({ plugin: 'exo', key: 'killed' } as const, null as string |
 const changesA = atom({ plugin: 'exo', key: 'changes' } as const, [] as ChangeRow[])
 const selectedA = atom({ plugin: 'exo', key: 'selected' } as const, null as string | null)
 const diffA = atom({ plugin: 'exo', key: 'diff' } as const, '')
+const duckA = atom({ plugin: 'exo', key: 'duck' } as const, { step: 0, answers: [] } as DuckState)
 
 /**
  * The adapter: the one place that speaks to `$`. Everything else works
@@ -66,8 +74,11 @@ function hostOf($: EngineInterface): Host {
     isLink: async path => {
       try {
         return (await $.fs.stat(path)).isLink
-      } catch {
-        return false
+      } catch (err) {
+        // only "not there" means not a link; any other failure is passed on,
+        // so a guard asking this denies instead of guessing
+        if (isMissingError(err)) return false
+        throw err
       }
     },
     realPath: async path => {
@@ -130,7 +141,7 @@ function hostOf($: EngineInterface): Host {
       const u = await $.session.usage()
       return { contextPercent: u.context.percent, fiveHour: u.rateLimits.find(l => l.kind === 'five_hour')?.percentUsed }
     },
-    usageBarsPresent: async () => (await $.config.list()).some(r => r.key.startsWith('usage-bars.')),
+    usageBars: async () => (await $.config.list()).some(r => r.key.startsWith('usage-bars.')),
     openDialog: async (id, title) => (await $.ui.open({ id, title, focus: true, closeOnEscape: true })).isPlaced,
     closePane: async id => {
       await $.ui.close({ id })
@@ -299,6 +310,79 @@ export const register: Register = (on, options) => {
       return { text: await recapCommand(moduleEnv(rt, hostOf($)), e.args, rt.config.enabled.lessons) }
     })
   }
+  for (const name of ['duck', 'exo-duck'] as const) {
+    on('command.run', { command: name }, async $ => {
+      const rt = await ensure($)
+      if (!rt.config.enabled.duck) return { text: 'Die Gummi-Ente ist ausgeschaltet (/exo on duck).' }
+      await update($, duckA, () => freshDuck())
+      const placed = await $.ui.open({ id: DUCK_PANE, title: 'Gummi-Ente', focus: true, closeOnEscape: true })
+      return { text: placed.isPlaced ? 'Die Ente hört zu.' : `Die Ente hat keinen Platz (${placed.reason}).` }
+    })
+  }
+  for (const name of ['achievements', 'exo-achievements'] as const) {
+    on('command.run', { command: name }, async $ => {
+      const rt = await ensure($)
+      const noColor = !!(await $.env.get('NO_COLOR'))
+      return { text: '```\n' + (await achievementsCard(moduleEnv(rt, hostOf($)), noColor)) + '\n```' }
+    })
+  }
+
+  on('ui.render', { component: 'Pane', requestId: DUCK_PANE }, async ($, e) => {
+    if (e.surface === 'mobile') {
+      const { Text } = $.ui.resolve(e)
+      return <Text>Die Gummi-Ente braucht ein Eingabefeld – auf dem Telefon gibt es keins.</Text>
+    }
+    const { Box, Text, Button, Input, Code } = $.ui.resolve(e)
+    const s = await read($, duckA)
+    const duck = DUCK.map((l, i) => <Text key={`d${i}`} color="#f2cc60">{l}</Text>)
+    if (done(s)) {
+      const prompt = buildPrompt(s.answers)
+      return (
+        <Box flexDirection="column">
+          {duck}
+          <Text key="t">Quak. Daraus wird dieser Prompt – bearbeite ihn im Eingabefeld und schick ihn selbst ab:</Text>
+          <Code key="p" source={prompt} language="markdown" />
+          <Box key="b" flexDirection="row">
+            <Button
+              key="take"
+              variant="primary"
+              label="In den Prompt übernehmen"
+              onPress={async () => {
+                await $.prompt.fill({ text: prompt, mode: 'replace' })
+                const rt = await ensure($)
+                rt.journal.push({ type: 'duck' }, await $.clock.now())
+                await $.ui.close({ id: DUCK_PANE })
+              }}
+            />
+            <Button key="again" label="Neu anfangen" onPress={() => void update($, duckA, () => freshDuck())} />
+          </Box>
+        </Box>
+      )
+    }
+    const q = QUESTIONS[s.step]!
+    return (
+      <Box flexDirection="column">
+        {duck}
+        <Text key="q" bold>{`Frage ${s.step + 1}/${QUESTIONS.length}: ${q}`}</Text>
+        <Input key={`in${s.step}`} placeholder="Antwort, Enter = weiter" autoFocus onSubmit={(value: string) => void update($, duckA, cur => answerDuck(cur, value))} />
+        <Box key="b" flexDirection="row">
+          <Button key="skip" label="Überspringen" onPress={() => void update($, duckA, cur => answerDuck(cur, null))} />
+        </Box>
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
+    try {
+      const l = await live($)
+      if (!l || !l.rt.config.enabled.cinema) return next(e)
+      const msg = spinnerMessage(await $.clock.now(), e.viewport?.columns ?? 80)
+      return msg ? next({ ...e, props: { ...e.props, message: msg, suffix: '' } }) : next(e)
+    } catch {
+      return next(e)
+    }
+  })
+
   for (const name of ['hours', 'exo-hours'] as const) {
     on('command.run', { command: name }, async ($, e) => {
       const rt = await ensure($)

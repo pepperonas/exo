@@ -24,6 +24,7 @@ const BRAKE = ['tests/brake.spec.ts']
 const DIET = ['tests/diet.spec.ts']
 const COCK = ['tests/cockpit.spec.ts']
 const RUECK = ['tests/rueckblick.spec.ts']
+const EXTRAS = ['tests/extras.spec.ts']
 
 export const MUTATIONS: Mutation[] = [
   // ---- shell parser
@@ -175,6 +176,20 @@ export const MUTATIONS: Mutation[] = [
   { id: 'safe-md', file: 'modules/rueckblick/recap.ts', find: '    if (await insideRoot(env.host, path, env.project)) {', replace: '    if (true) {', tests: RUECK, breaks: '/recap md schreibt über einen Symlink nach /etc' },
   { id: 'safe-dangling', file: 'core/safepath.ts', find: '      if (await host.isLink(cur).catch(() => true)) return false\n', replace: '', tests: RUECK, breaks: 'ein verwaister Symlink leitet das Schreiben nach außen' },
   { id: 'safe-dots', file: 'core/safepath.ts', find: '  if (/(^|\\/)\\.\\.?(\\/|$)/.test(path)) return false\n', replace: '', tests: RUECK, breaks: '.. im Pfad führt aus dem Projekt' },
+  { id: 'safe-missing', file: 'core/safepath.ts', find: "  return /\\bENOENT\\b|\\bENOTDIR\\b|no such file or directory/i.test(text)", replace: '  return true', tests: RUECK, breaks: 'jeder Fehler gilt als „fehlt“, die Prüfung lässt durch' },
+  // ---- extras
+  { id: 'duck-blank', file: 'modules/extras/duck-logic.ts', find: '  const v = value === null ? null : value.trim() || null', replace: '  const v = value', tests: EXTRAS, breaks: 'leere Antworten landen im Prompt' },
+  { id: 'duck-error-block', file: 'modules/extras/duck-logic.ts', find: "    if (i === 2) lines.push(`${LABELS[i]}:`, '```', a, '```')\n    else", replace: '   ', tests: EXTRAS, breaks: 'Fehlermeldung ohne Code-Block' },
+  { id: 'ach-one', file: 'modules/extras/achievements.ts', find: '      const badge = next[0]', replace: '      const badge = next[next.length - 1]', tests: EXTRAS, breaks: 'Abzeichen in falscher Reihenfolge' },
+  { id: 'ach-quiet', file: 'modules/extras/achievements.ts', find: '        if (!inQuiet(new Date(now).getHours(), env.config.quietHours)) {', replace: '        if (true) {', tests: EXTRAS, breaks: 'Toasts und Töne in der Ruhezeit' },
+  { id: 'ach-streak', file: 'modules/extras/achievements-logic.ts', find: '        s.streak = redInTurn ? 0 : s.streak + 1', replace: '        s.streak = s.streak + 1', tests: EXTRAS, breaks: 'roter Test bricht die Serie nicht' },
+  { id: 'ach-seen', file: 'modules/extras/achievements-logic.ts', find: '    if (e.seq <= s.seenSeq) continue\n', replace: '', tests: EXTRAS, breaks: 'Ereignisse werden mehrfach gezählt' },
+  { id: 'ach-requires', file: 'modules/extras/achievements-logic.ts', find: '(!r.requires || usageBars)', replace: 'true', tests: EXTRAS, breaks: 'Pac-Man-Abzeichen ohne usage-bars' },
+  { id: 'ach-session', file: 'modules/extras/achievements-logic.ts', find: "    seenSeq: o.sessionId === sessionId && typeof o.seenSeq === 'number' ? o.seenSeq : 0,", replace: "    seenSeq: typeof o.seenSeq === 'number' ? o.seenSeq : 0,", tests: EXTRAS, breaks: 'neue Sitzung überspringt ihr Journal' },
+  { id: 'cine-stop', file: 'modules/extras/cinema.ts', find: '  if (!animate && st.fast) {', replace: '  if (false) {', tests: EXTRAS, breaks: 'der 30-fps-Timer läuft weiter' },
+  { id: 'cine-reduced', file: 'modules/extras/cinema.ts', find: '  const animate = film !== null && !env.config.reducedMotion', replace: '  const animate = film !== null', tests: EXTRAS, breaks: 'reduzierte Bewegung wird ignoriert' },
+  { id: 'cine-coffee', file: 'modules/extras/cinema-logic.ts', find: "  if (turnMs !== null && turnMs >= COFFEE_AFTER_MS) return 'coffee'", replace: '', tests: EXTRAS, breaks: 'lange Turns ohne Kaffee' },
+  { id: 'cine-width', file: 'modules/extras/cinema-logic.ts', find: "  return text.length > room ? text.slice(0, room - 1) + '…' : text", replace: '  return text', tests: EXTRAS, breaks: 'Spinner sprengt die Terminalbreite' },
   // ---- dispatcher
   { id: 'fail-closed', file: 'core/dispatcher/dispatcher.ts', find: "      if (policyOf(step.id) === 'closed') {", replace: '      if (false) {', tests: DISP, breaks: 'ein gestörter Wächter lässt durch' },
   { id: 'deny-stops', file: 'core/dispatcher/dispatcher.ts', find: '      return { deny: out.deny }', replace: '      void 0', tests: DISP, breaks: 'eine Ablehnung wird ignoriert' },

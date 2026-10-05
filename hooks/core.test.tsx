@@ -9,7 +9,7 @@ const HINT = {
 /** The engine beneath exo: files in memory, a store, env, session facts. */
 function engine(on: any, files: Record<string, string> = {}, env: Record<string, string> = { HOME: '/home/u' }) {
   const fs = new Map(Object.entries(files))
-  mock.clock(on, { now: 1_000_000 })
+  const clock = mock.clock(on, { now: 1_000_000 })
   const store = new Map<string, unknown>()
   on('store.get', (_$: any, e: any) => ({ value: store.get(e.key) }))
   on('store.set', (_$: any, e: any) => {
@@ -24,6 +24,9 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
   mock.env(on, env)
   const toasts: string[] = []
   const ran: string[] = []
+  const filled: string[] = []
+  /** Paths whose stat fails with a permission error. */
+  const locked = new Set<string>()
   on('fs.exists', (_$: any, e: any) => ({ value: fs.has(e.path) }))
   on('fs.read', (_$: any, e: any) => {
     if (!fs.has(e.path)) throw new Error('ENOENT')
@@ -34,12 +37,20 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
     return { value: undefined }
   })
   on('fs.stat', (_$: any, e: any) => {
+    if ([...locked].some(l => String(e.path) === l || String(e.path).startsWith(l + '/'))) throw new Error('EACCES: permission denied')
     if (e.path !== '/' && !fs.has(e.path) && ![...fs.keys()].some(k => k.startsWith(e.path + '/'))) throw new Error('ENOENT')
     return { value: { kind: fs.has(e.path) ? 'file' : 'dir', size: fs.get(e.path)?.length ?? 0, mtimeMs: 0, isLink: false, realPath: e.path } }
   })
   on('fs.list', () => ({ value: [] }))
   on('command.list', () => ({ value: [] }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.close', () => ({ value: undefined }))
+  on('prompt.fill', (_$: any, e: any) => {
+    filled.push(String(e.text))
+    return { isFilled: true }
+  })
+  on('config.list', () => ({ value: [] }))
+  on('audio.play', () => ({ value: undefined }))
   on('session.messages', () => ({ value: [{ role: 'assistant', text: 'Erledigt bis auf die README.', toolUses: [] }] }))
   on('session.usage', () => ({ value: { startedAt: 0, context: {}, rateLimits: [], cost: { usd: 0.42 } } }))
   on('model.complete', () => ({ value: { isAnswered: true, text: '- README ergänzen', usage: { input_tokens: 1, output_tokens: 1, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 } } }))
@@ -57,14 +68,14 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
   })
   on('ui.render', ($: any, e: any) => {
     const { Text } = $.ui.resolve(e)
-    return <Text dimColor>{e.props.hint}</Text>
+    return <Text dimColor>{e.props.hint ?? e.props.message ?? e.props.word ?? ''}</Text>
   })
   on('tool.call', (_$: any, e: any) => {
     if (e.tool === 'Write') fs.set(String(e.file_path), String(e.content))
     ran.push(String(e.command ?? e.file_path))
     return { result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }
   })
-  return { fs, toasts, ran, store }
+  return { fs, toasts, ran, store, filled, clock, locked }
 }
 
 const start = ($: any) => $.session.start({ cwd: '/work/proj', surface: 'terminal', isInteractive: true })
@@ -209,3 +220,43 @@ test('/hours answers with the week', async ($, on) => {
   const r = await $.command.run({ command: 'hours', args: '' } as any)
   expect(r.text).toContain('Woche')
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`the duck asks five questions, skips work, and fills the prompt (${surface})`, async ($, on) => {
+    const { filled } = engine(on)
+    await start($)
+    const r = await $.command.run({ command: 'duck', args: '' } as any)
+    expect(r.text).toContain('Ente')
+    const ui: any = await $.ui.mount({ plugin: 'exo', component: 'Pane', requestId: 'exo-duck', surface, props: { title: 'Gummi-Ente', isFocused: true, bodyColumns: 70, placement: 'dock' }, viewport: { columns: 120, rows: 40 } } as any)
+    expect(await all(ui)).toContain('Frage 1/5')
+    await ui.input({ key: 'in0', text: 'Drei Einträge' })
+    await ui.press({ key: 'skip' })
+    await ui.input({ key: 'in2', text: 'TypeError: boom' })
+    await ui.press({ key: 'skip' })
+    await ui.input({ key: 'in4', text: 'Ja, immer' })
+    expect(await all(ui)).toContain('Daraus wird dieser Prompt')
+    await ui.press({ key: 'take' })
+    expect(filled[0]).toContain('Erwartet: Drei Einträge')
+    expect(filled[0]).toContain('TypeError: boom')
+    expect(String(filled[0]).includes('Stattdessen')).toBe(false)
+  })
+}
+
+test('/achievements draws the card', async ($, on) => {
+  engine(on)
+  await start($)
+  const r = await $.command.run({ command: 'achievements', args: '' } as any)
+  expect(r.text).toContain('exo · Erfolge')
+  expect(r.text).toContain('Erster Schritt')
+})
+
+test('a long turn turns the spinner into coffee, with the real seconds', async ($, on) => {
+  const { clock } = engine(on)
+  await start($)
+  await $.turn.start({ text: 'denk nach', turnId: 'tc' } as any)
+  await clock.advance(61_000)
+  const ui = await $.ui.mount({ plugin: 'exo', component: 'Spinner', surface: 'terminal', props: { word: 'Thinking', message: null, suffix: '…', mode: 'thinking' }, viewport: { columns: 120, rows: 40 } } as any)
+  const t = await all(ui)
+  expect(t).toContain('denkt nach')
+})
+

@@ -558,6 +558,26 @@ erst, wenn Martin Enter drückt.
   einer Minute in der Hinweiszeile, `/hours` Woche Mo–So, `/hours export csv|json` nach
   `~/.claude/exo/`. 400 Tage Aufbewahrung.
 
+### 4.10 Stand Etappe 5 (2026-10-05)
+
+- **Ente:** `/duck` öffnet ein Dialog-Pane (`focus`, Esc schließt); fünf Fragen, jede
+  überspringbar, leere Antworten zählen als übersprungen; Template fest, Fehlermeldung als
+  Code-Block. „In den Prompt übernehmen“ legt den Text per `$.prompt.fill` ins Eingabefeld –
+  abgeschickt wird von Hand. Auf dem Telefon (kein `Input`) nur ein Hinweis.
+- **Erfolge:** 15 Abzeichen als Daten (`RULES`: Kennzahl + Schwelle). Zähler aus dem Journal
+  (jedes Ereignis einmal, je Sitzung ab vorn), Kennzahlen aus Stunden (Tagesrekord, Tagesserie)
+  und Sitzungsurteile beim Sitzungsende (Kontext ≤ 50 %, 5-h-Fenster < 90 % bei 10+ Turns).
+  Höchstens ein Abzeichen je Turn; Toast/Ton nicht in der Ruhezeit (freigeschaltet wird trotzdem).
+  „Pac-Man …“ nur, wenn usage-bars geladen ist (erkannt an dessen `/config`-Zeilen; die Werte
+  liest exo selbst aus `$.session.usage`, nicht aus usage-bars).
+- **Kino:** Variante A – nur `Spinner.message` (Zeit/Tokens bleiben der Engine). Tätigkeit aus
+  dem laufenden Tool (Journal), Kaffee nach 60 s Turn. 30-fps-Neuzeichnen nur solange ein Film
+  läuft; reduzierte Bewegung = Standbild ohne schnellen Timer; `NO_COLOR` = ASCII-Pack.
+- **Dateisystem-Fehler:** Nur `ENOENT`/`ENOTDIR`/„no such file“ zählen als „fehlt“
+  (`isMissingError`), alles andere lehnt ab. Der echte Fehlertext von `$.fs.stat` ist im Test-Kit
+  nicht beobachtbar (es hat kein Dateisystem); fällt er anders aus, lehnt exo harmlose
+  Schreibvorgänge ab – die sichere Richtung.
+
 ## 5. Zustandsvertrag (`types/index.d.ts`)
 
 `PluginState['exo']`: `status` (Statuszeilen-Slots), `banner` (AbovePrompt-Einträge),

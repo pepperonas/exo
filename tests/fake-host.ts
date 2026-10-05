@@ -212,9 +212,9 @@ export class FakeHost implements Host {
   async usage() {
     return this.usageNow
   }
-  usageBars = false
-  async usageBarsPresent() {
-    return this.usageBars
+  usageBarsLoaded = false
+  async usageBars() {
+    return this.usageBarsLoaded
   }
   dialogs: string[] = []
   async openDialog(id: string) {

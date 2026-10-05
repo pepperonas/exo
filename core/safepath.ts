@@ -6,6 +6,15 @@
 import type { Host } from './adapter/host'
 
 /**
+ * Whether a file system error says "not there". Only then is a path treated
+ * as missing; every other or unknown failure makes a guard refuse.
+ */
+export function isMissingError(err: unknown): boolean {
+  const text = String((err as { code?: unknown })?.code ?? '') + ' ' + String((err as Error)?.message ?? err)
+  return /\bENOENT\b|\bENOTDIR\b|no such file or directory/i.test(text)
+}
+
+/**
  * Whether `path`, every symlink resolved, lies under `root` (also resolved).
  * A path that does not exist yet is judged by its nearest existing parent;
  * a dangling symlink on the way, or `.`/`..` in the path, is refused.

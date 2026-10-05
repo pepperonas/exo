@@ -17,6 +17,8 @@ export type Banner = {
   buttons: BannerButton[]
 }
 
+export type DuckState = { step: number; answers: (string | null)[] }
+
 export type ChangeRow = { path: string; added: number; removed: number; isNew: boolean }
 
 declare module 'claude-code' {
@@ -28,6 +30,7 @@ declare module 'claude-code' {
       changes: ChangeRow[]
       selected: string | null
       diff: string
+      duck: DuckState
     }
   }
 }

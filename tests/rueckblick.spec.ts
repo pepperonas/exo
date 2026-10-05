@@ -9,7 +9,7 @@ import { GAP_MS, dayKey, emptyHours, hm, prune, readHours, record, toCsv, toJson
 import { hoursCommand, hoursState, hoursStep, resetHours } from '../modules/rueckblick/hours'
 import { LESSONS_HEADING, appendLessons, card, facts, isDuplicate, label, lessonCandidates, parsePoints, shortLine } from '../modules/rueckblick/recap-logic'
 import { BANNER, WEEK_MS, lessonsStep, recapCommand, recapStep } from '../modules/rueckblick/recap'
-import { insideRoot } from '../core/safepath'
+import { insideRoot, isMissingError } from '../core/safepath'
 import { FakeHost } from './fake-host'
 
 const P = '/work/proj'
@@ -280,4 +280,17 @@ test('review: a dangling symlink or .. in the path is refused', async () => {
   assert.equal(await insideRoot(host, `${P}/./x`, P), false)
   host.dangling.add(`${P}/.exo`)
   assert.equal(await insideRoot(host, `${P}/.exo/recap.md`, P), false)
+})
+
+test('only a "not there" error counts as missing; anything else fails closed', async () => {
+  assert.ok(isMissingError(new Error("ENOENT: no such file or directory, stat '/x'")))
+  assert.ok(isMissingError(Object.assign(new Error('x'), { code: 'ENOTDIR' })))
+  assert.ok(!isMissingError(new Error('EACCES: permission denied')))
+  assert.ok(!isMissingError(new Error('no implementation for fs.stat')))
+  const host = new FakeHost()
+  host.files.set(`${P}/package.json`, '{}')
+  host.isLink = async () => {
+    throw new Error('EACCES: permission denied')
+  }
+  assert.equal(await insideRoot(host, `${P}/new/dir/x.md`, P), false)
 })

@@ -1,6 +1,6 @@
 # Mutationsprobe
 
-Stand 2026-10-05 · `npm run mutate` · 150/150 erkannt
+Stand 2026-10-05 · `npm run mutate` · 165/165 erkannt
 
 Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“ heißt: die Mutation hat nachweislich gegriffen (Prüfsumme vorher → nachher) und die genannten Tests wurden rot.
 
@@ -144,6 +144,21 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `l-fulltext` | `modules/rueckblick/recap.ts` | angekreuzt wird, was nicht vollständig zu lesen war | erkannt: 1 Test(s) rot · e08c628ddf5c→4ca87e6ddbc0 |
 | `safe-lessons` | `modules/rueckblick/recap.ts` | Lehren über einen Symlink nach ~/.bashrc | erkannt: 1 Test(s) rot · e08c628ddf5c→968d29f6fb06 |
 | `safe-md` | `modules/rueckblick/recap.ts` | /recap md schreibt über einen Symlink nach /etc | erkannt: 1 Test(s) rot · e08c628ddf5c→5f182655c8cd |
+| `safe-dangling` | `core/safepath.ts` | ein verwaister Symlink leitet das Schreiben nach außen | erkannt: 2 Test(s) rot · c8051b0642d8→61ea9bb61f59 |
+| `safe-dots` | `core/safepath.ts` | .. im Pfad führt aus dem Projekt | erkannt: 1 Test(s) rot · c8051b0642d8→d21529b7fc54 |
+| `safe-missing` | `core/safepath.ts` | jeder Fehler gilt als „fehlt“, die Prüfung lässt durch | erkannt: 1 Test(s) rot · c8051b0642d8→d11208d7627d |
+| `duck-blank` | `modules/extras/duck-logic.ts` | leere Antworten landen im Prompt | erkannt: 1 Test(s) rot · ffb7dcbe4e74→92bc2a7c9403 |
+| `duck-error-block` | `modules/extras/duck-logic.ts` | Fehlermeldung ohne Code-Block | erkannt: 1 Test(s) rot · ffb7dcbe4e74→87de1b73ed27 |
+| `ach-one` | `modules/extras/achievements.ts` | Abzeichen in falscher Reihenfolge | erkannt: 1 Test(s) rot · 217d370dece1→a64e5644bb27 |
+| `ach-quiet` | `modules/extras/achievements.ts` | Toasts und Töne in der Ruhezeit | erkannt: 1 Test(s) rot · 217d370dece1→dbb4c62cdb9e |
+| `ach-streak` | `modules/extras/achievements-logic.ts` | roter Test bricht die Serie nicht | erkannt: 1 Test(s) rot · 9ed800ee39ac→528d2c338a8a |
+| `ach-seen` | `modules/extras/achievements-logic.ts` | Ereignisse werden mehrfach gezählt | erkannt: 1 Test(s) rot · 9ed800ee39ac→395e05de800c |
+| `ach-requires` | `modules/extras/achievements-logic.ts` | Pac-Man-Abzeichen ohne usage-bars | erkannt: 1 Test(s) rot · 9ed800ee39ac→b2d3d55df591 |
+| `ach-session` | `modules/extras/achievements-logic.ts` | neue Sitzung überspringt ihr Journal | erkannt: 1 Test(s) rot · 9ed800ee39ac→1ece3f9b0840 |
+| `cine-stop` | `modules/extras/cinema.ts` | der 30-fps-Timer läuft weiter | erkannt: 1 Test(s) rot · daaa7f32a0fa→7ca3435dba18 |
+| `cine-reduced` | `modules/extras/cinema.ts` | reduzierte Bewegung wird ignoriert | erkannt: 1 Test(s) rot · daaa7f32a0fa→d1e418faad40 |
+| `cine-coffee` | `modules/extras/cinema-logic.ts` | lange Turns ohne Kaffee | erkannt: 1 Test(s) rot · 90a0f7486e81→10135387e311 |
+| `cine-width` | `modules/extras/cinema-logic.ts` | Spinner sprengt die Terminalbreite | erkannt: 1 Test(s) rot · 90a0f7486e81→255427293f3b |
 | `fail-closed` | `core/dispatcher/dispatcher.ts` | ein gestörter Wächter lässt durch | erkannt: 2 Test(s) rot · 3cfa860a8997→15e5bf55b34b |
 | `deny-stops` | `core/dispatcher/dispatcher.ts` | eine Ablehnung wird ignoriert | erkannt: 1 Test(s) rot · 3cfa860a8997→8e0a98cf0258 |
 | `kill-first` | `core/dispatcher/dispatcher.ts` | der Notausschalter wirkt nicht im Dispatcher | erkannt: 1 Test(s) rot · 3cfa860a8997→85d43cf6cdb6 |

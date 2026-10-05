@@ -24,6 +24,7 @@ type Ev =
   | { type: 'budget.exceeded'; module: string; ms: number }
   | { type: 'module.error'; module: string; message: string }
   | { type: 'session.end'; reason: string }
+  | { type: 'duck' }
 
 export type JournalEvent = Ev & { seq: number; at: number; turnId?: string }
 export type NewEvent = Ev & { turnId?: string }

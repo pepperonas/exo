@@ -90,7 +90,7 @@ export interface Host {
   /** Context fill and the 5-hour window, when the host knows them. */
   usage(): Promise<{ contextPercent?: number; fiveHour?: number }>
   /** Whether the usage-bars mod is loaded (its config rows are listed). */
-  usageBarsPresent(): Promise<boolean>
+  usageBars(): Promise<boolean>
   /** A pane that takes the keys (Esc closes it). */
   openDialog(id: string, title: string): Promise<boolean>
   closePane(id: string): Promise<void>
