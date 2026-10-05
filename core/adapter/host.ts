@@ -46,6 +46,8 @@ export interface Host {
   stat(path: string): Promise<FileStat>
   /** Names in a directory. */
   list(path: string): Promise<string[]>
+  /** Whether the path itself is a symlink (also one whose target is gone). */
+  isLink(path: string): Promise<boolean>
   /** The path with every symlink and `..` resolved; rejects when it does not exist. */
   realPath(path: string): Promise<string>
   run(argv: readonly string[], options?: RunOptions): Promise<RunResult>
@@ -81,6 +83,17 @@ export interface Host {
   sessionCost(): Promise<number | null>
   /** Dialog with several choices; the chosen labels. Rejects on Esc or without UI. */
   askMany(question: string, options: readonly string[]): Promise<string[]>
+  /** Asks the engine to draw exo's sites again (animations). */
+  redraw(): void
+  /** A sound file of exo's own (`sounds/badge.wav`); never throws. */
+  playSound(asset: string): Promise<void>
+  /** Context fill and the 5-hour window, when the host knows them. */
+  usage(): Promise<{ contextPercent?: number; fiveHour?: number }>
+  /** Whether the usage-bars mod is loaded (its config rows are listed). */
+  usageBarsPresent(): Promise<boolean>
+  /** A pane that takes the keys (Esc closes it). */
+  openDialog(id: string, title: string): Promise<boolean>
+  closePane(id: string): Promise<void>
   /** Change sidebar: the list, the selected file and its diff. */
   setChanges(changes: ChangeRow[], selected: string | null, diff: string): Promise<void>
 }

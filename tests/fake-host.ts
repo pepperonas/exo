@@ -47,7 +47,13 @@ export class FakeHost implements Host {
     return [...new Set([...this.files.keys()].filter(f => f.startsWith(pre)).map(f => f.slice(pre.length).split('/')[0]!))]
   }
   links = new Map<string, string>()
+  /** Symlinks whose target is gone: realPath fails, isLink is true. */
+  dangling = new Set<string>()
+  async isLink(path: string) {
+    return this.links.has(path) || this.dangling.has(path)
+  }
   async realPath(path: string) {
+    if (this.dangling.has(path)) throw new Error(`ENOENT ${path}`)
     for (const [from, to] of this.links) if (path === from || path.startsWith(from + '/')) return to + path.slice(from.length)
     if (path !== '/' && !this.files.has(path) && ![...this.files.keys()].some(f => f.startsWith(path + '/'))) throw new Error(`ENOENT ${path}`)
     return path
@@ -192,5 +198,31 @@ export class FakeHost implements Host {
     const a = this.manyAnswers.shift()
     if (a === undefined) throw new Error('dismissed')
     return a
+  }
+
+  redraws = 0
+  redraw() {
+    this.redraws++
+  }
+  sounds: string[] = []
+  async playSound(asset: string) {
+    this.sounds.push(asset)
+  }
+  usageNow: { contextPercent?: number; fiveHour?: number } = {}
+  async usage() {
+    return this.usageNow
+  }
+  usageBars = false
+  async usageBarsPresent() {
+    return this.usageBars
+  }
+  dialogs: string[] = []
+  async openDialog(id: string) {
+    this.dialogs.push(id)
+    return true
+  }
+  closed: string[] = []
+  async closePane(id: string) {
+    this.closed.push(id)
   }
 }

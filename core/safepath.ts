@@ -7,9 +7,14 @@ import type { Host } from './adapter/host'
 
 /**
  * Whether `path`, every symlink resolved, lies under `root` (also resolved).
- * A path that does not exist yet is judged by its nearest existing parent.
+ * A path that does not exist yet is judged by its nearest existing parent;
+ * a dangling symlink on the way, or `.`/`..` in the path, is refused.
+ * Not closed: the moment between this check and the write ($.fs has no
+ * atomic rename to write through).
  */
 export async function insideRoot(host: Host, path: string, root: string): Promise<boolean> {
+  // `.` and `..` are spelled out by nobody who means well here
+  if (/(^|\/)\.\.?(\/|$)/.test(path)) return false
   let rootReal: string
   try {
     rootReal = (await host.realPath(root)).replace(/\/+$/, '')
@@ -23,6 +28,9 @@ export async function insideRoot(host: Host, path: string, root: string): Promis
       const real = (await host.realPath(cur)).replace(/\/+$/, '') + tail
       return real === rootReal || real.startsWith(rootReal + '/')
     } catch {
+      // does not resolve: a missing part is fine, a symlink whose target is
+      // gone is not (the write would follow it, wherever it points)
+      if (await host.isLink(cur).catch(() => true)) return false
       const cut = cur.lastIndexOf('/')
       if (cut <= 0) return false
       tail = cur.slice(cut) + tail

@@ -173,6 +173,8 @@ export const MUTATIONS: Mutation[] = [
   { id: 'l-fulltext', file: 'modules/rueckblick/recap.ts', find: '?\\n${listed}\\nNichts wird', replace: '? Nichts wird', tests: RUECK, breaks: 'angekreuzt wird, was nicht vollständig zu lesen war' },
   { id: 'safe-lessons', file: 'modules/rueckblick/recap.ts', find: '  if (!(await insideRoot(env.host, target, env.project))) return', replace: '  if (false) return', tests: RUECK, breaks: 'Lehren über einen Symlink nach ~/.bashrc' },
   { id: 'safe-md', file: 'modules/rueckblick/recap.ts', find: '    if (await insideRoot(env.host, path, env.project)) {', replace: '    if (true) {', tests: RUECK, breaks: '/recap md schreibt über einen Symlink nach /etc' },
+  { id: 'safe-dangling', file: 'core/safepath.ts', find: '      if (await host.isLink(cur).catch(() => true)) return false\n', replace: '', tests: RUECK, breaks: 'ein verwaister Symlink leitet das Schreiben nach außen' },
+  { id: 'safe-dots', file: 'core/safepath.ts', find: '  if (/(^|\\/)\\.\\.?(\\/|$)/.test(path)) return false\n', replace: '', tests: RUECK, breaks: '.. im Pfad führt aus dem Projekt' },
   // ---- dispatcher
   { id: 'fail-closed', file: 'core/dispatcher/dispatcher.ts', find: "      if (policyOf(step.id) === 'closed') {", replace: '      if (false) {', tests: DISP, breaks: 'ein gestörter Wächter lässt durch' },
   { id: 'deny-stops', file: 'core/dispatcher/dispatcher.ts', find: '      return { deny: out.deny }', replace: '      void 0', tests: DISP, breaks: 'eine Ablehnung wird ignoriert' },

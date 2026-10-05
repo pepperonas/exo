@@ -9,6 +9,7 @@ import { GAP_MS, dayKey, emptyHours, hm, prune, readHours, record, toCsv, toJson
 import { hoursCommand, hoursState, hoursStep, resetHours } from '../modules/rueckblick/hours'
 import { LESSONS_HEADING, appendLessons, card, facts, isDuplicate, label, lessonCandidates, parsePoints, shortLine } from '../modules/rueckblick/recap-logic'
 import { BANNER, WEEK_MS, lessonsStep, recapCommand, recapStep } from '../modules/rueckblick/recap'
+import { insideRoot } from '../core/safepath'
 import { FakeHost } from './fake-host'
 
 const P = '/work/proj'
@@ -267,4 +268,16 @@ test('review: no write through a symlink out of the project', async () => {
   host.links.set(`${P}/.exo`, '/etc')
   host.files.set(`${P}/.exo/x`, '')
   assert.ok((await recapCommand(e, 'md', false)).includes('nicht im Projekt'))
+})
+
+test('review: a dangling symlink or .. in the path is refused', async () => {
+  const host = new FakeHost()
+  host.files.set(`${P}/package.json`, '{}')
+  host.dangling.add(`${P}/CLAUDE.md`) // points at a file that does not exist yet
+  assert.equal(await insideRoot(host, `${P}/CLAUDE.md`, P), false)
+  assert.equal(await insideRoot(host, `${P}/new.md`, P), true)
+  assert.equal(await insideRoot(host, `${P}/../etc/x`, P), false)
+  assert.equal(await insideRoot(host, `${P}/./x`, P), false)
+  host.dangling.add(`${P}/.exo`)
+  assert.equal(await insideRoot(host, `${P}/.exo/recap.md`, P), false)
 })

@@ -4,7 +4,7 @@
  * store stay in memory.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
@@ -68,6 +68,13 @@ export class RealHost implements Host {
   }
   async list(path: string) {
     return readdirSync(path)
+  }
+  async isLink(path: string) {
+    try {
+      return lstatSync(path).isSymbolicLink()
+    } catch {
+      return false
+    }
   }
   async realPath(path: string) {
     return realpathSync(path)
@@ -187,5 +194,31 @@ export class RealHost implements Host {
     const a = this.manyAnswers.shift()
     if (a === undefined) throw new Error('dismissed')
     return a
+  }
+
+  redraws = 0
+  redraw() {
+    this.redraws++
+  }
+  sounds: string[] = []
+  async playSound(asset: string) {
+    this.sounds.push(asset)
+  }
+  usageNow: { contextPercent?: number; fiveHour?: number } = {}
+  async usage() {
+    return this.usageNow
+  }
+  usageBars = false
+  async usageBarsPresent() {
+    return this.usageBars
+  }
+  dialogs: string[] = []
+  async openDialog(id: string) {
+    this.dialogs.push(id)
+    return true
+  }
+  closed: string[] = []
+  async closePane(id: string) {
+    this.closed.push(id)
   }
 }

@@ -63,6 +63,13 @@ function hostOf($: EngineInterface): Host {
       return { kind: s.kind, size: s.size, mtimeMs: s.mtimeMs }
     },
     list: async path => (await $.fs.list(path)).map(e => e.name),
+    isLink: async path => {
+      try {
+        return (await $.fs.stat(path)).isLink
+      } catch {
+        return false
+      }
+    },
     realPath: async path => {
       const s = await $.fs.stat(path, { resolve: true })
       // No answer is no resolution: never fall back to the unresolved path.
@@ -115,6 +122,19 @@ function hostOf($: EngineInterface): Host {
       return r.isFilled
     },
     openPane: async (id, title) => (await $.ui.open({ id, title })).isPlaced,
+    redraw: () => $.ui.invalidate('ui.render'),
+    playSound: async asset => {
+      await $.audio.play({ asset }).catch(() => undefined)
+    },
+    usage: async () => {
+      const u = await $.session.usage()
+      return { contextPercent: u.context.percent, fiveHour: u.rateLimits.find(l => l.kind === 'five_hour')?.percentUsed }
+    },
+    usageBarsPresent: async () => (await $.config.list()).some(r => r.key.startsWith('usage-bars.')),
+    openDialog: async (id, title) => (await $.ui.open({ id, title, focus: true, closeOnEscape: true })).isPlaced,
+    closePane: async id => {
+      await $.ui.close({ id })
+    },
     messages: async () => (await $.session.messages()).map(m => ({ role: m.role, text: m.text })),
     complete: async (prompt, system) => {
       const r = await $.model.complete({ model: 'haiku', prompt, system, maxTokens: 800, timeoutMs: 20_000 })
