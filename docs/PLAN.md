@@ -28,6 +28,8 @@ die Entscheidungen daraus stehen in Abschnitt 1.
 | Lizenz | MIT. |
 | Repo | `pepperonas/exo`, **privat**. Öffentlich erst nach Etappe 6 und nach History-Prüfung (Abschnitt 8). |
 | Entwicklung | Repo `~/claude/_mods/exo`, per Symlink in den Dev-Mods-Ordner der Sitzung (Hot-Reload). Symlink erst, wenn Etappe 1 den Notausschalter enthält. |
+| Fertig-Prüfer | Meldet nur, wenn im Turn Dateien geändert wurden (Entscheid nach Phase 2). |
+| Prod-Schild | Keine Allow-Liste für Lesebefehle: jeder Prod-Zugriff fragt (Entscheid nach Phase 2). |
 
 ---
 
@@ -43,10 +45,9 @@ exo/
   .claude-plugin/plugin.json      Manifest, userConfig, "types"
   hooks/
     hooks.json                    { "modules": ["./register.tsx"] }
-    register.tsx                  einzige Registrierung: on(...) → core
+    register.tsx                  einzige Registrierung + Adapter `hostOf($)` + `$.state`-Atome
   core/
     adapter/host.ts               Host-Interface (das Einzige, was Module sehen)
-    adapter/engine.ts             Host aus `$` bauen – einzige Stelle mit Engine-API
     journal/events.ts             Ereignistypen
     journal/journal.ts            Ringpuffer, Abfragen, Persistenz-Kompaktierung
     dispatcher/dispatcher.ts      tool.call-Reihenfolge, Fehlerpolitik, Budget
@@ -81,11 +82,15 @@ exo/
 ### 3.1 Adapter
 
 `core/adapter/host.ts` definiert `Host`: genau die Fähigkeiten, die exo braucht
-(`now, after, every, store.get/set, fs.read/write/exists/stat/list, run, spawn, env,
-ask, toast, status, invalidate, open/close Pane, copy, model.complete, prompt.fill,
-session.usage/messages/repo/cwd, commands.list, config.list`). `engine.ts` baut daraus
-einen `Host` je Hook-Aufruf aus `$`. Module importieren nie `claude-code`; Tests geben ihnen
-einen Fake-Host. Ändert die Engine ihre API, wird nur `engine.ts` angepasst.
+(`now, after, every, store, fs, run, env, ask, toast, log, Statuszeile/Band, Sitzung`;
+spätere Etappen ergänzen `spawn, open/close Pane, copy, model.complete, prompt.fill,
+session.usage/messages`). Der Adapter `hostOf($)` steht in **`hooks/register.tsx`**:
+`claude plugin validate` verfolgt `$` statisch und lässt ihn **nur in Funktionen derselben
+Datei** fließen, nie über einen Import (Engine-Regel, in Etappe 1 festgestellt). Ebenso
+müssen die `$.state`-Atome dort als Konstanten stehen, und `$.env.get` nimmt nur
+**literale** Variablennamen (`Host.env` ist deshalb auf `HOME | EXO_DISABLE | NO_COLOR`
+typisiert). Module importieren nie `claude-code`; Tests geben ihnen einen Fake-Host.
+Ändert die Engine ihre API, wird nur `hostOf` angepasst.
 
 Engine-Fakten, die der Adapter kapselt:
 - `$.fs`: kein delete/rename, 4 MiB je Datei → Löschen, `tar`, `du`, `tail`, `wc` über `run`.
@@ -172,6 +177,9 @@ Genau **ein** `on('tool.call', …)` ohne Matcher. Reihenfolge:
 - `EXO_DISABLE=1` in der Umgebung → ebenso (gilt ab Start: `EXO_DISABLE=1 claude …`).
 - `/exo off` → alle Module aus, gespeichert in `$.store`; `/exo on` hebt es auf.
 - Prüfung über `$.fs.exists` mit 1-s-Cache (ein `$`-Aufruf zählt nicht gegen das Budget).
+- Datei und Umgebungsvariable werden in `tool.call` und im `.catch`-Handler **ohne die
+  Laufzeit** geprüft: auch wenn exos eigener Zustand nicht aufgebaut werden kann, greift
+  der Schalter. Ein gescheiterter Aufbau wird beim nächsten Aufruf neu versucht.
 - Letzte Rückfallebene ohne exo: Symlink im Dev-Mods-Ordner entfernen bzw. Plugin deaktivieren.
 
 Jede Ablehnungsmeldung nennt den Notausschalter.
@@ -373,9 +381,7 @@ registriert und in `/exo` genannt.
 **#6 „Fertig?“-Prüfer**: `turn.complete` prüft `answer` auf Behauptungen (de/en). Fand in
 diesem Turn nach der letzten Dateiänderung kein grüner Test-/Buildlauf statt, gibt der Hook
 `{ text: '⚠ In diesem Turn lief kein Test.' }` zurück – die Engine zeigt das dezent unter
-der Antwort. Höchstens einmal pro Turn. Vorschlag zur Entscheidung in Etappe 3: nur
-melden, wenn im Turn Dateien geändert wurden (sonst meldet es bei jeder Frage „funktioniert
-X?“).
+der Antwort. Höchstens einmal pro Turn, und nur, wenn im Turn Dateien geändert wurden (entschieden).
 
 **#7 Änderungs-Seitenleiste**: Pane `exo-changes` mit allen geänderten Dateien und `+/−`.
 Auswahl zeigt den Diff (`Code`, `format: 'diff'`). Git: `git diff -- <pfad>`. Ohne Git:
@@ -522,9 +528,8 @@ Push (privat).
   `/exo` zeigt Zustand, Statuszeile fehlt sichtbar, Engine-Tests vor jedem Commit.
 - **Der Wächter läuft in der Sitzung, die ihn baut.** Ein Fehler kann eigene Befehle
   blockieren → Notausschalter ab Etappe 1; Tests mit zusammengesetzten Fake-Schlüsseln.
-- Dialoghäufigkeit des Prod-Schilds (jeder `ssh` auf Prod fragt). Falls zu laut: in einer
-  späteren Etappe eine Lese-Allow-Liste (z. B. `systemctl status`, `journalctl`) – nur nach
-  Entscheidung.
+- Dialoghäufigkeit des Prod-Schilds: jeder `ssh` auf Prod fragt, bewusst ohne
+  Lese-Allow-Liste (entschieden).
 - Datei-Änderungen per Bash (sed, Skripte) sieht die Seitenleiste nicht.
 - `$.store` 4 MiB: Budget in 3.7 ist hart; Stunden und Sitzungen werden gekürzt, nie die
   Schnappschuss-Metadaten der letzten 7 Tage.
