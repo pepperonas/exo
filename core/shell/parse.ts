@@ -221,11 +221,14 @@ class Parser {
     this.skipBlank()
     if (this.at('((')) {
       const start = this.i
-      const close = this.s.indexOf('))', this.i + 2)
-      if (close === -1) this.fail('Arithmetik nicht geschlossen')
-      this.i = close + 2
-      const w = { ...emptyWord(), text: this.s.slice(start, this.i), expansion: true }
-      return { type: 'simple', assigns: [], words: [w], redirects: this.parseRedirects() }
+      const w = { ...emptyWord(), expansion: true }
+      const end = this.arithEnd(this.i, w)
+      // `((cmd) )` is no arithmetic: bash reads a subshell in a subshell
+      if (end !== -1) {
+        this.i = end
+        w.text = this.s.slice(start, end)
+        return { type: 'simple', assigns: [], words: [w], redirects: this.parseRedirects() }
+      }
     }
     if (this.c === '(') {
       this.i++
@@ -308,8 +311,63 @@ class Parser {
     return script
   }
 
-  /** Index of the `}` closing a `${` at `i - 2`, quotes respected. */
-  private braceEnd(): number {
+  /**
+   * Skips a substitution (`$…` or a backtick) at `j` and adds the scripts
+   * it runs to `w`; returns the index after it.
+   */
+  private skipSub(j: number, w: Word): number {
+    const p = new Parser(this.s, j, this.depth + 1)
+    if (this.s[j] === '`') p.backtick(w)
+    else p.dollar(w)
+    return p.i
+  }
+
+  /**
+   * The end of arithmetic whose `((` starts at `from`: the index after the
+   * closing `))`, nested parentheses counted, substitutions inside parsed
+   * into `w` (bash runs them). -1 when the parentheses close as `)…)` with
+   * something between: bash then reads `$((a) )` / `((a) )` as subshells.
+   */
+  private arithEnd(from: number, w: Word): number {
+    let depth = 0
+    let j = from + 2
+    while (j < this.s.length) {
+      const ch = this.s[j]
+      if (ch === '\\') j += 2
+      else if (ch === '`' || (ch === '$' && (this.s[j + 1] === '(' || this.s[j + 1] === '{'))) j = this.skipSub(j, w)
+      else if (ch === '(') depth++, j++
+      else if (ch === ')') {
+        if (depth === 0) return this.s[j + 1] === ')' ? j + 2 : -1
+        depth--
+        j++
+      } else j++
+    }
+    this.fail('Arithmetik nicht geschlossen')
+  }
+
+  /**
+   * Substitutions anywhere in `text`, quoted or not: inside a `${…}` a
+   * single-quoted part is literal in one context and quoting in another, so
+   * the guard looks at both readings.
+   */
+  private subsAnywhere(text: string, w: Word): void {
+    const p = new Parser(text, 0, this.depth + 1)
+    while (p.i < text.length) {
+      const ch = text[p.i]
+      if (ch === '\\') p.i += 2
+      else if (ch === '`' || (ch === '$' && (text[p.i + 1] === '(' || text[p.i + 1] === '{'))) {
+        if (ch === '`') p.backtick(w)
+        else p.dollar(w)
+      } else p.i++
+    }
+  }
+
+  /**
+   * Index of the `}` closing a `${` whose content starts at `i`, with
+   * quotes, nested braces and substitutions respected; substitutions inside
+   * (`${x:-$(cmd)}`) are parsed into `w`, because bash runs them.
+   */
+  private braceEnd(w: Word): number {
     let depth = 1
     let j = this.i
     while (j < this.s.length) {
@@ -318,8 +376,19 @@ class Parser {
       else if (ch === "'") {
         const k = this.s.indexOf("'", j + 1)
         if (k === -1) break
+        this.subsAnywhere(this.s.slice(j + 1, k), w)
         j = k + 1
-      } else if (ch === '{') depth++, j++
+      } else if (ch === '"') {
+        j++
+        while (j < this.s.length && this.s[j] !== '"') {
+          if (this.s[j] === '\\') j += 2
+          else if (this.s[j] === '`' || (this.s[j] === '$' && (this.s[j + 1] === '(' || this.s[j + 1] === '{'))) j = this.skipSub(j, w)
+          else j++
+        }
+        if (j >= this.s.length) break
+        j++
+      } else if (ch === '`' || (ch === '$' && (this.s[j + 1] === '(' || this.s[j + 1] === '{'))) j = this.skipSub(j, w)
+      else if (ch === '{') depth++, j++
       else if (ch === '}') {
         if (--depth === 0) return j
         j++
@@ -329,14 +398,16 @@ class Parser {
   }
 
   /** `$…` at `i`, inside or outside double quotes; returns the raw text. */
-  private dollar(w: Word): string {
+  dollar(w: Word): string {
     const start = this.i
     if (this.at('$((')) {
-      const close = this.s.indexOf('))', this.i + 3)
-      if (close === -1) this.fail('Arithmetik nicht geschlossen')
-      this.i = close + 2
-      w.expansion = true
-      return this.s.slice(start, this.i)
+      const end = this.arithEnd(this.i + 1, w)
+      if (end !== -1) {
+        this.i = end
+        w.expansion = true
+        return this.s.slice(start, this.i)
+      }
+      // `$((cmd) )`: a command substitution of a subshell
     }
     if (this.at('$(')) {
       this.i += 2
@@ -346,7 +417,7 @@ class Parser {
     }
     if (this.at('${')) {
       this.i += 2
-      this.i = this.braceEnd() + 1
+      this.i = this.braceEnd(w) + 1
       w.expansion = true
       return this.s.slice(start, this.i)
     }
@@ -360,7 +431,7 @@ class Parser {
     return '$'
   }
 
-  private backtick(w: Word): string {
+  backtick(w: Word): string {
     const start = this.i
     let j = this.i + 1
     let inner = ''

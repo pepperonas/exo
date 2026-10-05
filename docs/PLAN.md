@@ -184,6 +184,18 @@ Genau **ein** `on('tool.call', …)` ohne Matcher. Reihenfolge:
 
 Jede Ablehnungsmeldung nennt den Notausschalter.
 
+### 3.4a Selbstschutz (nach Sicherheitsprüfung, 2026-10-05)
+
+Ohne ihn könnte Claude alle Wächter mit einem Aufruf abschalten (`touch ~/.claude/exo/DISABLED`,
+`rules.json` leeren, eine exo-Option in `settings.json` auf `false`). `core/selfprotect.ts`
+erkennt Schreibzugriffe auf `~/.claude/exo/` und auf exo-Einträge in
+`~/.claude/settings*.json` (Write/Edit/NotebookEdit über den Pfad, Bash über den Text plus
+„nur lesend?“-Prüfung: ausschließlich Leseprogramme ohne schreibende Umleitung). Solche
+Aufrufe brauchen ein **Zulassen** im Dialog; Esc oder fehlende UI → Ablehnung. Läuft im
+Dispatcher direkt nach dem Notausschalter, **unabhängig von den Modulschaltern**, fail closed.
+Grenze: Ein Agent mit Shell findet andere Wege (den Mod selbst ändern, ein Skript anderswo) –
+Sicherheitsgurt, keine Sandbox.
+
 ### 3.5 Statuszeile
 
 Module melden Slots an: `{ id, priority, text, color?, minWidth }`. Der Kern zeichnet:
@@ -268,6 +280,10 @@ Kommentare. Kein Ausführen, keine Expansion; unbekannte Expansionen bleiben mar
 (`hasExpansion`). `words.ts` normalisiert Befehle: Wrapper `sudo`, `env`, `nice`, `nohup`,
 `time`, `command`, `exec`, `xargs` abschälen; `bash|sh|zsh -c "…"` rekursiv parsen;
 `ssh host "…"` liefert den Remote-Befehl als verschachteltes Skript mit Host.
+Nach der Sicherheitsprüfung (2026-10-05) außerdem: Substitutionen in Arithmetik
+(`$(( $(cmd) ))`, `(( … ))`) und in Parameterexpansion (`${x:-$(cmd)}`, auch in Anführungszeichen),
+`$((cmd) )` als Substitution einer Subshell, lokale Befehle von `ssh -o ProxyCommand/LocalCommand`
+und `find -exec/-execdir/-ok`.
 Fixture-Tests: mindestens 120 Fälle, inklusive Fehlerfälle (offene Anführungszeichen ⇒
 `unparsable`, nie Absturz).
 
@@ -461,7 +477,9 @@ Zwei Ebenen wie usage-bars:
 - `npm test` → `node --import tsx --test tests/*.spec.ts`: reine Logik, ohne Claude Code.
 - `npm run test:engine` → `claude plugin test .`: Hooks gegen die echte Engine
   (`claude-code/testing`, Mock-Clock/Store, beide Oberflächen terminal + desktop).
-- `npm run check` → `tsc -p .` + `claude plugin validate .`.
+- `npm run check` → `tsc -p .` + `claude plugin validate .`. `tsc` deckt Kern, Hooks,
+  Vertrag und Engine-Tests ab; die Node-Tests (`tests/`) laufen über tsx ohne Typprüfung,
+  weil sie sonst `@types/node` als neue Abhängigkeit bräuchten.
 
 | Modul | Rein (spec) | Engine (test.tsx) |
 |---|---|---|

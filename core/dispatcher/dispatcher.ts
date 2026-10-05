@@ -26,6 +26,7 @@ import type { ParseResult } from '../shell/parse'
 import { commands, summarize } from '../shell/words'
 import type { Cmd } from '../shell/words'
 import { KILL_HINT } from '../killswitch'
+import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControl } from '../selfprotect'
 
 export interface ToolCall {
   tool: string
@@ -137,6 +138,29 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
         untimedMs += clock() - t0
       }
     },
+  }
+
+  // Self protection: always on, whatever the module switches say.
+  try {
+    if (touchesControl(ctx.call)) {
+      const what = isBash ? summarize(String(input.command ?? '')) : String(input.file_path ?? input.notebook_path ?? '')
+      let allowed = false
+      if (deps.interactive) {
+        try {
+          allowed = (await ctx.untimed(deps.host.ask(CONTROL_QUESTION(what), [ALLOW, 'Ablehnen']))) === ALLOW
+        } catch {
+          allowed = false // Esc, or nobody to ask
+        }
+      }
+      if (!allowed) {
+        deps.journal.push({ type: 'tool.end', id: call.id ?? '', tool: call.tool, ms: 0, ok: false, denied: 'self' }, clock())
+        return { deny: CONTROL_DENIED }
+      }
+    }
+  } catch (err) {
+    const msg = errorText(err)
+    deps.health.fail('core', msg, clock())
+    return { deny: failClosedMessage('core', msg) }
   }
 
   const steps = ordered(deps.steps)

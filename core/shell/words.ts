@@ -15,6 +15,10 @@ export interface SshInfo {
   remote: string
   /** The remote command did not parse. */
   remoteUnparsable: boolean
+  /** Commands ssh runs on THIS machine (`-o ProxyCommand=…`, `LocalCommand`). */
+  localCommands: string[]
+  /** One of them did not parse. */
+  localUnparsable: boolean
 }
 
 export interface Via {
@@ -121,9 +125,13 @@ function shellScript(words: Word[]): string | null {
 }
 
 /** Destination and remote command of an ssh call, or null without one. */
+/** ssh options whose value is a command run locally. */
+const SSH_LOCAL = /^(proxycommand|localcommand)\s*(?:=|\s)\s*(.+)$/is
+
 export function sshInfo(words: Word[]): SshInfo | null {
   let user: string | null = null
   let port: string | null = null
+  const localCommands: string[] = []
   let i = 1
   for (; i < words.length; i++) {
     const t = words[i]!.text
@@ -137,10 +145,14 @@ export function sshInfo(words: Word[]): SshInfo | null {
       const value = t.length > 2 ? t.slice(2) : words[++i]?.text ?? ''
       if (flag === '-l') user = value
       if (flag === '-p') port = value
+      if (flag === '-o') {
+        const m = SSH_LOCAL.exec(value)
+        if (m) localCommands.push(m[2]!)
+      }
     }
   }
   const dest = words[i]?.text
-  if (!dest) return null
+  if (!dest) return localCommands.length ? { host: '', user, port, remote: '', remoteUnparsable: false, localCommands, localUnparsable: false } : null
   let host = dest
   const url = /^ssh:\/\/(?:([^@/]+)@)?([^:/]+)(?::(\d+))?/.exec(dest)
   if (url) {
@@ -155,7 +167,7 @@ export function sshInfo(words: Word[]): SshInfo | null {
     .slice(i + 1)
     .map(w => w.text)
     .join(' ')
-  return { host, user, port, remote, remoteUnparsable: false }
+  return { host, user, port, remote, remoteUnparsable: false, localCommands, localUnparsable: false }
 }
 
 export function commands(script: Script, via: Via[] = []): Cmd[] {
@@ -215,9 +227,27 @@ function simple(c: SimpleCommand, via: Via[], background: boolean, out: Cmd[]): 
     }
   }
 
+  if (program === 'find') {
+    // `-exec cmd … ;` / `-execdir … +` / `-ok …`: commands find runs
+    for (let i = 1; i < words.length; i++) {
+      if (!/^-(exec|execdir|ok|okdir)$/.test(words[i]!.text)) continue
+      let j = i + 1
+      while (j < words.length && words[j]!.text !== ';' && words[j]!.text !== '+') j++
+      const inner = words.slice(i + 1, j)
+      if (inner.length) simple({ type: 'simple', assigns: [], words: inner, redirects: [] }, [...chain, { kind: 'wrapper', name: 'find' }], background, out)
+      i = j
+    }
+  }
+
   if (program === 'ssh') {
     const info = sshInfo(words)
     if (info) {
+      for (const local of info.localCommands) {
+        const r = parse(local)
+        if (r.ok) out.push(...commands(r.script, [...chain, { kind: 'shell', name: 'ssh-local' }]))
+        else info.localUnparsable = true
+      }
+      if (!info.host) return
       cmd.ssh = info
       if (info.remote) {
         const r = parse(info.remote)

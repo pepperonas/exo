@@ -242,7 +242,7 @@ test('fd numbers on redirects', () => {
 test('ssh info: user, port, host, remote', () => {
   const cmds = commandsOf('ssh -p 22 -l admin prod "uptime; df -h"')!
   const ssh = cmds.find(c => c.program === 'ssh')!
-  assert.deepEqual(ssh.ssh, { host: 'prod', user: 'admin', port: '22', remote: 'uptime; df -h', remoteUnparsable: false })
+  assert.deepEqual(ssh.ssh, { host: 'prod', user: 'admin', port: '22', remote: 'uptime; df -h', remoteUnparsable: false, localCommands: [], localUnparsable: false })
 })
 
 test('ssh with an unparsable remote command is flagged', () => {
@@ -275,4 +275,42 @@ test('summary keeps programs and subcommands, never arguments', () => {
 
 test('at least 120 fixtures', () => {
   assert.ok(CASES.length + BROKEN.length >= 120, `${CASES.length + BROKEN.length}`)
+})
+
+// ---- security review 2026-10-05: commands hidden from the parser
+const HIDDEN: [string, string][] = [
+  ['echo $(( $(rm -rf /tmp/x) + 1 ))', 'rm -rf /tmp/x'],
+  ['(( $(rm -rf /tmp/x) ))', 'rm -rf /tmp/x'],
+  ['echo $(( `rm -rf /tmp/x` ))', 'rm -rf /tmp/x'],
+  ['echo ${x:-$(rm -rf /tmp/x)}', 'rm -rf /tmp/x'],
+  ['echo "${x:-$(rm -rf /tmp/x)}"', 'rm -rf /tmp/x'],
+  ["echo ${x:-'$(rm -rf /tmp/x)'}", 'rm -rf /tmp/x'],
+  ['echo ${x:-${y:-$(rm -rf /tmp/x)}}', 'rm -rf /tmp/x'],
+  ['echo ${x:-"}"}; rm -rf /tmp/y', 'rm -rf /tmp/y'],
+  ['echo $((rm -rf /tmp/z) )', 'rm -rf /tmp/z'],
+  ['((rm -rf /tmp/z) )', 'rm -rf /tmp/z'],
+  ['ssh -o ProxyCommand="rm -rf /tmp/p" host ls', 'rm -rf /tmp/p'],
+  ['ssh -oProxyCommand=touch\\ /tmp/q host', 'touch /tmp/q'],
+  ['ssh -o "LocalCommand rm -rf /tmp/l" -o PermitLocalCommand=yes host', 'rm -rf /tmp/l'],
+  ['find . -name "*.tmp" -exec rm -rf {} \;', 'rm -rf {}'],
+  ['find . -execdir rm -f {} +', 'rm -f {}'],
+]
+for (const [src, inner] of HIDDEN) {
+  test(`no hidden command: ${JSON.stringify(src)}`, () => {
+    const cmds = commandsOf(src)
+    assert.ok(cmds, 'must parse')
+    assert.ok(cmds!.some(c => c.argv.join(' ') === inner), `${inner} fehlt in ${JSON.stringify(cmds!.map(c => c.argv.join(' ')))}`)
+  })
+}
+
+test('arithmetic stays arithmetic', () => {
+  assert.equal(render('echo $((1 + (2 * 3)))'), 'echo $((1 + (2 * 3)))')
+  assert.equal(render('((i = (j + 1) * 2))'), '((i = (j + 1) * 2))')
+})
+
+test('ssh local commands are recorded, an unparsable one is flagged', () => {
+  const ok = commandsOf('ssh -o ProxyCommand="nc %h %p" host')!.find(c => c.program === 'ssh')!
+  assert.deepEqual(ok.ssh!.localCommands, ['nc %h %p'])
+  const bad = commandsOf(`ssh -o "ProxyCommand=echo 'x" host`)!.find(c => c.program === 'ssh')!
+  assert.equal(bad.ssh!.localUnparsable, true)
 })

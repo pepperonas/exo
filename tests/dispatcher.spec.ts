@@ -306,3 +306,73 @@ test('liveness with the DISABLED file', async () => {
   assert.equal(h.slots.exo!.text, livenessText(rt, 'Datei ~/.claude/exo/DISABLED'))
   assert.ok((await exoCommand(rt, h, '')).includes('exo ist AUS'))
 })
+
+// ---- security review 2026-10-05: Claude must not switch its own guard off
+import { touchesControl } from '../core/selfprotect'
+
+const CONTROL_WRITES: [string, Record<string, unknown>][] = [
+  ['Bash', { command: 'touch ~/.claude/exo/DISABLED' }],
+  ['Bash', { command: 'touch "$HOME/.claude/exo/DISABLED"' }],
+  ['Bash', { command: 'cd ~/.claude && touch exo/DISABLED' }],
+  ['Bash', { command: 'cd ~/.claude/exo; : > DISABLED' }],
+  ['Bash', { command: 'echo "{}" > /home/u/.claude/exo/rules.json' }],
+  ['Bash', { command: 'rm -rf ~/.claude/exo' }],
+  ['Bash', { command: 'bash -c "touch ~/.claude/exo/DISABLED"' }],
+  ['Bash', { command: 'jq \'.pluginConfigs.exo.options.secrets=false\' ~/.claude/settings.json > x && mv x ~/.claude/settings.json' }],
+  ['Bash', { command: "echo 'unlesbar ~/.claude/exo/DISABLED" }],
+  ['Write', { file_path: '/home/u/.claude/exo/DISABLED', content: '' }],
+  ['Edit', { file_path: '/home/u/.claude/exo/rules.json', old_string: 'a', new_string: 'b' }],
+  ['Edit', { file_path: '/home/u/.claude/settings.json', old_string: '"secrets": true', new_string: '"secrets": false' , replace_all: false }],
+  ['Write', { file_path: '/home/u/.claude/settings.local.json', content: '{"pluginConfigs":{"exo":{}}}' }],
+]
+const HARMLESS: [string, Record<string, unknown>][] = [
+  ['Bash', { command: 'cat ~/.claude/exo/rules.json' }],
+  ['Bash', { command: 'ls -la ~/.claude/exo && wc -l ~/.claude/exo/rules.json' }],
+  ['Bash', { command: 'grep -n DISABLED ~/.claude/exo/rules.json' }],
+  ['Bash', { command: 'npm test' }],
+  ['Bash', { command: 'echo DISABLED > notes.txt' }],
+  ['Read', { file_path: '/home/u/.claude/exo/rules.json' }],
+  ['Edit', { file_path: '/home/u/.claude/settings.json', old_string: '"theme": "dark"', new_string: '"theme": "light"' }],
+  ['Write', { file_path: '/work/proj/src/exo.ts', content: 'export const exo = 1' }],
+]
+for (const [tool, input] of CONTROL_WRITES)
+  test(`control file change detected: ${tool} ${JSON.stringify(input).slice(0, 70)}`, () => assert.equal(touchesControl({ tool, input }), true))
+for (const [tool, input] of HARMLESS)
+  test(`harmless call passes: ${tool} ${JSON.stringify(input).slice(0, 70)}`, () => assert.equal(touchesControl({ tool, input }), false))
+
+test('changing a control file needs a yes in the dialog', async () => {
+  const log: string[] = []
+  const host = new FakeHost()
+  host.answers = ['Zulassen']
+  const d = deps([], { host })
+  const r = await dispatch(d, { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, ran(log))
+  assert.equal(r.deny, undefined)
+  assert.deepEqual(log, ['run:touch ~/.claude/exo/DISABLED'])
+  assert.ok(host.asked[0]!.question.includes('Steuerdateien'))
+})
+
+test('Esc or no answer denies the change of a control file', async () => {
+  const log: string[] = []
+  const host = new FakeHost()
+  const d = deps([], { host })
+  const r = await dispatch(d, { tool: 'Write', input: { file_path: '/home/u/.claude/exo/DISABLED', content: '' } }, ran(log))
+  assert.ok(r.deny?.includes('Steuerdateien'))
+  assert.deepEqual(log, [])
+  host.answers = ['Ablehnen']
+  assert.ok((await dispatch(d, { tool: 'Write', input: { file_path: '/home/u/.claude/exo/DISABLED', content: '' } }, ran(log))).deny)
+})
+
+test('without an interactive UI a control file change is denied unasked', async () => {
+  const host = new FakeHost()
+  host.answers = ['Zulassen']
+  const d = deps([], { host, interactive: false })
+  const r = await dispatch(d, { tool: 'Bash', input: { command: 'rm ~/.claude/exo/rules.json' } }, ran([]))
+  assert.ok(r.deny)
+  assert.equal(host.asked.length, 0)
+})
+
+test('self protection runs even with every module switched off', async () => {
+  const host = new FakeHost()
+  const d = deps([], { host, config: resolveConfig({}, { allOff: false, modules: { secrets: false, prodShield: false } }) })
+  assert.ok((await dispatch(d, { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, ran([]))).deny)
+})
