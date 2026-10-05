@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-import { scanText } from '../modules/waechter/secrets-logic'
+import { LOCKFILES, scanText } from '../modules/waechter/secrets-logic'
 
 const repo = resolve(process.argv[2] ?? join(import.meta.dirname, '..'))
 const git = (...a: string[]) => execFileSync('git', ['-C', repo, ...a], { encoding: 'utf8', maxBuffer: 1 << 30 })
@@ -41,17 +41,18 @@ export function scanHistory(): string[] {
   const findings: string[] = []
   const addrs = prodAddresses()
   const addrRe = addrs.length ? new RegExp(addrs.map(a => `(?<![\\w.])${escape(a)}(?![\\w])`).join('|')) : null
-  const check = (where: string, line: string, secrets: boolean) => {
+  const check = (where: string, line: string, secrets: boolean, path = '') => {
     if (addrRe?.test(line)) findings.push(`${where}: Prod-Adresse`)
     if (PRIVATE.test(line)) findings.push(`${where}: private IP-Adresse`)
-    if (secrets) for (const h of scanText(line)) findings.push(`${where}: ${h.kind} (${h.masked})`)
+    // lockfiles: known key formats only (integrity hashes look random by design)
+    if (secrets) for (const h of scanText(line, { lockfile: LOCKFILES.test(path) })) findings.push(`${where}: ${h.kind} (${h.masked})`)
   }
   let commit = ''
   let file = ''
   for (const raw of git('log', '-p', '--all', '--no-color', '-U0', '--format=commit %H').split('\n')) {
     if (raw.startsWith('commit ')) commit = raw.slice(7, 14)
     else if (raw.startsWith('+++ ')) file = raw.slice(6)
-    else if ((raw.startsWith('+') || raw.startsWith('-')) && !raw.startsWith('---')) check(`${commit} ${file}`, raw.slice(1), raw.startsWith('+'))
+    else if ((raw.startsWith('+') || raw.startsWith('-')) && !raw.startsWith('---')) check(`${commit} ${file}`, raw.slice(1), raw.startsWith('+'), file)
   }
   for (const block of git('log', '--all', '--format=%h%x00%B%x01').split('\x01')) {
     const [h, msg] = block.split('\x00')

@@ -49,3 +49,9 @@ Rückgabewerte **direkt** auswerten. `cmd | tail && echo OK` prüft `tail`, nich
 - Oberfläche Deutsch, Code und Commits Englisch.
 - Keine echten Adressen im Repo: Beispiele mit `203.0.113.x`, `198.51.100.x`, `example.com`.
 - Keine neuen Laufzeit-Abhängigkeiten; devDependencies fest gepinnt.
+
+## Hinweis zu `claude plugin validate`
+
+Die Warnung „CLAUDE.md at the plugin root is not loaded as project context" ist erwartet: diese Datei ist
+Entwicklerdoku für Arbeiten **am** Repo, kein Kontext, den exo an Nutzer ausliefert. exo liefert bewusst
+keinen Skill mit.
