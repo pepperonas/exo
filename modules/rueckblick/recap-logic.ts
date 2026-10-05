@@ -103,13 +103,27 @@ export function parsePoints(answer: string | null): string[] | null {
 
 const LESSON = /\b(?:das war die ursache|die ursache war|ursache:|grundursache|falle|fallstrick|nie wieder|merke:|lehre:|wichtig zu wissen|gotcha|root cause|the cause was|lesson learned|never again|pitfall)\b/i
 
+/**
+ * A lesson as it may go into a CLAUDE.md, which future sessions read as
+ * instructions: plain text only (no markup, no HTML, no backticks, one line).
+ */
+export function sanitizeLesson(s: string): string {
+  return s
+    .replace(/<[^>]*>/g, '')
+    .replace(/[`*_~#>|[\]]/g, '')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 400)
+}
+
 /** Sentences of an answer that read like a lesson. */
 export function lessonCandidates(answer: string): string[] {
   const sentences = answer
     .replace(/```[\s\S]*?```/g, ' ')
     .split(/(?<=[.!?])\s+|\n+/)
     .map(s => s.replace(/^[\s>*#-]+/, '').replace(/\*\*/g, '').trim())
-  return sentences.filter(s => s.length >= 25 && s.length <= 300 && LESSON.test(s))
+  return sentences.filter(s => s.length >= 25 && s.length <= 300 && LESSON.test(s)).map(sanitizeLesson)
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-zäöüß0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim()
@@ -145,5 +159,9 @@ export function appendLessons(text: string | null, lessons: string[], date: stri
   return `${text.slice(0, end).replace(/\n*$/, '\n')}${items}\n${text.slice(end)}`
 }
 
-/** A dialog label for a lesson: short, no commas (the dialog joins answers with them). */
-export const label = (s: string, i: number) => `${i + 1}. ${s.replace(/,/g, ';').slice(0, 90)}${s.length > 90 ? '…' : ''}`
+/**
+ * A dialog option for a lesson: just its number. The full text stands in the
+ * question, so what is ticked is what was read. (No commas: the dialog joins
+ * several answers with them.)
+ */
+export const label = (_s: string, i: number) => String(i + 1)

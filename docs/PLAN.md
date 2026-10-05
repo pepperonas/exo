@@ -549,6 +549,11 @@ erst, wenn Martin Enter drückt.
 - **Lehren:** Kandidaten aus Antworten (ohne Code-Blöcke), gespeichert je Sitzung; bei `/recap`
   höchstens drei, ohne Dubletten zur Projekt-CLAUDE.md, Mehrfachauswahl im nativen Dialog;
   geschrieben nur Angekreuztes unter `## Lehren (exo)` (Datei wird angelegt, wenn sie fehlt).
+- **Lehren – Sicherheit (nach Prüfung):** Eine CLAUDE.md lesen künftige Sitzungen als
+  Anweisung. Der Dialog zeigt deshalb jede Lehre im vollen Wortlaut (Optionen sind nur Nummern),
+  geschrieben wird genau dieser Wortlaut, vorher bereinigt (kein Markup, kein HTML, keine
+  Backticks, eine Zeile). Eigene Schreibvorgänge (CLAUDE.md, `.exo/recap-*.md`) prüfen per
+  `core/safepath.ts`, dass der aufgelöste Pfad im Projekt liegt – ein Symlink nach außen bricht ab.
 - **Stunden:** Lücke über 5 min = Pause; Projektwechsel schreibt nichts gut. Tagesstand ab
   einer Minute in der Hinweiszeile, `/hours` Woche Mo–So, `/hours export csv|json` nach
   `~/.claude/exo/`. 400 Tage Aufbewahrung.

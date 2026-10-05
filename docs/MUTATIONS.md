@@ -1,6 +1,6 @@
 # Mutationsprobe
 
-Stand 2026-10-05 · `npm run mutate` · 146/146 erkannt
+Stand 2026-10-05 · `npm run mutate` · 150/150 erkannt
 
 Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“ heißt: die Mutation hat nachweislich gegriffen (Prüfsumme vorher → nachher) und die genannten Tests wurden rot.
 
@@ -131,15 +131,19 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `h-gap` | `modules/rueckblick/hours-logic.ts` | Pausen zählen als Arbeitszeit | erkannt: 1 Test(s) rot · 35599ebfc61d→4634fffb0d90 |
 | `h-project` | `modules/rueckblick/hours-logic.ts` | Projektwechsel wird dem neuen Projekt angerechnet | erkannt: 1 Test(s) rot · 35599ebfc61d→062e02ee4819 |
 | `h-prune` | `modules/rueckblick/hours-logic.ts` | alte Tage bleiben ewig | erkannt: 1 Test(s) rot · 35599ebfc61d→1a3ba479868f |
-| `r-once` | `modules/rueckblick/recap.ts` | Hinweis „Letzte Sitzung“ erscheint jedes Mal | erkannt: 1 Test(s) rot · 5277e14e3a46→cffad91b07ab |
-| `r-week` | `modules/rueckblick/recap.ts` | Hinweis auch nach mehr als sieben Tagen | erkannt: 1 Test(s) rot · 5277e14e3a46→fe847fdf17d8 |
-| `r-same` | `modules/rueckblick/recap.ts` | Hinweis auf die eigene, laufende Sitzung | erkannt: 1 Test(s) rot · 5277e14e3a46→6e73ceccddef |
-| `r-empty` | `modules/rueckblick/recap.ts` | leere Sitzungen verdrängen echte | erkannt: 1 Test(s) rot · 5277e14e3a46→6c0e2458e25d |
-| `l-ticked` | `modules/rueckblick/recap.ts` | Lehren werden ohne Häkchen geschrieben | erkannt: 1 Test(s) rot · 5277e14e3a46→a10879dfff13 |
-| `l-esc` | `modules/rueckblick/recap.ts` | Esc schreibt alle Lehren | erkannt: 1 Test(s) rot · 5277e14e3a46→f378d345b849 |
-| `l-dup` | `modules/rueckblick/recap.ts` | Dubletten zur CLAUDE.md werden erneut angeboten | erkannt: 1 Test(s) rot · 5277e14e3a46→96af5283aba5 |
-| `l-code` | `modules/rueckblick/recap-logic.ts` | Code-Blöcke liefern Scheinlehren | erkannt: 1 Test(s) rot · a7e94c143580→04ae4a8da198 |
-| `l-commas` | `modules/rueckblick/recap-logic.ts` | Kommas zerreißen die Auswahl im Dialog | erkannt: 1 Test(s) rot · a7e94c143580→bd7cb58999da |
+| `r-once` | `modules/rueckblick/recap.ts` | Hinweis „Letzte Sitzung“ erscheint jedes Mal | erkannt: 1 Test(s) rot · e08c628ddf5c→4ef4cb304c08 |
+| `r-week` | `modules/rueckblick/recap.ts` | Hinweis auch nach mehr als sieben Tagen | erkannt: 1 Test(s) rot · e08c628ddf5c→b3e5f14bdda9 |
+| `r-same` | `modules/rueckblick/recap.ts` | Hinweis auf die eigene, laufende Sitzung | erkannt: 1 Test(s) rot · e08c628ddf5c→5b95e7b9119b |
+| `r-empty` | `modules/rueckblick/recap.ts` | leere Sitzungen verdrängen echte | erkannt: 1 Test(s) rot · e08c628ddf5c→757901aef071 |
+| `l-ticked` | `modules/rueckblick/recap.ts` | Lehren werden ohne Häkchen geschrieben | erkannt: 1 Test(s) rot · e08c628ddf5c→8a573a73406a |
+| `l-esc` | `modules/rueckblick/recap.ts` | Esc schreibt alle Lehren | erkannt: 1 Test(s) rot · e08c628ddf5c→5311579f624b |
+| `l-dup` | `modules/rueckblick/recap.ts` | Dubletten zur CLAUDE.md werden erneut angeboten | erkannt: 1 Test(s) rot · e08c628ddf5c→33dd354e1452 |
+| `l-code` | `modules/rueckblick/recap-logic.ts` | Code-Blöcke liefern Scheinlehren | erkannt: 1 Test(s) rot · 4722f61a350e→04a7177447fe |
+| `l-label` | `modules/rueckblick/recap-logic.ts` | Label ist ein abgeschnittener Text (Kommas, nicht vollständig gelesen) | erkannt: 2 Test(s) rot · 4722f61a350e→a2cf508dd19f |
+| `l-sanitize` | `modules/rueckblick/recap-logic.ts` | Markup/HTML landet in der CLAUDE.md | erkannt: 1 Test(s) rot · 4722f61a350e→5b4033e68c54 |
+| `l-fulltext` | `modules/rueckblick/recap.ts` | angekreuzt wird, was nicht vollständig zu lesen war | erkannt: 1 Test(s) rot · e08c628ddf5c→4ca87e6ddbc0 |
+| `safe-lessons` | `modules/rueckblick/recap.ts` | Lehren über einen Symlink nach ~/.bashrc | erkannt: 1 Test(s) rot · e08c628ddf5c→968d29f6fb06 |
+| `safe-md` | `modules/rueckblick/recap.ts` | /recap md schreibt über einen Symlink nach /etc | erkannt: 1 Test(s) rot · e08c628ddf5c→5f182655c8cd |
 | `fail-closed` | `core/dispatcher/dispatcher.ts` | ein gestörter Wächter lässt durch | erkannt: 2 Test(s) rot · 3cfa860a8997→15e5bf55b34b |
 | `deny-stops` | `core/dispatcher/dispatcher.ts` | eine Ablehnung wird ignoriert | erkannt: 1 Test(s) rot · 3cfa860a8997→8e0a98cf0258 |
 | `kill-first` | `core/dispatcher/dispatcher.ts` | der Notausschalter wirkt nicht im Dispatcher | erkannt: 1 Test(s) rot · 3cfa860a8997→85d43cf6cdb6 |

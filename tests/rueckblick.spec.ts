@@ -16,6 +16,8 @@ const T0 = new Date(2026, 9, 5, 10, 0, 0).getTime() // a Monday, 10:00 local
 const MIN = 60_000
 
 function env(host: FakeHost, journal = new Journal('sess-2'), over: Partial<ModuleEnv> = {}): ModuleEnv {
+  // the project exists (writes are checked against its real path)
+  if (![...host.files.keys()].some(k => k.startsWith(P + '/'))) host.files.set(`${P}/package.json`, '{}')
   return { host, journal, config: resolveConfig({}, emptyPrefs()), store: new StoreBox(host), home: '/home/u', project: P, cwd: { cwd: P, known: true }, interactive: true, sessionId: journal.sessionId, ...over }
 }
 
@@ -130,6 +132,8 @@ test('lesson candidates: marked sentences, no code', () => {
   const a = 'Ich habe es repariert. Das war die Ursache: der Cache wurde vor dem Schreiben gelesen. ```\nfalle im code\n``` Nie wieder ohne Test deployen, das kostet Stunden.'
   assert.deepEqual(lessonCandidates(a), ['Das war die Ursache: der Cache wurde vor dem Schreiben gelesen.', 'Nie wieder ohne Test deployen, das kostet Stunden.'])
   assert.deepEqual(lessonCandidates('Alles erledigt.'), [])
+  // a lesson-like line inside a code block is code, not a lesson
+  assert.deepEqual(lessonCandidates('Siehe:\n```ts\n// Falle: dieser Kommentar steht im Code und ist keine Lehre\n```\nfertig.'), [])
 })
 
 test('duplicates against an existing CLAUDE.md', () => {
@@ -146,9 +150,9 @@ test('appending: new file, new heading, existing heading before the next section
   assert.equal(appendLessons(t, ['neu'], 'D'), `# X\n\n${LESSONS_HEADING}\n\n- alt\n- neu (D)\n\n## Andere\ninhalt\n`)
 })
 
-test('dialog labels carry no commas', () => {
-  assert.ok(!label('a, b, c', 0).includes(','))
-  assert.ok(label('x'.repeat(200), 1).length < 100)
+test('dialog labels are numbers (the text stands in the question)', () => {
+  assert.equal(label('a, b, c', 0), '1')
+  assert.equal(label('x'.repeat(200), 1), '2')
 })
 
 // ---------------------------------------------------------------- recap module
@@ -232,4 +236,35 @@ test('lessons: Esc writes nothing; lessons off offers nothing', async () => {
   const n = host.asked.length
   await recapCommand(e, '', false)
   assert.equal(host.asked.length, n)
+})
+
+// ---- review: lessons are persisted instructions; writes must stay in the project
+test('review: the dialog shows each lesson in full, sanitized, and exactly that is written', async () => {
+  const host = new FakeHost()
+  const e = env(host, sessionJournal())
+  const long = 'Die Ursache war, dass `rm -rf` <b>ohne</b> Prüfung lief und **danach** die Datei fehlte, ' + 'x'.repeat(120) + ' Ende.'
+  await lessonsStep().turnComplete!(e, { turnId: 't1', answer: long, reason: 'answer' })
+  host.manyAnswers = [['1']]
+  await recapCommand(e, '', true)
+  const q = host.asked[host.asked.length - 1]!
+  assert.ok(q.question.includes('Ende.'), 'full text in the question')
+  assert.ok(!q.question.includes('<b>') && !q.question.includes('`') && !q.question.includes('**'))
+  const md = host.files.get(`${P}/CLAUDE.md`)!
+  assert.ok(md.includes('Ende.'))
+  assert.ok(!md.includes('<b>') && !md.includes('`'))
+})
+
+test('review: no write through a symlink out of the project', async () => {
+  const host = new FakeHost()
+  host.files.set(`${P}/CLAUDE.md`, '# x\n')
+  host.links.set(`${P}/CLAUDE.md`, '/home/u/.bashrc')
+  const e = env(host, sessionJournal())
+  await lessonsStep().turnComplete!(e, { turnId: 't1', answer: 'Die Ursache war ein fehlender Index auf der Tabelle orders.', reason: 'answer' })
+  host.manyAnswers = [['1']]
+  const t = await recapCommand(e, '', true)
+  assert.ok(t.includes('nicht im Projekt'), t)
+  assert.equal(host.files.get('/home/u/.bashrc'), undefined)
+  host.links.set(`${P}/.exo`, '/etc')
+  host.files.set(`${P}/.exo/x`, '')
+  assert.ok((await recapCommand(e, 'md', false)).includes('nicht im Projekt'))
 })

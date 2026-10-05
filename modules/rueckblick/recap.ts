@@ -8,6 +8,7 @@
  * three lessons for the project's CLAUDE.md: nothing is written unless ticked.
  */
 import type { ModuleEnv, Step } from '../../core/dispatcher/dispatcher'
+import { insideRoot } from '../../core/safepath'
 import { jsonBytes } from '../../core/store/store'
 import { dayKey } from './hours-logic'
 import { OPEN_POINTS_SYSTEM, appendLessons, card, facts, isDuplicate, label, lessonCandidates, openPointsPrompt, parsePoints, shortLine } from './recap-logic'
@@ -88,8 +89,10 @@ export async function recapCommand(env: ModuleEnv, args: string, lessonsOn: bool
 
   if (sub === 'md') {
     const path = `${env.project}/.exo/recap-${dayKey(now)}.md`
-    await env.host.writeFile(path, text)
-    out.push(`Gespeichert: ${path}`)
+    if (await insideRoot(env.host, path, env.project)) {
+      await env.host.writeFile(path, text)
+      out.push(`Gespeichert: ${path}`)
+    } else out.push(`Nicht gespeichert: ${path} liegt über einen Symlink nicht im Projekt.`)
   } else if (sub === 'copy') {
     out.push((await env.host.copy(text).catch(() => false)) ? 'In die Zwischenablage kopiert.' : 'Kopieren hat nicht geklappt.')
   }
@@ -104,10 +107,12 @@ async function offerLessons(env: ModuleEnv, now: number): Promise<string> {
   const fresh = (await readLessons(env)).filter(l => !isDuplicate(l, existing ?? ''))
   const offer = fresh.slice(-3)
   if (!offer.length) return ''
+  if (!(await insideRoot(env.host, target, env.project))) return `Lehren: ${target} liegt über einen Symlink nicht im Projekt – nichts geschrieben.`
   const labels = offer.map(label)
+  const listed = offer.map((l, i) => `${labels[i]}. ${l}`).join('\n')
   let chosen: string[] = []
   try {
-    chosen = await env.host.askMany(`Welche Lehren sollen in ${target} unter „Lehren (exo)“? Nichts wird ohne Häkchen geschrieben.`, labels)
+    chosen = await env.host.askMany(`Welche Lehren sollen wörtlich in ${target} unter „Lehren (exo)“?\n${listed}\nNichts wird ohne Häkchen geschrieben.`, labels)
   } catch {
     return 'Lehren: nichts übernommen.'
   }
