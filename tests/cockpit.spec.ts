@@ -86,8 +86,8 @@ test('failure text is capped', () => {
 
 test('slot text', () => {
   assert.deepEqual(slotText({ ok: true, green: 48, red: 0, failures: '' }).text, '● 48/48')
-  assert.deepEqual(slotText({ ok: false, green: 46, red: 2, failures: '' }).text, '● 2 rot')
-  assert.deepEqual(slotText({ ok: false, failures: '' }).text, '● rot')
+  assert.deepEqual(slotText({ ok: false, green: 46, red: 2, failures: '' }).text, '● 2 red')
+  assert.deepEqual(slotText({ ok: false, failures: '' }).text, '● red')
 })
 
 // ---------------------------------------------------------------- test light flow
@@ -95,7 +95,7 @@ test('slot text', () => {
 async function lightEnv(trust = true) {
   resetTestlight()
   const host = new FakeHost()
-  if (trust) host.answers = ['Erlauben']
+  if (trust) host.answers = ['Allow']
   host.files.set(`${PROJECT}/package.json`, JSON.stringify({ scripts: { test: 'node --test' } }))
   const journal = new Journal('s')
   const step = testlightStep()
@@ -131,7 +131,7 @@ test('test light: red tests reach the next prompt once', async () => {
   host.finishAll()
   await tick()
   await tick()
-  assert.equal(host.slots.tests!.text, '● 1 rot')
+  assert.equal(host.slots.tests!.text, '● 1 red')
   const ctx1 = await step.promptContext!(env(host, journal))
   assert.ok(ctx1[0]!.includes('not ok 2 - adds'))
   assert.deepEqual(await step.promptContext!(env(host, journal)), [])
@@ -178,6 +178,9 @@ test('claims: German and English', () => {
   assert.deepEqual(claims('Fertig, alle Tests sind grün.'), ['fertig', 'alle tests sind grün'])
   assert.deepEqual(claims('Done – it works now.'), ['done', 'works'])
   assert.deepEqual(claims('Ich habe die Datei angesehen.'), [])
+  assert.deepEqual(claims('All set, it should work now. Resolved.'), ['all set', 'should work now', 'resolved'])
+  assert.deepEqual(claims('I looked at the file.'), [])
+  assert.equal(WARNING, '⚠ No test ran in this turn.')
 })
 
 test('verdict: nothing changed, checked, unchecked', () => {
@@ -244,9 +247,9 @@ test('sidebar: files changed this session, diff, reset with a snapshot', async (
   assert.ok(host.changes.diff.includes('-one') && host.changes.diff.includes('+ONE'))
   assert.ok(host.changes.diff.startsWith('--- a/a.ts'))
 
-  host.answers = ['Zurücksetzen']
+  host.answers = ['Revert']
   const msg = await revert(e, `${PROJECT}/a.ts`)
-  assert.ok(msg.includes('zurückgesetzt'), msg)
+  assert.ok(msg.includes(' reset (saved first'), msg)
   assert.equal(host.files.get(`${PROJECT}/a.ts`), 'one\ntwo\n')
   assert.ok(host.runs.some(r => r.argv[0] === 'tar'))
   assert.deepEqual(host.changes.rows.map(r => r.path), [`${PROJECT}/n.ts`])
@@ -260,12 +263,12 @@ test('sidebar: reset asks; Esc changes nothing; a new file is deleted', async ()
   await step.start!(e)
   const d = deps(host, [step], e.journal)
   await dispatch(d, { tool: 'Write', input: { file_path: `${PROJECT}/n.ts`, content: 'x\n' } }, async () => (host.files.set(`${PROJECT}/n.ts`, 'x\n'), { result: 'ok' }))
-  assert.equal(await revert(e, `${PROJECT}/n.ts`), 'Abgebrochen.')
+  assert.equal(await revert(e, `${PROJECT}/n.ts`), 'Cancelled.')
   assert.equal(host.files.get(`${PROJECT}/n.ts`), 'x\n')
-  host.answers = ['Zurücksetzen']
+  host.answers = ['Revert']
   await revert(e, `${PROJECT}/n.ts`)
   assert.ok(host.runs.some(r => r.argv.join(' ') === `rm -f -- ${PROJECT}/n.ts`))
-  assert.ok(host.asked[1]!.question.includes('löschen'))
+  assert.ok(host.asked[1]!.question.includes('delete it?'))
 })
 
 test('sidebar: originals survive a reload of the mod', async () => {
@@ -290,12 +293,12 @@ test('ci: parse, slot, backoff, failed step', () => {
   assert.equal(parseRuns('[{"status":"completed","conclusion":"success"}]')!.state, 'green')
   assert.equal(parseRuns('[]'), null)
   assert.equal(parseRuns('kaputt'), null)
-  assert.equal(slot(run, run.updatedAt + 3 * 60_000).text, '● CI rot · vor 3 min')
+  assert.equal(slot(run, run.updatedAt + 3 * 60_000).text, '● CI red · 3 min ago')
   assert.equal(nextDelay(0), 60_000)
   assert.equal(nextDelay(2), 240_000)
   assert.equal(nextDelay(10), 600_000)
   assert.equal(failedStep(JSON.stringify({ jobs: [{ name: 'test', steps: [{ name: 'checkout', conclusion: 'success' }, { name: 'npm test', conclusion: 'failure' }] }] })), 'test › npm test')
-  assert.equal(ago(90 * 60_000), 'vor 2 h')
+  assert.equal(ago(90 * 60_000), '2 h ago')
 })
 
 test('ci: a red run toasts, bands, and the button fills the prompt', async () => {
@@ -312,9 +315,9 @@ test('ci: a red run toasts, bands, and the button fills the prompt', async () =>
   const e = env(host)
   e.journal.push({ type: 'prompt.submit', chars: 1 }, host.t)
   await poll(e)
-  assert.equal(host.slots.ci!.text, '● CI rot · gerade')
+  assert.equal(host.slots.ci!.text, '● CI red · just now')
   assert.ok(host.toasts[0]!.includes('test › npm test'))
-  assert.equal(host.banners[0]!.buttons[0]!.label, 'Log an Claude geben')
+  assert.equal(host.banners[0]!.buttons[0]!.label, 'Hand the log to Claude')
   await poll(e)
   assert.equal(host.toasts.length, 1) // once per run
   await pressBanner(host, 'exo-ci', 'log')
@@ -339,7 +342,7 @@ test('ci: idle sessions are not polled; errors back off', async () => {
 // ---- review: the test light must not run repo-defined commands without consent
 test('test light asks once per project before running anything', async () => {
   const { host, journal } = await lightEnv(false)
-  host.answers = ['Nicht erlauben']
+  host.answers = ["Don't allow"]
   change(journal)
   await host.advance(DEBOUNCE_MS)
   await tick()
@@ -376,7 +379,7 @@ test('test light: consent is remembered, and asked again when the runner config 
   await tick()
   await tick()
   assert.equal(host.asked.length, 2)
-  assert.ok(host.asked[1]!.question.includes('geändert'))
+  assert.ok(host.asked[1]!.question.includes('has changed'))
   assert.equal(host.spawned.length, 2) // no answer: nothing ran
 })
 

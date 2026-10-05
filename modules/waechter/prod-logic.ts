@@ -1,5 +1,5 @@
 /**
- * #1 Prod-Schild, the pure part: which commands touch production, and what a
+ * #1 Prod shield, the pure part: which commands touch production, and what a
  * dry run of them would be.
  */
 import type { ProdHost } from '../../core/config/config'
@@ -180,7 +180,7 @@ export function forcedMain(args: readonly string[], currentBranch: string | null
     const m = PROTECTED_BRANCH.exec(dst)
     if (m && (force || r.startsWith('+'))) return m[1]!
   }
-  if (force && (f.has('--all') || f.has('--mirror'))) return 'alle Branches'
+  if (force && (f.has('--all') || f.has('--mirror'))) return 'all branches'
   if (force && refspecs.length === 0 && currentBranch && /^(main|master)$/.test(currentBranch)) return currentBranch
   return null
 }
@@ -206,7 +206,7 @@ export function inspect(cmds: readonly Cmd[], index: ReadonlyMap<string, ProdHos
     const line = c.argv.join(' ')
 
     const remote = (h: ProdHost | undefined) => {
-      if (h && !out.some(f => f.kind === 'remote' && f.host === h && f.subject === line)) out.push({ kind: 'remote', host: h, what: `${c.program === 'ssh' ? 'ssh auf' : `${c.program} mit`} ${h.name}`, subject: line })
+      if (h && !out.some(f => f.kind === 'remote' && f.host === h && f.subject === line)) out.push({ kind: 'remote', host: h, what: `${c.program === 'ssh' ? 'ssh to' : `${c.program} with`} ${h.name}`, subject: line })
     }
     if (c.program === 'ssh' && c.ssh) {
       remote(prodOf(c.ssh.host))
@@ -220,9 +220,9 @@ export function inspect(cmds: readonly Cmd[], index: ReadonlyMap<string, ProdHos
     }
     if (viaHost && c.program === 'systemctl') {
       const verb = c.argv.slice(1).find(a => !a.startsWith('-'))
-      if (verb && SERVICE_VERBS.has(verb)) out.push({ kind: 'service', host: viaHost, what: `systemctl ${verb} auf ${viaHost.name}`, subject: line })
+      if (verb && SERVICE_VERBS.has(verb)) out.push({ kind: 'service', host: viaHost, what: `systemctl ${verb} on ${viaHost.name}`, subject: line })
     }
-    if (viaHost && (c.program === 'reboot' || c.program === 'shutdown' || c.program === 'poweroff')) out.push({ kind: 'service', host: viaHost, what: `${c.program} auf ${viaHost.name}`, subject: line })
+    if (viaHost && (c.program === 'reboot' || c.program === 'shutdown' || c.program === 'poweroff')) out.push({ kind: 'service', host: viaHost, what: `${c.program} on ${viaHost.name}`, subject: line })
 
     if (SQL_CLIENTS.has(c.program)) {
       for (const sql of sqlOf(c)) for (const st of destructiveSql(sql)) out.push({ kind: 'sql', host: viaHost, what: `SQL: ${st.slice(0, 80)}`, subject: st })
@@ -231,7 +231,7 @@ export function inspect(cmds: readonly Cmd[], index: ReadonlyMap<string, ProdHos
     const g = gitCall(c)
     if (g?.sub === 'push') {
       const b = forcedMain(g.args, currentBranch)
-      if (b) out.push({ kind: 'force-push', host: viaHost, what: `Force-Push auf ${b}`, subject: line })
+      if (b) out.push({ kind: 'force-push', host: viaHost, what: `force push to ${b}`, subject: line })
     }
   }
   return out

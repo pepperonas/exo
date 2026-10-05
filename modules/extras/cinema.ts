@@ -1,5 +1,5 @@
 /**
- * #19 Spinner-Kino: while a tool runs (or a turn takes long) the spinner's
+ * #19 Spinner cinema: while a tool runs (or a turn takes long) the spinner's
  * message becomes a little film of the activity, with real facts (tool,
  * running time). A fast redraw timer runs only while there is a film; any
  * failure falls back to the engine's own spinner.

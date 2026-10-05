@@ -37,7 +37,7 @@ export const DEFAULT_RULES_JSON = {
       match: '\\bnginx\\b',
       check: ['ssh', '{host}', 'pgrep', '-x', 'certbot'],
       blockWhen: 'exit0',
-      text: 'Nie nginx ändern, während certbot läuft (certbot läuft gerade auf diesem Host).',
+      text: 'Never change nginx while certbot is running (certbot is running on this host right now).',
     },
   ],
 }
@@ -45,39 +45,39 @@ export const DEFAULT_RULES_JSON = {
 const RULE_KEYS = new Set(['id', 'hosts', 'match', 'check', 'blockWhen', 'text'])
 
 function validateRule(raw: unknown, index: number, seen: Set<string>): { rule?: HouseRule; error?: string } {
-  const where = `Regel ${index + 1}`
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { error: `${where}: kein Objekt` }
+  const where = `Rule ${index + 1}`
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { error: `${where}: not an object` }
   const r = raw as Record<string, unknown>
   const unknown = Object.keys(r).filter(k => !RULE_KEYS.has(k))
-  if (unknown.length) return { error: `${where}: unbekannte Felder ${unknown.join(', ')}` }
-  if (typeof r.id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(r.id)) return { error: `${where}: id fehlt oder ist ungültig (a-z, 0-9, -)` }
-  if (seen.has(r.id)) return { error: `${where}: id ${r.id} doppelt` }
+  if (unknown.length) return { error: `${where}: unknown fields ${unknown.join(', ')}` }
+  if (typeof r.id !== 'string' || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(r.id)) return { error: `${where}: id missing or invalid (a-z, 0-9, -)` }
+  if (seen.has(r.id)) return { error: `${where}: duplicate id ${r.id}` }
   if (!Array.isArray(r.hosts) || !r.hosts.length || !r.hosts.every(h => typeof h === 'string' && h.length > 0))
-    return { error: `${r.id}: hosts muss eine nicht leere Textliste sein` }
-  if (typeof r.match !== 'string' || !r.match) return { error: `${r.id}: match fehlt` }
+    return { error: `${r.id}: hosts must be a non-empty list of strings` }
+  if (typeof r.match !== 'string' || !r.match) return { error: `${r.id}: match missing` }
   let match: RegExp
   try {
     match = new RegExp(r.match)
   } catch {
-    return { error: `${r.id}: match ist kein gültiger regulärer Ausdruck` }
+    return { error: `${r.id}: match is not a valid regular expression` }
   }
   if (!Array.isArray(r.check) || !r.check.length || !r.check.every(a => typeof a === 'string'))
-    return { error: `${r.id}: check muss eine nicht leere Textliste (argv) sein` }
+    return { error: `${r.id}: check must be a non-empty list of strings (argv)` }
   const placeholders = r.check.flatMap(a => (a as string).match(/\{[^}]*\}/g) ?? [])
   const bad = placeholders.filter(p => p !== '{host}')
-  if (bad.length) return { error: `${r.id}: unbekannter Platzhalter ${bad.join(', ')} (nur {host})` }
-  if (r.blockWhen !== 'exit0' && r.blockWhen !== 'exitNonZero') return { error: `${r.id}: blockWhen muss exit0 oder exitNonZero sein` }
-  if (typeof r.text !== 'string' || !r.text.trim()) return { error: `${r.id}: text fehlt` }
+  if (bad.length) return { error: `${r.id}: unknown placeholder ${bad.join(', ')} (only {host})` }
+  if (r.blockWhen !== 'exit0' && r.blockWhen !== 'exitNonZero') return { error: `${r.id}: blockWhen must be exit0 or exitNonZero` }
+  if (typeof r.text !== 'string' || !r.text.trim()) return { error: `${r.id}: text missing` }
   seen.add(r.id)
   return { rule: { id: r.id, hosts: r.hosts as string[], match, check: r.check as string[], blockWhen: r.blockWhen, text: r.text } }
 }
 
 /** Validates parsed JSON. Bad rules are dropped one by one. */
 export function validateRules(json: unknown): { rules: HouseRule[]; errors: string[]; fatal: boolean } {
-  if (!json || typeof json !== 'object' || Array.isArray(json)) return { rules: [], errors: ['rules.json: kein JSON-Objekt'], fatal: true }
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return { rules: [], errors: ['rules.json: not a JSON object'], fatal: true }
   const j = json as Record<string, unknown>
-  if (j.version !== RULES_VERSION) return { rules: [], errors: [`rules.json: version ${String(j.version)} unbekannt (erwartet ${RULES_VERSION})`], fatal: true }
-  if (!Array.isArray(j.rules)) return { rules: [], errors: ['rules.json: rules fehlt oder ist keine Liste'], fatal: true }
+  if (j.version !== RULES_VERSION) return { rules: [], errors: [`rules.json: unknown version ${String(j.version)} (expected ${RULES_VERSION})`], fatal: true }
+  if (!Array.isArray(j.rules)) return { rules: [], errors: ['rules.json: rules missing or not a list'], fatal: true }
   const errors: string[] = []
   const rules: HouseRule[] = []
   const seen = new Set<string>()
@@ -103,9 +103,9 @@ export function loadRules(text: string | null): RulesLoad {
   try {
     json = JSON.parse(text)
   } catch (err) {
-    return { rules: defaultRules(), errors: [`rules.json ist kein gültiges JSON: ${(err as Error).message}`, 'Es gelten die eingebauten Regeln.'], source: 'default-after-error' }
+    return { rules: defaultRules(), errors: [`rules.json is not valid JSON: ${(err as Error).message}`, 'The built-in rules apply.'], source: 'default-after-error' }
   }
   const v = validateRules(json)
-  if (v.fatal) return { rules: defaultRules(), errors: [...v.errors, 'Es gelten die eingebauten Regeln.'], source: 'default-after-error' }
+  if (v.fatal) return { rules: defaultRules(), errors: [...v.errors, 'The built-in rules apply.'], source: 'default-after-error' }
   return { rules: v.rules, errors: v.errors, source: 'file' }
 }

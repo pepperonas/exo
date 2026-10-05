@@ -35,12 +35,12 @@ function shortPath(p: string, max: number): string {
 }
 /** Commands besides /exo: name, description, argument hint. */
 const COMMANDS: [string, string, string][] = [
-  ['undo-last', 'exo: letzten Schnappschuss der Aufräum-Bremse wiederherstellen', '[id]'],
-  ['undo-list', 'exo: Schnappschüsse der Aufräum-Bremse anzeigen', ''],
-  ['recap', 'exo: Rückblick auf diese Sitzung, offene Punkte, Lehren', '[md|copy]'],
-  ['hours', 'exo: aktive Zeit je Projekt diese Woche', '[export csv|json]'],
-  ['duck', 'exo: Gummi-Ente – Fehlersuche mit fünf Fragen', ''],
-  ['achievements', 'exo: gesammelte Abzeichen', ''],
+  ['undo-last', "exo: restore the cleanup brake's last snapshot", '[id]'],
+  ['undo-list', "exo: list the cleanup brake's snapshots", ''],
+  ['recap', 'exo: recap of this session, open items, lessons', '[md|copy]'],
+  ['hours', 'exo: active time per project this week', '[export csv|json]'],
+  ['duck', 'exo: rubber duck – debugging with five questions', ''],
+  ['achievements', 'exo: badges earned', ''],
 ]
 /** Registered name → command it stands for (exo-undo-last when undo-last is taken). */
 const commandNames = new Map<string, string>()
@@ -84,7 +84,7 @@ function hostOf($: EngineInterface): Host {
     realPath: async path => {
       const s = await $.fs.stat(path, { resolve: true })
       // No answer is no resolution: never fall back to the unresolved path.
-      if (!s.realPath) throw new Error('realPath nicht verfügbar')
+      if (!s.realPath) throw new Error('realPath not available')
       return s.realPath
     },
     run: async (argv, o) => {
@@ -211,8 +211,8 @@ export const register: Register = (on, options) => {
     const host = hostOf($)
     await $.command.register({
       name: COMMAND,
-      description: 'exo: Zustand der Module, Schalter, Notausschalter (/exo help)',
-      argumentHint: '[on|off [modul]|reset <modul>|rules|help]',
+      description: 'exo: module state, switches, kill switch (/exo help)',
+      argumentHint: '[on|off [module]|reset <module>|rules|help]',
       immediate: true,
     })
     const taken = new Set((await $.command.list()).filter(c => c.plugin !== 'exo').map(c => c.name))
@@ -222,7 +222,7 @@ export const register: Register = (on, options) => {
       await $.command.register({ name: final, description, argumentHint, immediate: true })
     }
     if (rt.home) void pruneSnapshots(host, rt.store, rt.home, await $.clock.now()).catch(() => undefined)
-    await $.command.register({ name: CHANGES, description: 'exo: in dieser Sitzung geänderte Dateien mit Diff', immediate: true })
+    await $.command.register({ name: CHANGES, description: 'exo: files changed in this session, with diff', immediate: true })
     await startModules(rt, host)
     if (rt.journal.size() === 0 || rt.journal.last('session.start')?.sessionId !== rt.journal.sessionId)
       await log(rt, host, { type: 'session.start', sessionId: rt.journal.sessionId, project: (await host.repoRoot().catch(() => null)) ?? e.cwd })
@@ -313,10 +313,10 @@ export const register: Register = (on, options) => {
   for (const name of ['duck', 'exo-duck'] as const) {
     on('command.run', { command: name }, async $ => {
       const rt = await ensure($)
-      if (!rt.config.enabled.duck) return { text: 'Die Gummi-Ente ist ausgeschaltet (/exo on duck).' }
+      if (!rt.config.enabled.duck) return { text: 'The rubber duck is switched off (/exo on duck).' }
       await update($, duckA, () => freshDuck())
-      const placed = await $.ui.open({ id: DUCK_PANE, title: 'Gummi-Ente', focus: true, closeOnEscape: true })
-      return { text: placed.isPlaced ? 'Die Ente hört zu.' : `Die Ente hat keinen Platz (${placed.reason}).` }
+      const placed = await $.ui.open({ id: DUCK_PANE, title: 'Rubber duck', focus: true, closeOnEscape: true })
+      return { text: placed.isPlaced ? 'The duck is listening.' : `The duck has no room (${placed.reason}).` }
     })
   }
   for (const name of ['achievements', 'exo-achievements'] as const) {
@@ -330,7 +330,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'Pane', requestId: DUCK_PANE }, async ($, e) => {
     if (e.surface === 'mobile') {
       const { Text } = $.ui.resolve(e)
-      return <Text>Die Gummi-Ente braucht ein Eingabefeld – auf dem Telefon gibt es keins.</Text>
+      return <Text>The rubber duck needs an input field – there is none on the phone.</Text>
     }
     const { Box, Text, Button, Input, Code } = $.ui.resolve(e)
     const s = await read($, duckA)
@@ -340,13 +340,13 @@ export const register: Register = (on, options) => {
       return (
         <Box flexDirection="column">
           {duck}
-          <Text key="t">Quak. Daraus wird dieser Prompt – bearbeite ihn im Eingabefeld und schick ihn selbst ab:</Text>
+          <Text key="t">Quack. This becomes the prompt – edit it in the input field and send it yourself:</Text>
           <Code key="p" source={prompt} language="markdown" />
           <Box key="b" flexDirection="row">
             <Button
               key="take"
               variant="primary"
-              label="In den Prompt übernehmen"
+              label="Put into prompt"
               onPress={async () => {
                 await $.prompt.fill({ text: prompt, mode: 'replace' })
                 const rt = await ensure($)
@@ -354,7 +354,7 @@ export const register: Register = (on, options) => {
                 await $.ui.close({ id: DUCK_PANE })
               }}
             />
-            <Button key="again" label="Neu anfangen" onPress={() => void update($, duckA, () => freshDuck())} />
+            <Button key="again" label="Start over" onPress={() => void update($, duckA, () => freshDuck())} />
           </Box>
         </Box>
       )
@@ -363,10 +363,10 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {duck}
-        <Text key="q" bold>{`Frage ${s.step + 1}/${QUESTIONS.length}: ${q}`}</Text>
-        <Input key={`in${s.step}`} placeholder="Antwort, Enter = weiter" autoFocus onSubmit={(value: string) => void update($, duckA, cur => answerDuck(cur, value))} />
+        <Text key="q" bold>{`Question ${s.step + 1}/${QUESTIONS.length}: ${q}`}</Text>
+        <Input key={`in${s.step}`} placeholder="Answer, Enter = next" autoFocus onSubmit={(value: string) => void update($, duckA, cur => answerDuck(cur, value))} />
         <Box key="b" flexDirection="row">
-          <Button key="skip" label="Überspringen" onPress={() => void update($, duckA, cur => answerDuck(cur, null))} />
+          <Button key="skip" label="Skip" onPress={() => void update($, duckA, cur => answerDuck(cur, null))} />
         </Box>
       </Box>
     )
@@ -402,9 +402,9 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: CHANGES }, async $ => {
     const rt = await ensure($)
-    const placed = await $.ui.open({ id: CHANGES_PANE, title: 'Änderungen' })
+    const placed = await $.ui.open({ id: CHANGES_PANE, title: 'Changes' })
     await refreshChanges(moduleEnv(rt, hostOf($))).catch(() => undefined)
-    return { text: placed.isPlaced ? 'Änderungen geöffnet.' : `Änderungen: Platz fehlt (${placed.reason}).` }
+    return { text: placed.isPlaced ? 'Changes opened.' : `Changes: no room (${placed.reason}).` }
   })
 
   on('ui.render', { component: 'Pane', requestId: CHANGES_PANE }, async ($, e) => {
@@ -412,24 +412,24 @@ export const register: Register = (on, options) => {
     const rows = await read($, changesA)
     const selected = await read($, selectedA)
     const diff = await read($, diffA)
-    if (!rows.length) return <Text dimColor>In dieser Sitzung wurde noch keine Datei über Write/Edit geändert.</Text>
+    if (!rows.length) return <Text dimColor>No file has been changed via Write/Edit in this session yet.</Text>
     const width = e.props.bodyColumns ?? 60
     return (
       <Box flexDirection="column">
         {rows.map(r => (
           <Box key={`row:${r.path}`} flexDirection="row">
-            <Button key={`sel:${r.path}`} plain label={`${r.path === selected ? '▸' : ' '} +${r.added} −${r.removed} ${shortPath(r.path, width - 14)}${r.isNew ? ' (neu)' : ''}`} onPress={() => void pressPane(hostOf($), `sel:${r.path}`)} />
+            <Button key={`sel:${r.path}`} plain label={`${r.path === selected ? '▸' : ' '} +${r.added} −${r.removed} ${shortPath(r.path, width - 14)}${r.isNew ? ' (new)' : ''}`} onPress={() => void pressPane(hostOf($), `sel:${r.path}`)} />
           </Box>
         ))}
         {selected ? (
           <Box key="detail" flexDirection="column" marginTop={1}>
-            {diff ? <Code key="diff" source={diff} format="diff" path={selected} /> : <Text dimColor>Keine Unterschiede mehr zum Stand vor der Sitzung.</Text>}
+            {diff ? <Code key="diff" source={diff} format="diff" path={selected} /> : <Text dimColor>No differences left from the state before the session.</Text>}
             <Box key="actions" flexDirection="row">
-              <Button key="revert" label="Zurücksetzen" onPress={() => void pressPane(hostOf($), `revert:${selected}`)} />
+              <Button key="revert" label="Revert" onPress={() => void pressPane(hostOf($), `revert:${selected}`)} />
             </Box>
           </Box>
         ) : (
-          <Text dimColor>Datei auswählen für den Diff.</Text>
+          <Text dimColor>Select a file for its diff.</Text>
         )}
       </Box>
     )

@@ -1,5 +1,5 @@
 /**
- * #18 Erfolge & Serien, the pure part. Badges are data: a metric and a
+ * #18 Achievements & streaks, the pure part. Badges are data: a metric and a
  * threshold. A new badge on an existing metric is one line in RULES, no code.
  */
 import type { JournalEvent } from '../../core/journal/journal'
@@ -18,21 +18,21 @@ export interface Rule {
 }
 
 export const RULES: readonly Rule[] = [
-  { id: 'erster-schritt', icon: '🐣', ascii: '*', title: 'Erster Schritt', text: 'Der erste Turn mit exo.', metric: 'turns', atLeast: 1 },
-  { id: 'zehn-gruen', icon: '🟢', ascii: 'o', title: 'Zehn grüne Turns', text: '10 Turns in Folge ohne roten Test.', metric: 'greenStreakMax', atLeast: 10 },
-  { id: 'fruehaufsteher', icon: '🌅', ascii: '^', title: 'Früher Vogel', text: 'Erster Commit vor 9 Uhr.', metric: 'commitsBefore9', atLeast: 1 },
-  { id: 'kontext-sparsam', icon: '🪶', ascii: '~', title: 'Federleicht', text: 'Kontext nie über 50 % in einer Sitzung mit 10+ Turns.', metric: 'contextLowSessions', atLeast: 1 },
-  { id: 'pacman', icon: 'ᗧ', ascii: 'C', title: 'Pac-Man hat nie den Geist gesehen', text: '5-h-Fenster nie über 90 % in einer Sitzung mit 10+ Turns.', metric: 'pacmanSessions', atLeast: 1, requires: 'usage-bars' },
-  { id: 'doppelter-boden', icon: '🪂', ascii: 'v', title: 'Doppelter Boden', text: 'Der erste Schnappschuss der Aufräum-Bremse.', metric: 'snapshots', atLeast: 1 },
-  { id: 'dicht', icon: '🔐', ascii: '#', title: 'Dicht gehalten', text: 'Der Secret-Wächter hat ein Geheimnis aufgehalten.', metric: 'secretsStopped', atLeast: 1 },
-  { id: 'abgewendet', icon: '🛡', ascii: '|', title: 'Abgewendet', text: 'Ein Prod-Befehl wurde im Dialog abgebrochen.', metric: 'prodCancelled', atLeast: 1 },
-  { id: 'testpilot', icon: '🧪', ascii: 't', title: 'Testpilot', text: '100 grüne Testläufe.', metric: 'testsGreen', atLeast: 100 },
-  { id: 'nachteule', icon: '🦉', ascii: 'n', title: 'Nachteule', text: 'Ein Turn zwischen Mitternacht und vier Uhr.', metric: 'nightTurns', atLeast: 1 },
-  { id: 'ausgemistet', icon: '🧹', ascii: '-', title: 'Ausgemistet', text: '200 Zeilen in einer Sitzung entfernt.', metric: 'removedSession', atLeast: 200 },
-  { id: 'phoenix', icon: '🔥', ascii: '!', title: 'Phönix', text: 'CI von rot zurück auf grün.', metric: 'ciRecovered', atLeast: 1 },
-  { id: 'marathon', icon: '🏃', ascii: '>', title: 'Marathon', text: 'Vier Stunden aktive Zeit an einem Tag.', metric: 'activeHoursDay', atLeast: 4 },
-  { id: 'serie', icon: '📅', ascii: '=', title: 'Fünf Tage am Stück', text: 'An fünf Tagen in Folge gearbeitet.', metric: 'dayStreak', atLeast: 5 },
-  { id: 'quak', icon: '🦆', ascii: 'Q', title: 'Quak', text: 'Die Gummi-Ente zu Ende befragt.', metric: 'duckDone', atLeast: 1 },
+  { id: 'erster-schritt', icon: '🐣', ascii: '*', title: 'First step', text: 'The first turn with exo.', metric: 'turns', atLeast: 1 },
+  { id: 'zehn-gruen', icon: '🟢', ascii: 'o', title: 'Ten green turns', text: '10 turns in a row without a red test.', metric: 'greenStreakMax', atLeast: 10 },
+  { id: 'fruehaufsteher', icon: '🌅', ascii: '^', title: 'Early bird', text: 'First commit before 9 am.', metric: 'commitsBefore9', atLeast: 1 },
+  { id: 'kontext-sparsam', icon: '🪶', ascii: '~', title: 'Featherweight', text: 'Context never above 50 % in a session with 10+ turns.', metric: 'contextLowSessions', atLeast: 1 },
+  { id: 'pacman', icon: 'ᗧ', ascii: 'C', title: 'Pac-Man never saw the ghost', text: '5-h window never above 90 % in a session with 10+ turns.', metric: 'pacmanSessions', atLeast: 1, requires: 'usage-bars' },
+  { id: 'doppelter-boden', icon: '🪂', ascii: 'v', title: 'Safety net', text: "The cleanup brake's first snapshot.", metric: 'snapshots', atLeast: 1 },
+  { id: 'dicht', icon: '🔐', ascii: '#', title: 'Kept it shut', text: 'The secrets guard stopped a secret.', metric: 'secretsStopped', atLeast: 1 },
+  { id: 'abgewendet', icon: '🛡', ascii: '|', title: 'Averted', text: 'A prod command was cancelled in the dialog.', metric: 'prodCancelled', atLeast: 1 },
+  { id: 'testpilot', icon: '🧪', ascii: 't', title: 'Test pilot', text: '100 green test runs.', metric: 'testsGreen', atLeast: 100 },
+  { id: 'nachteule', icon: '🦉', ascii: 'n', title: 'Night owl', text: 'A turn between midnight and four am.', metric: 'nightTurns', atLeast: 1 },
+  { id: 'ausgemistet', icon: '🧹', ascii: '-', title: 'Spring cleaning', text: '200 lines removed in one session.', metric: 'removedSession', atLeast: 200 },
+  { id: 'phoenix', icon: '🔥', ascii: '!', title: 'Phoenix', text: 'CI back from red to green.', metric: 'ciRecovered', atLeast: 1 },
+  { id: 'marathon', icon: '🏃', ascii: '>', title: 'Marathon', text: 'Four hours of active time in one day.', metric: 'activeHoursDay', atLeast: 4 },
+  { id: 'serie', icon: '📅', ascii: '=', title: 'Five days straight', text: 'Worked on five days in a row.', metric: 'dayStreak', atLeast: 5 },
+  { id: 'quak', icon: '🦆', ascii: 'Q', title: 'Quack', text: 'Asked the rubber duck all its questions.', metric: 'duckDone', atLeast: 1 },
 ]
 
 export interface AchState {

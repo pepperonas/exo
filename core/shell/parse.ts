@@ -129,7 +129,7 @@ class Parser {
       const h = r.heredoc!
       const lines: string[] = []
       for (;;) {
-        if (this.i >= this.s.length) this.fail(`Heredoc ${h.delimiter} nicht abgeschlossen`)
+        if (this.i >= this.s.length) this.fail(`heredoc ${h.delimiter} not terminated`)
         const end = this.s.indexOf('\n', this.i)
         const line = this.s.slice(this.i, end === -1 ? this.s.length : end)
         this.i = end === -1 ? this.s.length : end + 1
@@ -161,7 +161,7 @@ class Parser {
     for (;;) {
       this.skipBlankAndNewlines()
       if (this.i >= this.s.length) {
-        if (end) this.fail(`${end === ')' ? 'Klammer' : 'Block'} nicht geschlossen`)
+        if (end) this.fail(`${end === ')' ? 'parenthesis' : 'block'} not closed`)
         break
       }
       if (end === ')' && this.c === ')') break
@@ -172,7 +172,7 @@ class Parser {
       entries.push({ pipeline, op })
       if (op === '&&' || op === '||') {
         this.skipBlankAndNewlines()
-        if (this.i >= this.s.length || (end === ')' && this.c === ')') || (end === '}' && this.atWord('}'))) this.fail(`${op} ohne folgenden Befehl`)
+        if (this.i >= this.s.length || (end === ')' && this.c === ')') || (end === '}' && this.atWord('}'))) this.fail(`${op} without a following command`)
       }
       if (op === null) {
         this.skipBlank()
@@ -183,7 +183,7 @@ class Parser {
       }
     }
     if (entries.length) entries[entries.length - 1]!.op = entries[entries.length - 1]!.op === '&' ? '&' : null
-    if (this.pending.length && end === null) this.fail(`Heredoc ${this.pending[0]!.heredoc!.delimiter} nicht abgeschlossen`)
+    if (this.pending.length && end === null) this.fail(`heredoc ${this.pending[0]!.heredoc!.delimiter} not terminated`)
     return { entries }
   }
 
@@ -235,14 +235,14 @@ class Parser {
       const body = new Parser(this.s, this.i, this.depth + 1)
       const script = body.parseScript(')')
       this.i = body.i
-      if (this.s[this.i] !== ')') this.fail('Klammer nicht geschlossen')
+      if (this.s[this.i] !== ')') this.fail('parenthesis not closed')
       this.i++
       return { type: 'subshell', body: script, redirects: this.parseRedirects() }
     }
     if (this.atWord('{')) {
       this.i++
       const script = this.parseScript('}')
-      if (!this.atWord('}')) this.fail('Block nicht geschlossen')
+      if (!this.atWord('}')) this.fail('block not closed')
       this.i++
       return { type: 'group', body: script, redirects: this.parseRedirects() }
     }
@@ -263,7 +263,7 @@ class Parser {
       if (cmd.words.length === 0 && /^[A-Za-z_][A-Za-z0-9_]*\+?=/.test(this.s.slice(start, this.i))) cmd.assigns.push(w)
       else cmd.words.push(w)
     }
-    if (!cmd.words.length && !cmd.assigns.length && !cmd.redirects.length) this.fail('leerer Befehl')
+    if (!cmd.words.length && !cmd.assigns.length && !cmd.redirects.length) this.fail('empty command')
     return cmd
   }
 
@@ -306,7 +306,7 @@ class Parser {
     const p = new Parser(this.s, this.i, this.depth + 1)
     const script = p.parseScript(')')
     this.i = p.i
-    if (this.c !== ')') this.fail('Befehlssubstitution nicht geschlossen')
+    if (this.c !== ')') this.fail('command substitution not closed')
     this.i++
     return script
   }
@@ -342,7 +342,7 @@ class Parser {
         j++
       } else j++
     }
-    this.fail('Arithmetik nicht geschlossen')
+    this.fail('arithmetic not closed')
   }
 
   /**
@@ -394,7 +394,7 @@ class Parser {
         j++
       } else j++
     }
-    this.fail('${ nicht geschlossen')
+    this.fail('${ not closed')
   }
 
   /** `$…` at `i`, inside or outside double quotes; returns the raw text. */
@@ -436,7 +436,7 @@ class Parser {
     let j = this.i + 1
     let inner = ''
     for (;;) {
-      if (j >= this.s.length) this.fail('Backtick nicht geschlossen')
+      if (j >= this.s.length) this.fail('backtick not closed')
       const ch = this.s[j]!
       if (ch === '\\' && (this.s[j + 1] === '`' || this.s[j + 1] === '\\' || this.s[j + 1] === '$')) {
         inner += this.s[j + 1]
@@ -458,7 +458,7 @@ class Parser {
     this.i += 2
     const map: Record<string, string> = { n: '\n', t: '\t', r: '\r', a: '\x07', b: '\b', e: '\x1b', E: '\x1b', f: '\f', v: '\v', '\\': '\\', "'": "'", '"': '"', '?': '?' }
     for (;;) {
-      if (this.i >= this.s.length) this.fail("$' nicht geschlossen")
+      if (this.i >= this.s.length) this.fail("$' not closed")
       const ch = this.c
       if (ch === "'") {
         this.i++
@@ -508,7 +508,7 @@ class Parser {
         }
       } else if (ch === "'") {
         const end = this.s.indexOf("'", this.i + 1)
-        if (end === -1) this.fail("' nicht geschlossen")
+        if (end === -1) this.fail("' not closed")
         w.text += this.s.slice(this.i + 1, end)
         w.quoted = true
         this.i = end + 1
@@ -518,7 +518,7 @@ class Parser {
         this.i++
         w.quoted = true
         for (;;) {
-          if (this.i >= this.s.length) this.fail('" nicht geschlossen')
+          if (this.i >= this.s.length) this.fail('" not closed')
           const d = this.c
           if (d === '"') {
             this.i++
@@ -558,7 +558,7 @@ class Parser {
 }
 
 export function parse(src: string): ParseResult {
-  if (src.length > MAX_INPUT) return { ok: false, error: 'Befehl zu lang zum Prüfen' }
+  if (src.length > MAX_INPUT) return { ok: false, error: 'command too long to check' }
   try {
     const p = new Parser(src, 0, 0)
     const script = p.parseScript(null)
@@ -566,6 +566,6 @@ export function parse(src: string): ParseResult {
   } catch (err) {
     if (err instanceof ParseError) return { ok: false, error: err.message }
     if (err instanceof RangeError) return { ok: false, error: 'zu tief verschachtelt' }
-    return { ok: false, error: `interner Fehler: ${(err as Error)?.message ?? String(err)}` }
+    return { ok: false, error: `internal error: ${(err as Error)?.message ?? String(err)}` }
   }
 }

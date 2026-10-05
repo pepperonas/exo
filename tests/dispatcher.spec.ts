@@ -64,7 +64,7 @@ test('a guard that throws denies this call (fail closed) and is marked broken', 
     },
   ])
   const r = await dispatch(d, { tool: 'Bash', input: { command: 'ls' } }, ran(log))
-  assert.ok(r.deny?.includes('Prod-Schild ist gestört'))
+  assert.ok(r.deny?.includes('prod shield is broken'))
   assert.ok(r.deny?.includes('/exo off prodShield'))
   assert.ok(r.deny?.includes('DISABLED'))
   assert.deepEqual(log, [])
@@ -220,7 +220,7 @@ test('time budget: overruns are counted, dialog time is not', async () => {
 
 test('catch decision: guarded tools denied, others pass, kill switch wins, ran calls left alone', () => {
   const d = catchDecision('Bash', false, false, 'boom')
-  assert.ok(typeof d === 'object' && d.deny.includes('Kern'))
+  assert.ok(typeof d === 'object' && d.deny.includes('exo/core'))
   assert.ok(typeof d === 'object' && d.deny.includes('DISABLED'))
   for (const t of ['Write', 'Edit', 'NotebookEdit']) assert.equal(typeof catchDecision(t, false, false, 'x'), 'object')
   assert.equal(catchDecision('Read', false, false, 'x'), 'pass')
@@ -243,8 +243,8 @@ test('runtime: broken rules.json → defaults plus a warning in /exo', async () 
   const rt = await createRuntime(h, {})
   assert.equal(rt.rules.rules[0]!.id, 'nginx-certbot')
   const text = await exoCommand(rt, h, '')
-  assert.ok(text.includes('rules.json ist kein gültiges JSON'))
-  assert.ok(text.includes('eingebaut, rules.json fehlerhaft'))
+  assert.ok(text.includes('rules.json is not valid JSON'))
+  assert.ok(text.includes('built-in, rules.json has errors'))
   assert.equal(h.files.get('/home/u/.claude/exo/rules.json'), '{ kaputt') // not overwritten
 })
 
@@ -260,10 +260,10 @@ test('runtime: restores the journal of the same session after a reload', async (
 test('/exo off and on: stored, kill reason set, liveness shows it', async () => {
   const h = new FakeHost()
   const rt = await createRuntime(h, {})
-  assert.ok((await exoCommand(rt, h, 'off')).includes('alle Module aus'))
+  assert.ok((await exoCommand(rt, h, 'off')).includes('all modules off'))
   assert.equal(rt.prefs.allOff, true)
   assert.deepEqual(h.store.get('prefs'), { allOff: true, modules: {} })
-  assert.equal(h.slots.exo!.text, '⛨ exo aus (/exo off)')
+  assert.equal(h.slots.exo!.text, '⛨ exo off (/exo off)')
   assert.equal(h.killed, '/exo off')
   await exoCommand(rt, h, 'on')
   assert.equal(rt.prefs.allOff, false)
@@ -276,7 +276,7 @@ test('/exo off <modul> and unknown modules', async () => {
   await exoCommand(rt, h, 'off cinema')
   assert.equal(rt.config.enabled.cinema, false)
   assert.equal(rt.config.enabled.secrets, true)
-  assert.ok((await exoCommand(rt, h, 'off quatsch')).includes('Unbekanntes Modul'))
+  assert.ok((await exoCommand(rt, h, 'off quatsch')).includes('Unknown module'))
 })
 
 test('/exo shows broken modules and reset clears them', async () => {
@@ -284,8 +284,8 @@ test('/exo shows broken modules and reset clears them', async () => {
   const rt = await createRuntime(h, {})
   rt.health.fail('secrets', 'TypeError: x', h.t)
   await refreshLiveness(rt, h)
-  assert.equal(h.slots.exo!.text, '⛨ exo ⚠ 1 gestört')
-  assert.ok((await exoCommand(rt, h, '')).includes('gestört'))
+  assert.equal(h.slots.exo!.text, '⛨ exo ⚠ 1 broken')
+  assert.ok((await exoCommand(rt, h, '')).includes('broken'))
   await exoCommand(rt, h, 'reset secrets')
   assert.equal(h.slots.exo!.text, '⛨ exo')
 })
@@ -294,7 +294,7 @@ test('/exo rules lists the rules; help lists the commands', async () => {
   const h = new FakeHost()
   const rt = await createRuntime(h, {})
   assert.ok((await exoCommand(rt, h, 'rules')).includes('nginx-certbot'))
-  assert.ok((await exoCommand(rt, h, 'help')).includes('/exo reset <modul>'))
+  assert.ok((await exoCommand(rt, h, 'help')).includes('/exo reset <module>'))
 })
 
 test('liveness with the DISABLED file', async () => {
@@ -303,8 +303,8 @@ test('liveness with the DISABLED file', async () => {
   h.files.set('/home/u/.claude/exo/DISABLED', '')
   rt.kill.invalidate()
   await refreshLiveness(rt, h)
-  assert.equal(h.slots.exo!.text, livenessText(rt, 'Datei ~/.claude/exo/DISABLED'))
-  assert.ok((await exoCommand(rt, h, '')).includes('exo ist AUS'))
+  assert.equal(h.slots.exo!.text, livenessText(rt, 'file ~/.claude/exo/DISABLED'))
+  assert.ok((await exoCommand(rt, h, '')).includes('exo is OFF'))
 })
 
 // ---- security review 2026-10-05: Claude must not switch its own guard off
@@ -406,12 +406,12 @@ for (const [tool, input] of HARMLESS)
 test('changing a control file needs a yes in the dialog', async () => {
   const log: string[] = []
   const host = new FakeHost()
-  host.answers = ['Zulassen']
+  host.answers = ['Allow']
   const d = deps([], { host })
   const r = await dispatch(d, { tool: 'Bash', input: { command: 'touch ~/.claude/exo/DISABLED' } }, ran(log))
   assert.equal(r.deny, undefined)
   assert.deepEqual(log, ['run:touch ~/.claude/exo/DISABLED'])
-  assert.ok(host.asked[0]!.question.includes('Steuerdateien'))
+  assert.ok(host.asked[0]!.question.includes('control files'))
 })
 
 test('Esc or no answer denies the change of a control file', async () => {
@@ -419,15 +419,15 @@ test('Esc or no answer denies the change of a control file', async () => {
   const host = new FakeHost()
   const d = deps([], { host })
   const r = await dispatch(d, { tool: 'Write', input: { file_path: '/home/u/.claude/exo/DISABLED', content: '' } }, ran(log))
-  assert.ok(r.deny?.includes('Steuerdateien'))
+  assert.ok(r.deny?.includes('control files'))
   assert.deepEqual(log, [])
-  host.answers = ['Ablehnen']
+  host.answers = ['Deny']
   assert.ok((await dispatch(d, { tool: 'Write', input: { file_path: '/home/u/.claude/exo/DISABLED', content: '' } }, ran(log))).deny)
 })
 
 test('without an interactive UI a control file change is denied unasked', async () => {
   const host = new FakeHost()
-  host.answers = ['Zulassen']
+  host.answers = ['Allow']
   const d = deps([], { host, interactive: false })
   const r = await dispatch(d, { tool: 'Bash', input: { command: 'rm ~/.claude/exo/rules.json' } }, ran([]))
   assert.ok(r.deny)

@@ -1,5 +1,5 @@
 /**
- * #18 Erfolge & Serien: counters from the journal, badges as data (RULES),
+ * #18 Achievements & streaks: counters from the journal, badges as data (RULES),
  * at most one new badge per turn with a toast (and a sound if wanted), quiet
  * hours respected. `/achievements` draws the collection as an ASCII card.
  */
@@ -40,7 +40,7 @@ export function achievementsStep(): Step {
       if (badge) {
         s.unlocked[badge.id] = now
         if (!inQuiet(new Date(now).getHours(), env.config.quietHours)) {
-          env.host.toast(`${badge.icon} Abzeichen: ${badge.title} – ${badge.text}`, 6000)
+          env.host.toast(`${badge.icon} Badge: ${badge.title} – ${badge.text}`, 6000)
           if (env.config.sound) void env.host.playSound(SOUND)
         }
       }
@@ -76,7 +76,7 @@ export async function achievementsCard(env: ModuleEnv, ascii: boolean): Promise<
   const rules = RULES.filter(r => !r.requires || bars)
   const got = rules.filter(r => s.unlocked[r.id]).length
   const W = 58
-  const head = ` exo · Erfolge ${got}/${rules.length} `
+  const head = ` exo · Achievements ${got}/${rules.length} `
   const top = ascii ? `+${head}${'-'.repeat(W - head.length)}+` : `╭${head}${'─'.repeat(W - cellWidth(head))}╮`
   const bottom = ascii ? `+${'-'.repeat(W)}+` : `╰${'─'.repeat(W)}╯`
   const side = ascii ? '|' : '│'
@@ -84,7 +84,7 @@ export async function achievementsCard(env: ModuleEnv, ascii: boolean): Promise<
   for (const r of rules) {
     const at = s.unlocked[r.id]
     const mark = at ? (ascii ? `[${r.ascii}]` : r.icon) : ascii ? '[ ]' : '░░'
-    const right = at ? new Date(at).toLocaleDateString('de-DE') : `${Math.min(Math.floor(m[r.metric] ?? 0), r.atLeast)}/${r.atLeast}`
+    const right = at ? dayKey(at) : `${Math.min(Math.floor(m[r.metric] ?? 0), r.atLeast)}/${r.atLeast}`
     const left = `${mark} ${r.title}`
     // inner width W = space + left + right + space
     lines.push(`${side} ${pad(left, W - 2 - right.length)}${right} ${side}`)

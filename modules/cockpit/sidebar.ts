@@ -1,5 +1,5 @@
 /**
- * #7 Änderungs-Seitenleiste: every file changed in this session through
+ * #7 Changes sidebar: every file changed in this session through
  * Write/Edit, with +/− against its state before the first change, a diff,
  * and a reset (asked first, snapshot first).
  *
@@ -87,30 +87,30 @@ export async function refreshChanges(env: ModuleEnv): Promise<void> {
 /** Resets a file to its state before the session, after asking; a snapshot first. */
 export async function revert(env: ModuleEnv, path: string): Promise<string> {
   const o = originals.get(path)
-  if (!o) return 'Keine Ausgangsfassung bekannt.'
-  const what = o.text === null ? `${path} ist in dieser Sitzung neu entstanden – löschen?` : `${path} auf den Stand vor dieser Sitzung zurücksetzen?`
+  if (!o) return 'No original version known.'
+  const what = o.text === null ? `${path} was created in this session – delete it?` : `Revert ${path} to its state before this session?`
   let ok = false
   try {
-    ok = (await env.host.ask(what, ['Zurücksetzen', 'Abbrechen'])) === 'Zurücksetzen'
+    ok = (await env.host.ask(what, ['Revert', 'Cancel'])) === 'Revert'
   } catch {
     ok = false
   }
-  if (!ok) return 'Abgebrochen.'
+  if (!ok) return 'Cancelled.'
   if (env.home && (await env.host.exists(path).catch(() => false))) {
     const now = await env.host.now()
     const id = snapshotId(now, Math.random().toString(36).slice(2, 6))
     const dir = `${snapshotsDir(env.home)}/${id}`
     await env.host.run(['mkdir', '-p', dir])
     const tar = await env.host.run(['tar', '-czPf', `${dir}/files.tgz`, '--', path])
-    if (tar.exitCode !== 0) return `Schnappschuss fehlgeschlagen, nichts verändert: ${tar.stderr.trim().slice(0, 200)}`
-    const meta: SnapshotMeta = { id, at: now, kind: 'revert', cwd: env.project, summary: 'Zurücksetzen', tar: `${dir}/files.tgz`, files: [path], bytes: 0 }
+    if (tar.exitCode !== 0) return `Snapshot failed, nothing changed: ${tar.stderr.trim().slice(0, 200)}`
+    const meta: SnapshotMeta = { id, at: now, kind: 'revert', cwd: env.project, summary: 'Revert', tar: `${dir}/files.tgz`, files: [path], bytes: 0 }
     await env.host.writeFile(`${dir}/meta.json`, JSON.stringify(meta, null, 2) + '\n')
     await writeSnapshots(env.store, [meta, ...(await readSnapshots(env.store))])
   }
   if (o.text === null) await env.host.run(['rm', '-f', '--', path])
   else await env.host.writeFile(path, o.text)
   await refreshChanges(env)
-  return `${path} zurückgesetzt (vorher gesichert, /undo-last holt es zurück).`
+  return `${path} reset (saved first, /undo-last brings it back).`
 }
 
 export function sidebarStep(): Step {

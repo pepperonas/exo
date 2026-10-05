@@ -23,26 +23,26 @@ const at = (h: number, m = 0) => new Date(2026, 9, 5, h, m).getTime()
 
 test('duck: five questions, skip allowed, done after the fifth', () => {
   let s = freshDuck()
-  s = answer(s, 'Eine Liste mit 3 Einträgen')
+  s = answer(s, 'A list with 3 entries')
   s = answer(s, null)
   s = answer(s, 'TypeError: x is undefined')
   s = answer(s, '  ')
   assert.equal(done(s), false)
-  s = answer(s, 'Ja, immer beim Start')
+  s = answer(s, 'Yes, always at start-up')
   assert.equal(done(s), true)
   assert.equal(QUESTIONS.length, 5)
   const p = buildPrompt(s.answers)
-  assert.ok(p.includes('Erwartet: Eine Liste mit 3 Einträgen'))
-  assert.ok(!p.includes('Stattdessen'))
+  assert.ok(p.includes('Expected: A list with 3 entries'))
+  assert.ok(!p.includes('Instead'))
   assert.ok(p.includes('```\nTypeError: x is undefined\n```'))
-  assert.ok(!p.includes('Zuletzt geändert'))
-  assert.ok(p.includes('Reproduzierbar: Ja, immer beim Start'))
+  assert.ok(!p.includes('Changed last'))
+  assert.ok(p.includes('Reproducible: Yes, always at start-up'))
 })
 
 test('duck: the template is deterministic; all skipped still gives a prompt', () => {
   const a = ['a', 'b', 'c', 'd', 'e']
   assert.equal(buildPrompt(a), buildPrompt([...a]))
-  assert.ok(buildPrompt([null, null, null, null, null]).includes('Noch keine Angaben'))
+  assert.ok(buildPrompt([null, null, null, null, null]).includes('No details yet'))
 })
 
 // ---------------------------------------------------------------- achievements logic
@@ -125,10 +125,10 @@ test('one badge per turn, toast and sound, nothing in quiet hours', async () => 
   const step = achievementsStep()
   await step.turnComplete!(e, { turnId: 't', answer: '', reason: 'answer' })
   assert.equal(host.toasts.length, 1)
-  assert.ok(host.toasts[0]!.includes('Erster Schritt'))
+  assert.ok(host.toasts[0]!.includes('Badge: First step'))
   assert.deepEqual(host.sounds, ['sounds/badge.wav'])
   await step.turnComplete!(e, { turnId: 't2', answer: '', reason: 'answer' })
-  assert.ok(host.toasts[1]!.includes('Doppelter Boden'))
+  assert.ok(host.toasts[1]!.includes('Safety net'))
   const quiet = new FakeHost()
   quiet.t = at(23)
   await achievementsStep().turnComplete!(env(quiet, j, { config: resolveConfig({ sound: true, quietHours: '22-07' }, emptyPrefs()) }), { turnId: 't', answer: '', reason: 'answer' })
@@ -163,10 +163,11 @@ test('the card: aligned, ASCII without emoji', async () => {
   const card = await achievementsCard(e, false)
   const widths = card.split('\n').map(cellWidth)
   assert.equal(new Set(widths).size, 1, card)
+  assert.ok(card.includes('exo · Achievements 1/14'))
   assert.ok(card.includes('1/14')) // pac-man hidden without usage-bars
   const ascii = await achievementsCard(e, true)
   assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(ascii))
-  assert.ok(ascii.includes('[*] Erster Schritt'))
+  assert.ok(ascii.includes('[*] First step'))
 })
 
 // ---------------------------------------------------------------- cinema
@@ -186,10 +187,10 @@ test('cinema: activity from the running tool, coffee after a minute', () => {
 })
 
 test('cinema: frames by time, still with reduced motion, ASCII without emoji, cut to width', () => {
-  assert.notEqual(frame(PACKS.klassisch, 'deploy', 0, false), frame(PACKS.klassisch, 'deploy', FRAME_MS, false))
-  assert.equal(frame(PACKS.klassisch, 'deploy', 5 * FRAME_MS, true), PACKS.klassisch.deploy[0])
+  assert.notEqual(frame(PACKS.classic, 'deploy', 0, false), frame(PACKS.classic, 'deploy', FRAME_MS, false))
+  assert.equal(frame(PACKS.classic, 'deploy', 5 * FRAME_MS, true), PACKS.classic.deploy[0])
   const m = message('install', { tool: 'Bash', summary: 'npm install', since: 0 }, 12_500, 0, { ascii: true, still: false, columns: 80 })
-  assert.ok(m.endsWith('baut ein: npm install · 12s'), m)
+  assert.ok(m.endsWith('installs: npm install · 12s'), m)
   assert.ok(!/[\u{1F300}-\u{1FAFF}]/u.test(m))
   assert.ok(message('install', { tool: 'Bash', summary: 'x'.repeat(200), since: 0 }, 0, 0, { ascii: false, still: false, columns: 60 }).length <= 30)
 })
@@ -221,5 +222,5 @@ test('cinema: reduced motion keeps the film still and starts no fast timer', asy
   j.push({ type: 'turn.start', turnId: 't' }, host.t)
   j.push({ type: 'tool.start', id: 'a', tool: 'Bash', summary: 'rsync' }, host.t)
   assert.equal(cinemaState().fast, undefined)
-  assert.ok(spinnerMessage(host.t + 5 * FRAME_MS, 80)!.startsWith(PACKS.klassisch.deploy[0]!))
+  assert.ok(spinnerMessage(host.t + 5 * FRAME_MS, 80)!.startsWith(PACKS.classic.deploy[0]!))
 })

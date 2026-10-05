@@ -270,7 +270,7 @@ test('summary keeps programs and subcommands, never arguments', () => {
   assert.equal(summarize('cd /secret/path && git push origin main'), 'cd · git push')
   assert.equal(summarize('ssh prod "systemctl restart app"'), 'ssh · ssh:systemctl restart')
   assert.equal(summarize('curl -H "Authorization: Bearer abc" x'), 'curl')
-  assert.equal(summarize("echo 'open"), '(nicht lesbar)')
+  assert.equal(summarize("echo 'open"), '(unreadable)')
 })
 
 test('at least 120 fixtures', () => {

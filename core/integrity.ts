@@ -26,7 +26,7 @@ export interface ControlState {
 
 export const settingsFiles = (home: string) => [`${home}/.claude/settings.json`, `${home}/.claude/settings.local.json`]
 
-const UNREADABLE = '<unlesbar>'
+const UNREADABLE = '<unreadable>'
 
 /** exo's entry in a settings file, as JSON text. */
 export function exoEntry(text: string): string | null {
@@ -84,13 +84,13 @@ export function changeIs(c: ControlChange, path: string): boolean {
 export function describe(c: ControlChange): string {
   switch (c.kind) {
     case 'disabled':
-      return 'der Notausschalter ~/.claude/exo/DISABLED wurde angelegt'
+      return 'the kill switch ~/.claude/exo/DISABLED was created'
     case 'rules':
-      return 'die Hausregeln (rules.json) wurden geändert'
+      return 'the house rules (rules.json) were changed'
     case 'settings':
-      return `exos Einstellungen in ${c.file.split('/').pop()} wurden geändert`
+      return `exo's settings in ${c.file.split('/').pop()} were changed`
     case 'prefs':
-      return 'exos gespeicherte Schalter (/exo) wurden geändert'
+      return "exo's stored switches (/exo) were changed"
   }
 }
 
@@ -143,9 +143,9 @@ export async function undo(host: Host, home: string, c: ControlChange): Promise<
   }
 }
 
-export const KEEP = 'Behalten'
-export const REVERT = 'Rückgängig machen'
-export const QUESTION = (what: string) => `Während eines Claude-Aufrufs hat sich an exo etwas geändert: ${what}. Behalten?`
+export const KEEP = 'Keep'
+export const REVERT = 'Undo'
+export const QUESTION = (what: string) => `Something about exo changed during a Claude call: ${what}. Keep it?`
 
 /**
  * After work that could have changed the switches: each change is put to the
@@ -178,4 +178,4 @@ export async function settleEffects(
 }
 
 export const undoneText = (undone: string[]) =>
-  `exo: rückgängig gemacht – ${undone.join('; ')}. exo abschalten kannst nur du selbst (touch ~/.claude/exo/DISABLED im eigenen Terminal oder /exo off).`
+  `exo: undone – ${undone.join('; ')}. Only you can switch exo off (touch ~/.claude/exo/DISABLED in a terminal of your own, or /exo off).`

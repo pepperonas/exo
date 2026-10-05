@@ -1,5 +1,5 @@
 /**
- * `/undo-last` and `/undo-list`: restoring a snapshot of the Aufräum-Bremse.
+ * `/undo-last` and `/undo-list`: restoring a snapshot of the cleanup brake.
  * Nothing is overwritten without asking.
  */
 import type { Host } from '../../core/adapter/host'
@@ -13,26 +13,26 @@ const KINDS: Record<SnapshotMeta['kind'], string> = {
   checkout: 'git checkout --',
   restore: 'git restore',
   clean: 'git clean',
-  revert: 'Zurücksetzen (Seitenleiste)',
+  revert: 'Revert (sidebar)',
 }
 
 function when(at: number, now: number): string {
   const min = Math.round((now - at) / 60_000)
-  if (min < 1) return 'gerade eben'
-  if (min < 60) return `vor ${min} min`
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min} min ago`
   const h = Math.round(min / 60)
-  return h < 48 ? `vor ${h} h` : `vor ${Math.round(h / 24)} Tagen`
+  return h < 48 ? `${h} h ago` : `${Math.round(h / 24)} days ago`
 }
 
 export async function undoList(store: StoreBox | undefined, now: number): Promise<string> {
   const list = await readSnapshots(store)
-  if (!list.length) return 'Keine Schnappschüsse. Die Aufräum-Bremse legt einen vor rm -rf, git reset --hard, git checkout -- ., git restore und git clean an.'
-  const lines = ['Schnappschüsse (neueste zuerst):']
+  if (!list.length) return 'No snapshots. The cleanup brake takes one before rm -rf, git reset --hard, git checkout -- ., git restore and git clean.'
+  const lines = ['Snapshots (newest first):']
   for (const s of list) {
-    const parts = [s.stashRef ? 'Änderungen' : '', s.tar ? `${s.files.length} Pfad(e)` : ''].filter(Boolean).join(' + ')
-    lines.push(`  ${s.id}  ${KINDS[s.kind]}  ${when(s.at, now)}  ${parts}${s.restored ? '  (wiederhergestellt)' : ''}`)
+    const parts = [s.stashRef ? 'changes' : '', s.tar ? `${s.files.length} path(s)` : ''].filter(Boolean).join(' + ')
+    lines.push(`  ${s.id}  ${KINDS[s.kind]}  ${when(s.at, now)}  ${parts}${s.restored ? '  (restored)' : ''}`)
   }
-  lines.push('Wiederherstellen: /undo-last (neuester) oder /undo-last <id>.')
+  lines.push('Restore: /undo-last (newest) or /undo-last <id>.')
   return lines.join('\n')
 }
 
@@ -47,18 +47,18 @@ async function ask(host: Host, question: string, options: string[]): Promise<str
 export async function undoLast(host: Host, store: StoreBox | undefined, id: string | undefined): Promise<string> {
   const list = await readSnapshots(store)
   const s = id ? list.find(x => x.id === id) : list.find(x => !x.restored) ?? list[0]
-  if (!s) return id ? `Kein Schnappschuss ${id}. /undo-list zeigt alle.` : 'Kein Schnappschuss vorhanden.'
+  if (!s) return id ? `No snapshot ${id}. /undo-list shows them all.` : 'No snapshot available.'
   const done: string[] = []
 
   if (s.stashSha && s.repoRoot) {
     const status = await host.run(['git', '-C', s.repoRoot, 'status', '--porcelain', '--untracked-files=no'])
     if (status.stdout.trim()) {
-      const a = await ask(host, `Im Repository gibt es inzwischen Änderungen. Den Schnappschuss ${s.id} trotzdem darüber anwenden (Konflikte möglich)?`, ['Anwenden', 'Abbrechen'])
-      if (a !== 'Anwenden') return 'Abgebrochen, nichts verändert.'
+      const a = await ask(host, `The repository has changed since. Apply snapshot ${s.id} on top anyway (conflicts possible)?`, ['Apply', 'Cancel'])
+      if (a !== 'Apply') return 'Cancelled, nothing changed.'
     }
     const r = await host.run(['git', '-C', s.repoRoot, 'stash', 'apply', s.stashSha])
-    if (r.exitCode !== 0) return `git stash apply ist fehlgeschlagen:\n${(r.stderr || r.stdout).trim().slice(0, 600)}\nDer Schnappschuss bleibt erhalten (${s.stashRef}).`
-    done.push('getrackte Änderungen angewendet')
+    if (r.exitCode !== 0) return `git stash apply failed:\n${(r.stderr || r.stdout).trim().slice(0, 600)}\nThe snapshot is kept (${s.stashRef}).`
+    done.push('tracked changes applied')
   }
 
   if (s.tar) {
@@ -66,15 +66,15 @@ export async function undoLast(host: Host, store: StoreBox | undefined, id: stri
     for (const f of s.files) if (await host.exists(f).catch(() => false)) exists.push(f)
     let keepExisting = false
     if (exists.length) {
-      const a = await ask(host, `${exists.length} Pfad(e) aus dem Schnappschuss gibt es schon (z. B. ${exists[0]}). Überschreiben?`, ['Überschreiben', 'Nur fehlende', 'Abbrechen'])
-      if (a === null || a === 'Abbrechen') return done.length ? `${done.join('; ')}. Dateien nicht angetastet.` : 'Abgebrochen, nichts verändert.'
-      keepExisting = a === 'Nur fehlende'
+      const a = await ask(host, `${exists.length} path(s) from the snapshot already exist (e.g. ${exists[0]}). Overwrite?`, ['Overwrite', 'Only missing', 'Cancel'])
+      if (a === null || a === 'Cancel') return done.length ? `${done.join('; ')}. Files left untouched.` : 'Cancelled, nothing changed.'
+      keepExisting = a === 'Only missing'
     }
     const r = await host.run(['tar', keepExisting ? '-xzPkf' : '-xzPf', s.tar], { timeoutMs: 300_000 })
-    if (r.exitCode !== 0 && !keepExisting) return `tar ist fehlgeschlagen: ${r.stderr.trim().slice(0, 400)}`
-    done.push(`${s.files.length} Pfad(e) zurückgeholt${keepExisting ? ' (vorhandene behalten)' : ''}`)
+    if (r.exitCode !== 0 && !keepExisting) return `tar failed: ${r.stderr.trim().slice(0, 400)}`
+    done.push(`${s.files.length} path(s) restored${keepExisting ? ' (existing ones kept)' : ''}`)
   }
 
   await writeSnapshots(store, list.map(x => (x.id === s.id ? { ...x, restored: true } : x)))
-  return `Schnappschuss ${s.id} wiederhergestellt: ${done.join('; ') || 'nichts zu tun'}.`
+  return `Snapshot ${s.id} restored: ${done.join('; ') || 'nothing to do'}.`
 }

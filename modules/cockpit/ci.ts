@@ -1,8 +1,8 @@
 /**
- * #14 CI-Ampel: only with `gh` installed and logged in and a GitHub remote.
+ * #14 CI light: only with `gh` installed and logged in and a GitHub remote.
  * Polls `gh run list` for the current branch every 60 s (backoff on errors,
  * pause after 15 min without activity). The hint line shows the state; a red
- * run raises a toast and a band with "Log an Claude geben", which puts the
+ * run raises a toast and a band with "Hand the log to Claude", which puts the
  * failed steps' log into the prompt box (the person sends it).
  */
 import type { Host, Timer } from '../../core/adapter/host'
@@ -43,17 +43,17 @@ export function parseRuns(json: string): CiRun | null {
 
 export function ago(ms: number): string {
   const m = Math.max(0, Math.round(ms / 60_000))
-  if (m < 1) return 'gerade'
-  if (m < 60) return `vor ${m} min`
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m} min ago`
   const h = Math.round(m / 60)
-  return h < 48 ? `vor ${h} h` : `vor ${Math.round(h / 24)} T`
+  return h < 48 ? `${h} h ago` : `${Math.round(h / 24)} d ago`
 }
 
 export function slot(run: CiRun, now: number): { text: string; color?: string; dim?: boolean } {
   const when = run.updatedAt ? ` · ${ago(now - run.updatedAt)}` : ''
-  if (run.state === 'green') return { text: `● CI grün${when}`, color: '#3fb950' }
-  if (run.state === 'red') return { text: `● CI rot${when}`, color: '#f85149' }
-  if (run.state === 'running') return { text: '● CI läuft', dim: true }
+  if (run.state === 'green') return { text: `● CI green${when}`, color: '#3fb950' }
+  if (run.state === 'red') return { text: `● CI red${when}`, color: '#f85149' }
+  if (run.state === 'running') return { text: '● CI running', dim: true }
   return { text: '● CI ?', dim: true }
 }
 
@@ -66,7 +66,7 @@ export function failedStep(json: string): string | null {
     const jobs = (JSON.parse(json) as { jobs?: { name?: string; conclusion?: string; steps?: { name?: string; conclusion?: string }[] }[] }).jobs ?? []
     for (const j of jobs) {
       const s = j.steps?.find(x => x.conclusion === 'failure')
-      if (s) return `${j.name ?? 'Job'} › ${s.name ?? 'Schritt'}`
+      if (s) return `${j.name ?? 'Job'} › ${s.name ?? 'step'}`
       if (j.conclusion === 'failure') return j.name ?? 'Job'
     }
   } catch {
@@ -122,12 +122,12 @@ export async function poll(env: ModuleEnv): Promise<void> {
       const jobs = await host.run(['gh', 'run', 'view', String(run.id), '--json', 'jobs'], { cwd: env.project, timeoutMs: 20_000 }).catch(() => null)
       const step = jobs?.exitCode === 0 ? failedStep(jobs.stdout) : null
       const what = `${run.name}${step ? ` – ${step}` : ''}`
-      host.toast(`CI rot: ${what}`, 8000)
-      await host.setBanner(BANNER, { id: BANNER, text: `CI rot: ${what}`, tone: 'warn', buttons: [{ key: 'log', label: 'Log an Claude geben' }] })
+      host.toast(`CI red: ${what}`, 8000)
+      await host.setBanner(BANNER, { id: BANNER, text: `CI red: ${what}`, tone: 'warn', buttons: [{ key: 'log', label: 'Hand the log to Claude' }] })
       onBanner(BANNER, 'log', async h => {
         const log = await h.run(['gh', 'run', 'view', String(run.id), '--log-failed'], { cwd: env.project, timeoutMs: 60_000 }).catch(() => null)
-        const text = log && log.exitCode === 0 ? tail(log.stdout) : '(Log nicht abrufbar)'
-        await h.fillPrompt(`Die CI ist rot (${what}${run.url ? `, ${run.url}` : ''}). Log der fehlgeschlagenen Schritte:\n\`\`\`\n${text}\n\`\`\`\nBitte die Ursache finden und beheben.`)
+        const text = log && log.exitCode === 0 ? tail(log.stdout) : '(log not available)'
+        await h.fillPrompt(`CI is red (${what}${run.url ? `, ${run.url}` : ''}). Log of the failed steps:\n\`\`\`\n${text}\n\`\`\`\nPlease find the cause and fix it.`)
         await h.setBanner(BANNER, null)
       })
     }

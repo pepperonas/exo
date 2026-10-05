@@ -4,6 +4,9 @@ As of: 2026-10-05 · Basis: Claude Code 2.1.289, engine types `claude-code.d.ts`
 reference mod usage-bars 0.3.0. Phase 0 (analysis) and Phase 1 (follow-up questions) are complete;
 the decisions from them are in section 1.
 
+> **Later decision:** the interface was planned German and is now **English**. UI strings quoted below
+> in German (with English glosses) describe the plan, not the shipped texts.
+
 > This document contains **no real addresses**. Examples use documentation addresses
 > (`203.0.113.0/24`, `example.com`). The real prod hosts exist only in the local
 > configuration (`pluginConfigs.exo.options.prodHosts` in `~/.claude/settings.json`).

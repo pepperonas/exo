@@ -280,7 +280,7 @@ const SUBCOMMANDS = new Set(['git', 'npm', 'pnpm', 'yarn', 'bun', 'cargo', 'dock
  */
 export function summarize(src: string, max = 120): string {
   const cmds = commandsOf(src)
-  if (!cmds) return '(nicht lesbar)'
+  if (!cmds) return '(unreadable)'
   const parts = cmds.map(c => {
     const sub = SUBCOMMANDS.has(c.program) ? c.argv.slice(1).find(a => /^[a-z][a-z0-9:-]*$/.test(a)) : undefined
     const where = c.via.some(v => v.kind === 'ssh') ? 'ssh:' : ''

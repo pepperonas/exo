@@ -1,5 +1,5 @@
 /**
- * #15 Kontext-Diät, the pure part: when a whole-file Read is too much, and
+ * #15 Context diet, the pure part: when a whole-file Read is too much, and
  * what Claude sees instead (the head through Read itself, the tail as context).
  */
 
@@ -48,14 +48,14 @@ export function decide(i: DietInput): DietReason | null {
 export const tokens = (bytes: number) => Math.round(bytes / 4)
 
 export function note(path: string, reason: DietReason, lines: number | null, size: number, shownBytes: number, tail: string): string {
-  const why = reason === 'generiert' ? 'eine generierte Datei' : reason === 'gross' ? `${Math.round(size / 1024)} KB groß` : `${lines} Zeilen lang`
+  const why = reason === 'generiert' ? 'a generated file' : reason === 'gross' ? `${Math.round(size / 1024)} KB` : `${lines} lines long`
   const saved = Math.max(0, tokens(size - shownBytes))
-  const total = lines !== null ? ` von ${lines}` : ''
+  const total = lines !== null ? ` of ${lines}` : ''
   const tailStart = lines !== null ? Math.max(HEAD_LINES + 1, lines - TAIL_LINES + 1) : null
   return [
-    `exo/Kontext-Diät: ${path} ist ${why}. Gezeigt: Zeilen 1–${HEAD_LINES}${total}${tailStart ? ` und das Ende ab Zeile ${tailStart} (unten)` : ''}.`,
-    `Lies gezielt mit offset/limit oder such mit grep. Gespart: etwa ${saved.toLocaleString('de-DE')} Tokens. Wer die Datei wirklich ganz braucht: gleich noch einmal ohne Bereich lesen.`,
-    tail ? `--- Ende der Datei ---\n${tail}` : '',
+    `exo/context diet: ${path} is ${why}. Shown: lines 1–${HEAD_LINES}${total}${tailStart ? ` and the end from line ${tailStart} (below)` : ''}.`,
+    `Read selectively with offset/limit or search with grep. Saved: about ${saved.toLocaleString('en-US')} tokens. If you really need the whole file: read it again right away without a range.`,
+    tail ? `--- end of file ---\n${tail}` : '',
   ]
     .filter(Boolean)
     .join('\n')

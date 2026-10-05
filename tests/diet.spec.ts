@@ -35,10 +35,10 @@ test('lines are only counted where it matters', () => {
 
 test('note: what was shown, what was saved, the tail', () => {
   const n = note('/big.ts', 'lang', 5000, 400_000, 20_000, 'last line')
-  assert.ok(n.includes('5000 Zeilen lang'))
-  assert.ok(n.includes(`Zeilen 1–${HEAD_LINES} von 5000`))
-  assert.ok(n.includes('ab Zeile 4921'))
-  assert.ok(n.includes(tokens(380_000).toLocaleString('de-DE')))
+  assert.ok(n.includes('5000 lines long'))
+  assert.ok(n.includes(`lines 1–${HEAD_LINES} of 5000`))
+  assert.ok(n.includes('from line 4921'))
+  assert.ok(n.includes(tokens(380_000).toLocaleString('en-US')))
   assert.ok(n.endsWith('last line'))
 })
 

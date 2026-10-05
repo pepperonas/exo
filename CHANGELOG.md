@@ -12,4 +12,5 @@ All notable changes to this project are documented here. The format follows [Kee
 - **Cockpit:** test light (with consent per project), done check, changes sidebar (`/changes`), CI light.
 - **Review:** recap (`/recap`), lessons, time tracking (`/hours`).
 - **Extras:** achievements (`/achievements`), spinner cinema, rubber duck (`/duck`).
+- **Language:** interface, documentation and tool output in English; German claims, password names and the old lessons heading are still recognised.
 - **Tooling:** mutation probe (`npm run mutate`), git history scan (`npm run history-scan`), social card (`npm run social`), plugin marketplace (`/plugin install exo@pepperonas-exo`).

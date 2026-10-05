@@ -1,5 +1,5 @@
 /**
- * #3 Aufräum-Bremse: a snapshot before `rm -rf`, `git reset --hard`,
+ * #3 Cleanup brake: a snapshot before `rm -rf`, `git reset --hard`,
  * `git checkout -- .`, `git restore .` and `git clean -f…`, restorable with
  * `/undo-last`. Over the size limit, or with paths exo cannot resolve, it
  * asks instead of waving the command through.
@@ -13,8 +13,8 @@ import type { StoreBox } from '../../core/store/store'
 import { expired, parseCleanDryRun, plans, simpleGlob, snapshotId } from './brake-logic'
 import type { BrakePlan, SnapshotMeta } from './brake-logic'
 
-export const RUN_UNSAVED = 'Ohne Schnappschuss ausführen'
-export const CANCEL = 'Abbrechen'
+export const RUN_UNSAVED = 'Run without snapshot'
+export const CANCEL = 'Cancel'
 const META_KEEP = 60
 
 export const snapshotsDir = (home: string) => `${exoDir(home)}/snapshots`
@@ -49,7 +49,7 @@ async function expandGlob(ctx: CallCtx, path: string): Promise<string[] | null> 
 
 async function ask(ctx: CallCtx, question: string): Promise<boolean> {
   if (!ctx.interactive) {
-    ctx.notes.push(`exo/Aufräum-Bremse: ${question.replace(/ – .*$/, '')} (ohne Dialog ausgeführt, nicht gesichert).`)
+    ctx.notes.push(`exo/cleanup brake: ${question.replace(/ – .*$/, '')} (run without a dialog, not saved).`)
     return true
   }
   try {
@@ -76,8 +76,8 @@ export function brakeStep(): Step {
         else p.paths.push(...hits)
       }
       if (unresolved.length) {
-        const ok = await ask(ctx, `Aufräum-Bremse: ${unresolved.slice(0, 3).join(', ')} kann ich nicht sichern (Variable oder Muster) – trotzdem ausführen?`)
-        if (!ok) return { deny: 'exo/Aufräum-Bremse: abgebrochen – Pfade mit Variablen lassen sich nicht vorab sichern.' }
+        const ok = await ask(ctx, `Cleanup brake: cannot save ${unresolved.slice(0, 3).join(', ')} (variable or pattern) – run anyway?`)
+        if (!ok) return { deny: 'exo/cleanup brake: cancelled – paths with variables cannot be saved beforehand.' }
       }
 
       const id = snapshotId(await ctx.host.now(), Math.random().toString(36).slice(2, 6))
@@ -99,15 +99,15 @@ export function brakeStep(): Step {
         const kb = du && du.exitCode === 0 ? du.stdout.split('\n').reduce((a, l) => a + (Number(l.split('\t')[0]) || 0), 0) : 0
         meta.bytes = kb * 1024
         if (meta.bytes > ctx.config.snapshotMaxMb * 1048576) {
-          const ok = await ask(ctx, `Aufräum-Bremse: ${mb(meta.bytes)} sind mehr als das Limit von ${ctx.config.snapshotMaxMb} MB – ohne Schnappschuss ausführen?`)
-          if (!ok) return { deny: `exo/Aufräum-Bremse: abgebrochen – ${mb(meta.bytes)} über dem Schnappschuss-Limit.` }
+          const ok = await ask(ctx, `Cleanup brake: ${mb(meta.bytes)} exceeds the limit of ${ctx.config.snapshotMaxMb} MB – run without snapshot?`)
+          if (!ok) return { deny: `exo/cleanup brake: cancelled – ${mb(meta.bytes)} over the snapshot limit.` }
           await dropRefs(ctx.host, meta)
           return
         }
         await run(ctx, ['mkdir', '-p', dir])
         const tar = await run(ctx, ['tar', '-czPf', `${dir}/files.tgz`, '--', ...unique], 300_000)
         if (tar.exitCode !== 0) {
-          ctx.notes.push(`exo/Aufräum-Bremse: Schnappschuss der Dateien fehlgeschlagen (${tar.stderr.trim().slice(0, 120)}).`)
+          ctx.notes.push(`exo/cleanup brake: snapshot of the files failed (${tar.stderr.trim().slice(0, 120)}).`)
         } else {
           meta.tar = `${dir}/files.tgz`
           meta.files = unique.slice(0, 200)
@@ -118,8 +118,8 @@ export function brakeStep(): Step {
       await ctx.untimed(ctx.host.writeFile(`${dir}/meta.json`, JSON.stringify(meta, null, 2) + '\n'))
       await writeSnapshots(ctx.store, [meta, ...(await readSnapshots(ctx.store))])
       ctx.journal.push({ type: 'snapshot', id, kind: meta.kind }, await ctx.host.now())
-      const what = [meta.stashRef ? 'getrackte Änderungen' : '', meta.tar ? `${meta.files.length} Pfad(e), ${mb(meta.bytes)}` : ''].filter(Boolean).join(' + ')
-      ctx.notes.push(`exo/Aufräum-Bremse: Schnappschuss ${id} (${what}) – wiederherstellbar mit /undo-last.`)
+      const what = [meta.stashRef ? 'tracked changes' : '', meta.tar ? `${meta.files.length} path(s), ${mb(meta.bytes)}` : ''].filter(Boolean).join(' + ')
+      ctx.notes.push(`exo/cleanup brake: snapshot ${id} (${what}) – restore with /undo-last.`)
     },
   }
 }

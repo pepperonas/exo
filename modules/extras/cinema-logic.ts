@@ -1,5 +1,5 @@
 /**
- * #19 Spinner-Kino, the pure part: which activity is running, and the frame
+ * #19 Spinner cinema, the pure part: which activity is running, and the frame
  * of its little film. Frames are data (style packs), a frame changes every
  * FRAME_MS whatever the redraw rate.
  */
@@ -34,8 +34,8 @@ export function classify(running: Running | null, turnMs: number | null): Activi
 
 export type Pack = Record<Activity, readonly string[]>
 
-export const PACKS: Record<'klassisch' | 'ascii', Pack> = {
-  klassisch: {
+export const PACKS: Record<'classic' | 'ascii', Pack> = {
+  classic: {
     install: ['🚜 ▁▁▁', '🚜 ▂▁▁', '🚜 ▃▂▁', '🚜 ▅▃▂', '🚜 ▇▅▃', '🚜 ▅▇▅', '🚜 ▃▅▇'],
     build: ['🔨 ▖', '🔨 ▘', '🔨 ▝', '🔨 ▗'],
     deploy: ['🚀     ', ' 🚀    ', '  🚀   ', '   🚀  ', '    🚀 ', '     🚀'],
@@ -53,7 +53,7 @@ export const PACKS: Record<'klassisch' | 'ascii', Pack> = {
   },
 }
 
-export const LABEL: Record<Activity, string> = { install: 'baut ein', build: 'baut', deploy: 'liefert aus', search: 'sucht', test: 'testet', coffee: 'denkt nach' }
+export const LABEL: Record<Activity, string> = { install: 'installs', build: 'builds', deploy: 'ships', search: 'searches', test: 'tests', coffee: 'thinking' }
 
 export function frame(pack: Pack, a: Activity, elapsedMs: number, still: boolean): string {
   const f = pack[a]
@@ -64,7 +64,7 @@ const secs = (ms: number) => `${Math.max(0, Math.floor(ms / 1000))}s`
 
 /** The spinner message: film + real facts, cut to `columns`. */
 export function message(a: Activity, running: Running | null, now: number, turnStart: number | null, opts: { ascii: boolean; still: boolean; columns: number }): string {
-  const pack = opts.ascii ? PACKS.ascii : PACKS.klassisch
+  const pack = opts.ascii ? PACKS.ascii : PACKS.classic
   const since = running ? running.since : (turnStart ?? now)
   const what = running ? (running.tool === 'Bash' ? running.summary : running.tool) : 'Turn'
   const text = `${frame(pack, a, now - since, opts.still)} ${LABEL[a]}: ${what} · ${secs(now - since)}`

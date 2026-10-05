@@ -1,5 +1,5 @@
 /**
- * #17 Projekt-Zeiterfassung, the pure part. Active time is the time between
+ * #17 Project time tracking, the pure part. Active time is the time between
  * two activities in the same project, as long as the gap is at most five
  * minutes; a longer gap is a break. Kept per day and project.
  */
@@ -75,12 +75,12 @@ export function weekDays(now: number): string[] {
 export function weekTable(h: Hours, now: number): string {
   const days = weekDays(now)
   const projects = [...new Set(days.flatMap(d => Object.keys(h.days[d] ?? {})))].sort()
-  if (!projects.length) return `Diese Woche (${days[0]} bis ${days[6]}) noch keine erfasste Zeit.`
-  const names = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
+  if (!projects.length) return `No time recorded this week (${days[0]} to ${days[6]}) yet.`
+  const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const width = Math.max(8, ...projects.map(p => projectName(p).length))
   const pad = (s: string, n: number) => (s.length >= n ? s : s + ' '.repeat(n - s.length))
   const cell = (s: number) => pad(s ? hm(s) : '·', 6)
-  const lines = [`Woche ${days[0]} bis ${days[6]}`, '', pad('Projekt', width + 2) + names.map(n => pad(n, 6)).join('') + 'Summe']
+  const lines = [`Week ${days[0]} to ${days[6]}`, '', pad('Project', width + 2) + names.map(n => pad(n, 6)).join('') + 'Total']
   const total = Array<number>(7).fill(0)
   for (const p of projects) {
     let sum = 0
@@ -92,7 +92,7 @@ export function weekTable(h: Hours, now: number): string {
     })
     lines.push(pad(projectName(p), width + 2) + row.join('') + hm(sum))
   }
-  lines.push(pad('Summe', width + 2) + total.map(cell).join('') + hm(total.reduce((a, b) => a + b, 0)))
+  lines.push(pad('Total', width + 2) + total.map(cell).join('') + hm(total.reduce((a, b) => a + b, 0)))
   return lines.join('\n')
 }
 

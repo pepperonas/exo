@@ -36,7 +36,7 @@ test('every module is in the README', () => {
 })
 
 test('every command exo registers is in the README', () => {
-  const names = [...register.matchAll(/^\s+\['([a-z-]+)', 'exo: /gm)].map(m => m[1]!)
+  const names = [...register.matchAll(/^\s+\['([a-z-]+)', ['"]exo: /gm)].map(m => m[1]!)
   names.push('exo', 'changes')
   assert.ok(names.length >= 8, names.join(','))
   for (const n of names) assert.ok(README.includes(`/${n}`), n)

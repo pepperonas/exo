@@ -1,5 +1,5 @@
 /**
- * #3 Aufräum-Bremse, the pure part: which commands destroy work, and what has
+ * #3 Cleanup brake, the pure part: which commands destroy work, and what has
  * to be saved before they run.
  *
  * Trap: `git stash create` does not capture untracked files, and those are

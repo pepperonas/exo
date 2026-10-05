@@ -38,10 +38,10 @@ function card(): string {
   const status = [
     `<span class="acc">${esc(L.liveness)}</span>`,
     `<span class="ok">● 48/48</span>`,
-    `<span class="ok">● CI grün</span>`,
-    `<span class="dim">⏱ ${hm(3 * 3600 + 12 * 60)} heute</span>`,
+    `<span class="ok">● CI green</span>`,
+    `<span class="dim">⏱ ${hm(3 * 3600 + 12 * 60)} today</span>`,
   ].join('<span class="dim"> · </span>')
-  const spinner = `${PACKS.klassisch.install[0]} ${LABEL.install} <span class="dim">npm install</span>`
+  const spinner = `${PACKS.classic.install[0]} ${LABEL.install} <span class="dim">npm install</span>`
   return `<!doctype html><meta charset="utf-8"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1280px;height:640px;overflow:hidden;font-family:-apple-system,"SF Pro Display","Segoe UI",sans-serif;color:#e6edf3;
@@ -64,8 +64,8 @@ p{font-size:29px;color:#c9d1d9;max-width:1060px;line-height:1.3}
 <h1><img src="icon.svg" alt=""><span>exo</span></h1>
 <p>An exoskeleton for Claude Code: guards against costly mistakes, a cockpit while you work, a recap at the end.</p>
 <div class="chips"><div class="chip">🛡 <b>Guards</b> secrets · prod · undo</div><div class="chip">🧭 <b>Cockpit</b> tests · CI · diff</div><div class="chip">🔁 <b>Review</b> recap · hours</div><div class="chip">🎉 <b>Extras</b></div></div>
-<div class="term"><span class="warn">⛨ Prod-Schild:</span> systemctl restart nginx auf <b>web</b>  <span class="dim">[Ausführen] [Abbrechen] [Trockenlauf]</span>
-<span class="bad">✗ exo/Secret-Wächter:</span> mögliches Geheimnis gefunden <span class="dim">(sk-ant-…a1b2)</span> – nicht ausgeführt.
+<div class="term"><span class="warn">⛨ Prod shield:</span> systemctl restart nginx on <b>web</b>  <span class="dim">[Run] [Cancel] [Dry run]</span>
+<span class="bad">✗ exo/secret guard:</span> possible secret found <span class="dim">(sk-ant-…a1b2)</span> – not run.
 ${spinner}
 ${status}</div>
 </div><div class="foot"><b>github.com/pepperonas/exo</b><br>MIT · celox.io</div></body>`

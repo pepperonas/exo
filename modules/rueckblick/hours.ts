@@ -1,5 +1,5 @@
 /**
- * #17 Projekt-Zeiterfassung: active time per project from the journal's
+ * #17 Project time tracking: active time per project from the journal's
  * activity, today's total in the hint line, the week with `/hours`, an export
  * as CSV or JSON for personal use.
  */
@@ -16,7 +16,7 @@ const st: { hours: Hours; env: ModuleEnv | null; shown: string; unsubscribe: (()
 
 async function showToday(env: ModuleEnv, now: number): Promise<void> {
   const s = st.hours.days[dayKey(now)]?.[env.project] ?? 0
-  const text = s >= 60 ? `⏱ ${hm(s)} heute` : ''
+  const text = s >= 60 ? `⏱ ${hm(s)} today` : ''
   if (text === st.shown) return
   st.shown = text
   await env.host.setSlot(SLOT, text ? { id: SLOT, order: 30, priority: 20, text, dim: true } : null)
@@ -35,11 +35,11 @@ export async function hoursCommand(env: ModuleEnv, args: string): Promise<string
   const now = await env.host.now()
   await env.store?.flush()
   if (sub === 'export') {
-    if (!env.home) return 'Kein Home-Verzeichnis bekannt.'
+    if (!env.home) return 'No home directory known.'
     const json = fmt === 'json'
     const path = `${exoDir(env.home)}/hours-${dayKey(now)}.${json ? 'json' : 'csv'}`
     await env.host.writeFile(path, json ? toJson(st.hours) : toCsv(st.hours))
-    return `Exportiert: ${path}`
+    return `Exported: ${path}`
   }
   return weekTable(st.hours, now)
 }

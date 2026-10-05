@@ -86,7 +86,7 @@ test('rules: broken JSON falls back to defaults with a warning', () => {
   const r = loadRules('{ nicht json')
   assert.equal(r.source, 'default-after-error')
   assert.equal(r.rules.length, 1)
-  assert.ok(r.errors.some(e => e.includes('kein gültiges JSON')))
+  assert.ok(r.errors.some(e => e.includes('not valid JSON')))
 })
 
 test('rules: wrong version or shape falls back to defaults', () => {

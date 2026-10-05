@@ -1,5 +1,5 @@
 /**
- * #10 Recap and #16 Lehren, the pure part: the facts of a session from its
+ * #10 Recap and #16 Lessons, the pure part: the facts of a session from its
  * journal, the card, lesson candidates and their de-duplication against a
  * CLAUDE.md.
  */
@@ -50,22 +50,22 @@ export function facts(events: readonly JournalEvent[], sessionId: string, projec
   }
 }
 
-const testText = (t?: SessionFacts['testsLast']) => (!t ? '–' : t.green !== undefined ? (t.ok ? `${t.green}/${t.green}` : `${t.red ?? '?'} rot`) : t.ok ? 'grün' : 'rot')
+const testText = (t?: SessionFacts['testsLast']) => (!t ? '–' : t.green !== undefined ? (t.ok ? `${t.green}/${t.green}` : `${t.red ?? '?'} red`) : t.ok ? 'green' : 'red')
 const minutes = (ms: number) => `${Math.max(0, Math.round(ms / 60_000))} min`
-const money = (usd: number) => `${usd.toFixed(2).replace('.', ',')} $`
+const money = (usd: number) => `$${usd.toFixed(2)}`
 
 function ago(ms: number): string {
   const m = Math.max(0, Math.round(ms / 60_000))
-  if (m < 60) return `vor ${m} min`
+  if (m < 60) return `${m} min ago`
   const h = Math.round(m / 60)
-  return h < 48 ? `vor ${h} h` : `vor ${Math.round(h / 24)} Tagen`
+  return h < 48 ? `${h} h ago` : `${Math.round(h / 24)} days ago`
 }
 
-/** One line for the "Letzte Sitzung …" band. */
+/** One line for the "Last session …" band. */
 export function shortLine(f: SessionFacts, now: number): string {
-  const parts = [minutes(f.endedAt - f.startedAt), `${f.turns} Turns`, `${f.files.length} Dateien`]
+  const parts = [minutes(f.endedAt - f.startedAt), `${f.turns} turns`, `${f.files.length} files`]
   if (f.testsLast) parts.push(`Tests ${testText(f.testsLast)}`)
-  return `Letzte Sitzung in ${projectName(f.project)} (${ago(now - f.endedAt)}): ${parts.join(' · ')}`
+  return `Last session in ${projectName(f.project)} (${ago(now - f.endedAt)}): ${parts.join(' · ')}`
 }
 
 export function card(f: SessionFacts, openPoints: string[] | null, date: string): string {
@@ -73,35 +73,35 @@ export function card(f: SessionFacts, openPoints: string[] | null, date: string)
   const removed = f.files.reduce((s, x) => s + x.removed, 0)
   const names = f.files.map(x => x.path.split('/').pop()).slice(0, 8)
   const lines = [
-    `## Rückblick – ${projectName(f.project)} · ${date}`,
+    `## Recap – ${projectName(f.project)} · ${date}`,
     '',
-    `- Dauer: ${minutes(f.endedAt - f.startedAt)} (aktiv ${hm(f.activeSec)}) · ${f.turns} Turns${f.costUsd !== undefined ? ` · Kosten ${money(f.costUsd)}` : ''}`,
-    `- Dateien: ${f.files.length ? `${f.files.length} geändert (+${added} −${removed}): ${names.join(', ')}${f.files.length > names.length ? ' …' : ''}` : 'keine'}`,
-    `- Tests: ${f.testsFirst ? `${testText(f.testsFirst)} → ${testText(f.testsLast)}` : 'kein Testlauf'}`,
+    `- Duration: ${minutes(f.endedAt - f.startedAt)} (active ${hm(f.activeSec)}) · ${f.turns} turns${f.costUsd !== undefined ? ` · cost ${money(f.costUsd)}` : ''}`,
+    `- Files: ${f.files.length ? `${f.files.length} changed (+${added} −${removed}): ${names.join(', ')}${f.files.length > names.length ? ' …' : ''}` : 'none'}`,
+    `- Tests: ${f.testsFirst ? `${testText(f.testsFirst)} → ${testText(f.testsLast)}` : 'no test run'}`,
   ]
-  if (openPoints) lines.push(`- Offene Punkte: ${openPoints.length ? '' : 'keine'}`, ...openPoints.map(p => `  - ${p}`))
+  if (openPoints) lines.push(`- Open points: ${openPoints.length ? '' : 'none'}`, ...openPoints.map(p => `  - ${p}`))
   return lines.join('\n') + '\n'
 }
 
-export const OPEN_POINTS_SYSTEM = 'Du fasst offene Punkte aus einem Arbeitsverlauf zusammen. Nur was im Text steht, nichts erfinden.'
+export const OPEN_POINTS_SYSTEM = 'You summarise open points from a work log. Only what the text says, invent nothing.'
 export function openPointsPrompt(answers: string[]): string {
   const text = answers.map((a, i) => `[${i + 1}] ${a.slice(0, 1500)}`).join('\n\n')
-  return `Hier sind die letzten Antworten eines Coding-Assistenten:\n\n${text}\n\nNenne höchstens 5 offene Punkte, die der Assistent selbst erwähnt hat (nicht erledigte Schritte, TODOs, offene Fragen an den Nutzer). Je Zeile ein Punkt, beginnend mit "- ". Wenn es keine gibt, antworte nur mit "keine".`
+  return `Here are the latest answers of a coding assistant:\n\n${text}\n\nList at most 5 open points the assistant itself mentioned (unfinished steps, TODOs, open questions to the user). One point per line, starting with "- ". If there are none, answer only with "none".`
 }
 
 export function parsePoints(answer: string | null): string[] | null {
   if (answer === null) return null
-  if (/^\s*keine\.?\s*$/i.test(answer)) return []
+  if (/^\s*(?:none|keine)\.?\s*$/i.test(answer)) return []
   return answer
     .split('\n')
     .map(l => l.replace(/^\s*[-*•]\s*/, '').trim())
-    .filter(l => l && !/^keine\.?$/i.test(l))
+    .filter(l => l && !/^(?:none|keine)\.?$/i.test(l))
     .slice(0, 5)
 }
 
 // ---------------------------------------------------------------- lessons
 
-const LESSON = /\b(?:das war die ursache|die ursache war|ursache:|grundursache|falle|fallstrick|nie wieder|merke:|lehre:|wichtig zu wissen|gotcha|root cause|the cause was|lesson learned|never again|pitfall)\b/i
+const LESSON = /\b(?:das war die ursache|die ursache war|ursache:|grundursache|falle|fallstrick|nie wieder|merke:|lehre:|wichtig zu wissen|gotcha|root cause|the cause was|lesson learned|never again|pitfall|important to know|the culprit was)\b/i
 
 /**
  * A lesson as it may go into a CLAUDE.md, which future sessions read as
@@ -145,14 +145,17 @@ export function isDuplicate(lesson: string, existing: string): boolean {
   return false
 }
 
-export const LESSONS_HEADING = '## Lehren (exo)'
+export const LESSONS_HEADING = '## Lessons (exo)'
+/** The heading earlier versions wrote; still found, so a file never gets two. */
+export const OLD_LESSONS_HEADING = '## Lehren (exo)'
 
-/** The CLAUDE.md with the lessons appended under exo's heading. */
+/** The CLAUDE.md with the lessons appended under exo's heading (new or old). */
 export function appendLessons(text: string | null, lessons: string[], date: string): string {
   const items = lessons.map(l => `- ${l} (${date})`).join('\n')
   if (text === null) return `# CLAUDE.md\n\n${LESSONS_HEADING}\n\n${items}\n`
-  if (!text.includes(LESSONS_HEADING)) return `${text.replace(/\n*$/, '\n')}\n${LESSONS_HEADING}\n\n${items}\n`
-  const at = text.indexOf(LESSONS_HEADING) + LESSONS_HEADING.length
+  const heading = text.includes(LESSONS_HEADING) ? LESSONS_HEADING : text.includes(OLD_LESSONS_HEADING) ? OLD_LESSONS_HEADING : null
+  if (!heading) return `${text.replace(/\n*$/, '\n')}\n${LESSONS_HEADING}\n\n${items}\n`
+  const at = text.indexOf(heading) + heading.length
   const rest = text.slice(at)
   const nextHeading = rest.search(/\n## /)
   const end = nextHeading === -1 ? text.length : at + nextHeading

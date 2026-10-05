@@ -7,7 +7,7 @@ import { Journal } from '../core/journal/journal'
 import { StoreBox } from '../core/store/store'
 import { GAP_MS, dayKey, emptyHours, hm, prune, readHours, record, toCsv, toJson, weekDays, weekTable } from '../modules/rueckblick/hours-logic'
 import { hoursCommand, hoursState, hoursStep, resetHours } from '../modules/rueckblick/hours'
-import { LESSONS_HEADING, appendLessons, card, facts, isDuplicate, label, lessonCandidates, parsePoints, shortLine } from '../modules/rueckblick/recap-logic'
+import { LESSONS_HEADING, appendLessons, card, facts, isDuplicate, label, lessonCandidates, openPointsPrompt, parsePoints, shortLine } from '../modules/rueckblick/recap-logic'
 import { BANNER, WEEK_MS, lessonsStep, recapCommand, recapStep } from '../modules/rueckblick/recap'
 import { insideRoot, isMissingError } from '../core/safepath'
 import { FakeHost } from './fake-host'
@@ -57,10 +57,10 @@ test('hours: week table Monday to Sunday, exports', () => {
   assert.equal(days.length, 7)
   const h = { days: { [dayKey(T0)]: { [P]: 3600 }, [days[2]!]: { [P]: 1800, '/x/other': 600 } }, last: null }
   const t = weekTable(h, T0)
-  assert.ok(t.includes('proj') && t.includes('1:30') && t.includes('Summe'))
+  assert.ok(t.includes('proj') && t.includes('1:30') && t.includes('Total') && t.includes('Mon') && t.includes('Sun'))
   assert.ok(toCsv(h).startsWith('date,project,seconds,hours\n'))
   assert.equal(JSON.parse(toJson(h)).length, 3)
-  assert.ok(weekTable(emptyHours(), T0).includes('noch keine'))
+  assert.ok(weekTable(emptyHours(), T0).includes('No time recorded this week'))
 })
 
 test('hours module: journal activity counts, today in the hint line, export', async () => {
@@ -72,7 +72,7 @@ test('hours module: journal activity counts, today in the hint line, export', as
   e.journal.push({ type: 'prompt.submit', chars: 1 }, T0)
   e.journal.push({ type: 'tool.end', id: 'a', tool: 'Bash', ms: 1, ok: true }, T0 + 3 * MIN)
   await new Promise(r => setImmediate(r))
-  assert.equal(host.slots.hours!.text, '⏱ 0:03 heute')
+  assert.equal(host.slots.hours!.text, '⏱ 0:03 today')
   assert.equal(hoursState().hours.days[dayKey(T0)]![P], 180)
   const msg = await hoursCommand(e, 'export csv')
   assert.ok(msg.includes('/home/u/.claude/exo/hours-'))
@@ -113,17 +113,20 @@ test('facts: duration, turns, files merged per path, tests first and last', () =
 test('card and short line', () => {
   const f = facts(sessionJournal().all(), 'sess-1', P, 1.234)
   const c = card(f, ['README ergänzen'], '2026-10-05')
-  assert.ok(c.includes('## Rückblick – proj · 2026-10-05'))
-  assert.ok(c.includes('47 min (aktiv 0:06) · 2 Turns · Kosten 1,23 $'))
-  assert.ok(c.includes('2 geändert (+9 −1): a.ts, b.ts'))
-  assert.ok(c.includes('Tests: 2 rot → 48/48'))
+  assert.ok(c.includes('## Recap – proj · 2026-10-05'))
+  assert.ok(c.includes('Duration: 47 min (active 0:06) · 2 turns · cost $1.23'))
+  assert.ok(c.includes('Files: 2 changed (+9 −1): a.ts, b.ts'))
+  assert.ok(c.includes('Tests: 2 red → 48/48'))
   assert.ok(c.includes('  - README ergänzen'))
-  assert.equal(shortLine(f, f.endedAt + 2 * 3600_000), 'Letzte Sitzung in proj (vor 2 h): 47 min · 2 Turns · 2 Dateien · Tests 48/48')
+  assert.equal(shortLine(f, f.endedAt + 2 * 3600_000), 'Last session in proj (2 h ago): 47 min · 2 turns · 2 files · Tests 48/48')
 })
 
-test('open points: parsed, "keine", no answer', () => {
+test('open points: parsed, "none" (and the old "keine"), no answer', () => {
+  assert.deepEqual(parsePoints('- a\n* b\nnone'), ['a', 'b'])
   assert.deepEqual(parsePoints('- a\n* b\nkeine'), ['a', 'b'])
+  assert.deepEqual(parsePoints('None.'), [])
   assert.deepEqual(parsePoints('Keine.'), [])
+  assert.ok(openPointsPrompt(['x']).includes('"none"') && openPointsPrompt(['x']).includes('"- "'))
   assert.equal(parsePoints(null), null)
 })
 
@@ -133,6 +136,7 @@ test('lesson candidates: marked sentences, no code', () => {
   const a = 'Ich habe es repariert. Das war die Ursache: der Cache wurde vor dem Schreiben gelesen. ```\nfalle im code\n``` Nie wieder ohne Test deployen, das kostet Stunden.'
   assert.deepEqual(lessonCandidates(a), ['Das war die Ursache: der Cache wurde vor dem Schreiben gelesen.', 'Nie wieder ohne Test deployen, das kostet Stunden.'])
   assert.deepEqual(lessonCandidates('Alles erledigt.'), [])
+  assert.deepEqual(lessonCandidates('Fixed it. The root cause was a stale cache read before the write.'), ['The root cause was a stale cache read before the write.'])
   // a lesson-like line inside a code block is code, not a lesson
   assert.deepEqual(lessonCandidates('Siehe:\n```ts\n// Falle: dieser Kommentar steht im Code und ist keine Lehre\n```\nfertig.'), [])
 })
@@ -149,6 +153,14 @@ test('appending: new file, new heading, existing heading before the next section
   assert.equal(appendLessons('# X\n', ['A'], 'D'), `# X\n\n${LESSONS_HEADING}\n\n- A (D)\n`)
   const t = `# X\n\n${LESSONS_HEADING}\n\n- alt\n\n## Andere\ninhalt\n`
   assert.equal(appendLessons(t, ['neu'], 'D'), `# X\n\n${LESSONS_HEADING}\n\n- alt\n- neu (D)\n\n## Andere\ninhalt\n`)
+  assert.equal(LESSONS_HEADING, '## Lessons (exo)')
+})
+
+test('appending: an existing old German heading is reused, not duplicated', () => {
+  const t = '# X\n\n## Lehren (exo)\n\n- alt\n\n## Andere\ninhalt\n'
+  const out = appendLessons(t, ['neu'], 'D')
+  assert.equal(out, '# X\n\n## Lehren (exo)\n\n- alt\n- neu (D)\n\n## Andere\ninhalt\n')
+  assert.ok(!out.includes(LESSONS_HEADING))
 })
 
 test('dialog labels are numbers (the text stands in the question)', () => {
@@ -166,7 +178,7 @@ test('session end stores the facts; next start in the project shows the band onc
   host.t = T0 + 47 * MIN + 3600_000
   const e2 = env(host, new Journal('sess-2'))
   await recapStep().start!(e2)
-  assert.ok(host.banners[0]!.text.startsWith('Letzte Sitzung in proj'))
+  assert.ok(host.banners[0]!.text.startsWith('Last session in proj'))
   host.banners = []
   await recapStep().start!(e2)
   assert.equal(host.banners.length, 0) // once
@@ -199,13 +211,13 @@ test('/recap: card with open points from the small model; md and copy', async ()
   const e = env(host, sessionJournal())
   const t = await recapCommand(e, 'md', false)
   assert.ok(t.includes('README ergänzen'))
-  assert.ok(t.includes('Kosten 0,50 $'))
+  assert.ok(t.includes('cost $0.50'))
   assert.ok(host.completions[0]!.includes('Erledigt bis auf die README.'))
   assert.ok([...host.files.keys()].some(k => k.startsWith(`${P}/.exo/recap-`)))
   await recapCommand(e, 'copy', false)
-  assert.ok(host.copied[0]!.includes('## Rückblick'))
+  assert.ok(host.copied[0]!.includes('## Recap'))
   host.completeAnswer = null
-  assert.ok((await recapCommand(e, '', false)).includes('nicht rechtzeitig'))
+  assert.ok((await recapCommand(e, '', false)).includes('did not answer in time'))
 })
 
 test('lessons: collected from answers, offered, written only when ticked', async () => {
@@ -215,12 +227,12 @@ test('lessons: collected from answers, offered, written only when ticked', async
   const step = lessonsStep()
   await step.turnComplete!(e, { turnId: 't1', answer: 'Das war die Ursache: der Cache wurde vor dem Schreiben gelesen. Falle: nginx ändern während certbot läuft.', reason: 'answer' })
   host.manyAnswers = [[]]
-  assert.ok((await recapCommand(e, '', true)).includes('nichts übernommen'))
-  assert.equal(host.files.get(`${P}/CLAUDE.md`)!.includes('Lehren (exo)'), false)
+  assert.ok((await recapCommand(e, '', true)).includes('Lessons: nothing added.'))
+  assert.equal(host.files.get(`${P}/CLAUDE.md`)!.includes('(exo)'), false)
   const offered = host.asked[host.asked.length - 1]!.options
   assert.equal(offered.length, 1) // the certbot one is already in the file
   host.manyAnswers = [[offered[0]!]]
-  assert.ok((await recapCommand(e, '', true)).includes('1 in'))
+  assert.ok((await recapCommand(e, '', true)).includes('Lessons: 1 added to'))
   const md = host.files.get(`${P}/CLAUDE.md`)!
   assert.ok(md.includes(LESSONS_HEADING) && md.includes('der Cache wurde vor dem Schreiben gelesen'))
   const before = host.asked.length
@@ -263,11 +275,12 @@ test('review: no write through a symlink out of the project', async () => {
   await lessonsStep().turnComplete!(e, { turnId: 't1', answer: 'Die Ursache war ein fehlender Index auf der Tabelle orders.', reason: 'answer' })
   host.manyAnswers = [['1']]
   const t = await recapCommand(e, '', true)
-  assert.ok(t.includes('nicht im Projekt'), t)
+  assert.ok(t.includes('outside the project'), t)
   assert.equal(host.files.get('/home/u/.bashrc'), undefined)
   host.links.set(`${P}/.exo`, '/etc')
   host.files.set(`${P}/.exo/x`, '')
-  assert.ok((await recapCommand(e, 'md', false)).includes('nicht im Projekt'))
+  const md = await recapCommand(e, 'md', false)
+  assert.ok(md.includes('Not saved: ') && md.includes('outside the project'), md)
 })
 
 test('review: a dangling symlink or .. in the path is refused', async () => {

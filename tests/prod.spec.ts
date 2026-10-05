@@ -101,7 +101,7 @@ test('force push: flags, refspecs, current branch', () => {
   assert.equal(forcedMain(['origin', '+main'], null), 'main')
   assert.equal(forcedMain(['origin', '+refs/heads/main:refs/heads/main'], null), 'main')
   assert.equal(forcedMain(['--force'], 'main'), 'main')
-  assert.equal(forcedMain(['-f', '--all', 'origin'], null), 'alle Branches')
+  assert.equal(forcedMain(['-f', '--all', 'origin'], null), 'all branches')
   assert.equal(forcedMain(['-f', 'origin', 'feature'], 'main'), null)
   assert.equal(forcedMain(['origin', 'main'], null), null)
   assert.equal(forcedMain(['--force'], 'feature'), null)
@@ -151,41 +151,41 @@ const ran = (log: string[]) => async (input: Record<string, unknown>): Promise<T
   return { result: 'ok' }
 }
 
-test('a prod command asks; Ausführen runs it, with a note', async () => {
+test('a prod command asks; Run runs it, with a note', async () => {
   const host = new FakeHost()
-  host.answers = ['Ausführen']
+  host.answers = ['Run']
   const log: string[] = []
   const r = await dispatch(deps(host), { tool: 'Bash', input: { command: 'ssh celox-alias uptime' } }, ran(log))
   assert.deepEqual(log, ['ssh celox-alias uptime'])
-  assert.ok(host.asked[0]!.question.includes('ssh auf vps'))
-  assert.deepEqual(host.asked[0]!.options, ['Ausführen', 'Abbrechen'])
-  assert.ok(r.context?.[0]?.includes('bestätigt'))
+  assert.ok(host.asked[0]!.question.includes('ssh to vps'))
+  assert.deepEqual(host.asked[0]!.options, ['Run', 'Cancel'])
+  assert.ok(r.context?.[0]?.includes('confirmed by the human'))
 })
 
-test('Esc or Abbrechen denies', async () => {
-  for (const answers of [[], ['Abbrechen']]) {
+test('Esc or Cancel denies', async () => {
+  for (const answers of [[], ['Cancel']]) {
     const host = new FakeHost()
     host.answers = answers
     const log: string[] = []
     const r = await dispatch(deps(host), { tool: 'Bash', input: { command: 'ssh vps uptime' } }, ran(log))
-    assert.ok(r.deny?.includes('abgebrochen'))
+    assert.ok(r.deny?.includes('cancelled'))
     assert.deepEqual(log, [])
   }
 })
 
-test('Trockenlauf rewrites the command', async () => {
+test('Dry run rewrites the command', async () => {
   const host = new FakeHost()
-  host.answers = ['Trockenlauf']
+  host.answers = ['Dry run']
   const log: string[] = []
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'rsync -av dist/ vps:/srv/' } }, ran(log))
-  assert.deepEqual(host.asked[0]!.options, ['Ausführen', 'Abbrechen', 'Trockenlauf'])
+  assert.deepEqual(host.asked[0]!.options, ['Run', 'Cancel', 'Dry run'])
   assert.deepEqual(log, ['rsync --dry-run -av dist/ vps:/srv/'])
 })
 
 test('without UI a prod command is denied unasked', async () => {
   const host = new FakeHost()
   const r = await dispatch(deps(host, { interactive: false }), { tool: 'Bash', input: { command: 'ssh vps ls' } }, ran([]))
-  assert.ok(r.deny?.includes('ohne Dialog'))
+  assert.ok(r.deny?.includes('without a dialog'))
   assert.equal(host.asked.length, 0)
 })
 
@@ -193,25 +193,25 @@ test('house rule: certbot running on the host blocks nginx changes', async () =>
   const host = new FakeHost()
   host.runResult = argv => ({ exitCode: argv.join(' ') === 'ssh 203.0.113.10 pgrep -x certbot' ? 0 : 1, stdout: '', stderr: '' })
   const r = await dispatch(deps(host), { tool: 'Bash', input: { command: 'ssh vps "sudo nginx -s reload"' } }, ran([]))
-  assert.ok(r.deny?.includes('Hausregel'))
+  assert.ok(r.deny?.includes('house rule'))
   assert.ok(r.deny?.includes('certbot'))
   assert.equal(host.asked.length, 0)
 })
 
 test('house rule: no certbot → dialog with the check shown as passed', async () => {
   const host = new FakeHost()
-  host.answers = ['Ausführen']
+  host.answers = ['Run']
   host.runResult = () => ({ exitCode: 1, stdout: '', stderr: '' })
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'ssh vps "sudo nginx -s reload"' } }, ran([]))
-  assert.ok(host.asked[0]!.question.includes('✓ Nie nginx'))
+  assert.ok(host.asked[0]!.question.includes('✓ Never change nginx'))
 })
 
 test('house rule: check impossible (ssh 255) → dialog says so, person decides', async () => {
   const host = new FakeHost()
-  host.answers = ['Abbrechen']
+  host.answers = ['Cancel']
   host.runResult = () => ({ exitCode: 255, stdout: '', stderr: '' })
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'ssh vps nginx -t' } }, ran([]))
-  assert.ok(host.asked[0]!.question.includes('Prüfung nicht möglich'))
+  assert.ok(host.asked[0]!.question.includes('check not possible'))
 })
 
 test('no prod hosts: only SQL and force push are shielded', async () => {
@@ -227,7 +227,7 @@ test('bare force push asks git for the branch', async () => {
   const host = new FakeHost()
   host.runResult = argv => ({ exitCode: 0, stdout: argv.includes('rev-parse') ? 'main\n' : '', stderr: '' })
   const r = await dispatch(deps(host), { tool: 'Bash', input: { command: 'git push --force' } }, ran([]))
-  assert.ok(r.deny?.includes('Force-Push auf main'))
+  assert.ok(r.deny?.includes('force push to main'))
   const host2 = new FakeHost()
   host2.runResult = argv => ({ exitCode: 0, stdout: argv.includes('rev-parse') ? 'feature/x\n' : '', stderr: '' })
   const log: string[] = []
@@ -239,7 +239,7 @@ test('an unreadable command naming a prod host asks', async () => {
   const host = new FakeHost()
   const r = await dispatch(deps(host), { tool: 'Bash', input: { command: `ssh vps "echo 'open` } }, ran([]))
   assert.ok(r.deny)
-  assert.ok(host.asked[0]!.question.includes('nicht lesbarer Befehl'))
+  assert.ok(host.asked[0]!.question.includes('unreadable command'))
   const host2 = new FakeHost()
   const log: string[] = []
   await dispatch(deps(host2), { tool: 'Bash', input: { command: `echo 'open` } }, ran(log))

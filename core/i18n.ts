@@ -1,21 +1,21 @@
 /**
- * Texts of the interface. German only for now; `T.en` can be added with the
- * same keys later.
+ * Texts of the interface. English only for now; another language can be
+ * added as a second key of `T` with the same entries.
  */
-export type Lang = 'de'
+export type Lang = 'en'
 
 export const T = {
-  de: {
+  en: {
     liveness: '⛨ exo',
-    broken: (n: number) => `⚠ ${n} gestört`,
-    killed: (why: string) => `⛨ exo aus (${why})`,
-    on: 'an',
-    off: 'aus',
-    brokenState: 'gestört',
-    rulesWarning: 'exo: rules.json fehlerhaft – Details mit /exo',
-    unknownModule: (m: string) => `Unbekanntes Modul: ${m}. /exo zeigt alle.`,
-    dismiss: 'Schließen',
+    broken: (n: number) => `⚠ ${n} broken`,
+    killed: (why: string) => `⛨ exo off (${why})`,
+    on: 'on',
+    off: 'off',
+    brokenState: 'broken',
+    rulesWarning: 'exo: rules.json has errors – details with /exo',
+    unknownModule: (m: string) => `Unknown module: ${m}. /exo lists them all.`,
+    dismiss: 'Close',
   },
 } as const
 
-export const L = T.de
+export const L = T.en

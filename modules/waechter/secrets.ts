@@ -1,5 +1,5 @@
 /**
- * #2 Secret-Wächter: Write/Edit/NotebookEdit content, Bash writes to files
+ * #2 Secret guard: Write/Edit/NotebookEdit content, Bash writes to files
  * (`>`, `>>`, `tee`, heredocs), `git commit` (message and staged diff) and
  * `git push` (commits not on any remote) are scanned before they happen.
  *
@@ -20,12 +20,12 @@ const MAX_LISTED = 5
 
 export function denyText(hits: Located[]): string {
   const lines = hits.slice(0, MAX_LISTED).map(h => `  ${h.file}:${h.line}  ${h.kind} (${h.masked})`)
-  if (hits.length > MAX_LISTED) lines.push(`  … und ${hits.length - MAX_LISTED} weitere`)
+  if (hits.length > MAX_LISTED) lines.push(`  … and ${hits.length - MAX_LISTED} more`)
   return [
-    'exo/Secret-Wächter: mögliches Geheimnis gefunden – nicht ausgeführt.',
+    'exo/secret guard: possible secret found – not run.',
     ...lines,
-    'Lege den Wert in eine .env (die in .gitignore steht) und lies ihn über eine Umgebungsvariable.',
-    'Fehlalarm? Kommentar exo-allow-secret in die Zeile, den Pfad in secretAllowPaths aufnehmen oder /exo off secrets.',
+    'Put the value in a .env (listed in .gitignore) and read it through an environment variable.',
+    'False alarm? Add an exo-allow-secret comment to the line, add the path to secretAllowPaths, or run /exo off secrets.',
   ].join('\n')
 }
 
@@ -60,7 +60,7 @@ async function fileTool(ctx: CallCtx): Promise<{ deny: string } | void> {
   const text = String(input.content ?? input.new_string ?? input.new_source ?? '')
   if (!text) return
   if (isEnvFile(path)) {
-    if (!(await gitIgnores(ctx, path))) ctx.notes.push(`exo/Secret-Wächter: ${path} steht nicht in .gitignore – Geheimnisse darin landen beim nächsten Commit im Repository.`)
+    if (!(await gitIgnores(ctx, path))) ctx.notes.push(`exo/secret guard: ${path} is not in .gitignore – secrets in it will land in the repository with the next commit.`)
     return
   }
   const offset = ctx.call.tool === 'Edit' && typeof input.old_string === 'string' ? await editOffset(ctx, path, input.old_string) : 0
@@ -84,7 +84,7 @@ async function bash(ctx: CallCtx): Promise<{ deny: string } | void> {
   for (const p of paths) {
     if (matchesAny(p, ctx.config.secretAllowPaths)) continue
     if (isEnvFile(p)) {
-      if (!(await gitIgnores(ctx, p))) ctx.notes.push(`exo/Secret-Wächter: ${p} steht nicht in .gitignore.`)
+      if (!(await gitIgnores(ctx, p))) ctx.notes.push(`exo/secret guard: ${p} is not in .gitignore.`)
       continue
     }
     relevant.push(p)
@@ -98,7 +98,7 @@ async function bash(ctx: CallCtx): Promise<{ deny: string } | void> {
     const dir = g.cwd ? joinPath(cwd, g.cwd, ctx.home) : cwd
     const skip = (f: string) => matchesAny(f, ctx.config.secretAllowPaths)
     if (g.sub === 'commit') {
-      for (const h of scanText(raw)) hits.push({ ...h, file: '(Commit-Nachricht)' })
+      for (const h of scanText(raw)) hits.push({ ...h, file: '(commit message)' })
       // `git add … && git commit`: the diff is read before the add runs, so
       // everything the add would stage counts (tracked changes, new files)
       const adds = ctx.cmds.map(gitCall).filter(x => x?.sub === 'add')
@@ -110,7 +110,7 @@ async function bash(ctx: CallCtx): Promise<{ deny: string } | void> {
     if (g.sub === 'push') {
       const r = await ctx.untimed(ctx.host.run(['git', '-C', dir, 'log', '-p', '-U0', '--no-color', '--no-ext-diff', 'HEAD', '--not', '--remotes'], { timeoutMs: 20_000 }))
       if (r.exitCode === 0) hits.push(...scanDiff(r.stdout, skip))
-      else ctx.notes.push('exo/Secret-Wächter: die zu pushenden Commits konnten nicht geprüft werden.')
+      else ctx.notes.push('exo/secret guard: the commits to be pushed could not be checked.')
     }
   }
   if (hits.length) return { deny: denyText(hits) }

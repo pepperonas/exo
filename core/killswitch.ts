@@ -21,13 +21,13 @@ export const disabledPath = (home: string) => `${exoDir(home)}/${DISABLED_FILE}`
 
 /** Pure decision from the three sources; the reason, or null when on. */
 export function killReason(s: { env: string | undefined; fileExists: boolean; allOff: boolean }): string | null {
-  if (s.fileExists) return 'Datei ~/.claude/exo/DISABLED'
+  if (s.fileExists) return 'file ~/.claude/exo/DISABLED'
   if (s.env !== undefined && s.env !== '' && s.env !== '0' && s.env.toLowerCase() !== 'false') return 'EXO_DISABLE'
   if (s.allOff) return '/exo off'
   return null
 }
 
-export const KILL_HINT = 'Notausschalter: touch ~/.claude/exo/DISABLED (oder /exo off)'
+export const KILL_HINT = 'Kill switch: touch ~/.claude/exo/DISABLED (or /exo off)'
 
 /** Cached checks of the environment and the file; `allOff` is read live. */
 export class KillSwitch {

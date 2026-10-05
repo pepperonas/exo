@@ -54,15 +54,15 @@ test('masking keeps prefix and the last four, nothing between', () => {
 })
 
 test('assignments: passwords and credentials', () => {
-  assert.equal(scanText(j('password', ' = "hun', 'ter2-correct"'))[0]?.kind, 'Passwort in Zuweisung')
-  assert.equal(scanText(j('DB_PASSWORD', '=Tr0ub4dor', '&3x'))[0]?.kind, 'Passwort in Zuweisung')
-  assert.equal(scanText(j('api_key: "', 'q8WvZ2mR7kL4pX9nT3bY6cJ1"'))[0]?.kind, 'Zugangsdaten in Zuweisung')
-  assert.equal(scanText(j('"client_secret": "', 'Q7wE9rT2yU4iO6pA8sD1fG3h"'))[0]?.kind, 'Zugangsdaten in Zuweisung')
+  assert.equal(scanText(j('password', ' = "hun', 'ter2-correct"'))[0]?.kind, 'password in assignment')
+  assert.equal(scanText(j('DB_PASSWORD', '=Tr0ub4dor', '&3x'))[0]?.kind, 'password in assignment')
+  assert.equal(scanText(j('api_key: "', 'q8WvZ2mR7kL4pX9nT3bY6cJ1"'))[0]?.kind, 'credentials in assignment')
+  assert.equal(scanText(j('"client_secret": "', 'Q7wE9rT2yU4iO6pA8sD1fG3h"'))[0]?.kind, 'credentials in assignment')
 })
 
 test('high-entropy string without a name is found', () => {
   const v = j('Zk3q9XvT2mLw8RbN', '4cYp7Hd1Fs6Gj5Ke0Ua2')
-  assert.equal(scanText(`foo(${JSON.stringify(v)})`)[0]?.kind, 'Zeichenkette mit hoher Entropie')
+  assert.equal(scanText(`foo(${JSON.stringify(v)})`)[0]?.kind, 'high-entropy string')
 })
 
 const CLEAN = [
@@ -217,7 +217,7 @@ test('.env: allowed when git ignores it, a warning otherwise', async () => {
   host.runResult = () => ({ exitCode: 1, stdout: '', stderr: '' })
   r = await dispatch(deps(host), { tool: 'Write', input: { file_path: '/work/proj/.env', content: `ANTHROPIC_API_KEY=${ANTHROPIC}` } }, ok(log))
   assert.equal(r.deny, undefined)
-  assert.ok(r.context?.[0]?.includes('nicht in .gitignore'))
+  assert.ok(r.context?.[0]?.includes('is not in .gitignore'))
   assert.equal(log.length, 2)
 })
 
@@ -242,7 +242,7 @@ test('git commit: staged diff and message are scanned; -a scans against HEAD', a
   await dispatch(deps(host), { tool: 'Bash', input: { command: 'git -C other commit -am "x"' } }, ok([]))
   assert.deepEqual(host.runs.find(x => x.argv.includes('diff'))!.argv.slice(0, 5), ['git', '-C', '/work/proj/other', 'diff', 'HEAD'])
   const msg = await dispatch(deps(new FakeHost()), { tool: 'Bash', input: { command: `git commit -m "key ${ANTHROPIC}"` } }, ok([]))
-  assert.ok(msg.deny?.includes('Commit-Nachricht'))
+  assert.ok(msg.deny?.includes('(commit message)'))
 })
 
 test('git push: commits not on any remote are scanned', async () => {

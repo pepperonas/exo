@@ -254,10 +254,10 @@ export async function touchesControlResolved(
   return false
 }
 
-export const ALLOW = 'Zulassen'
-export const REFUSE = 'Ablehnen'
+export const ALLOW = 'Allow'
+export const REFUSE = 'Deny'
 
-export const CONTROL_QUESTION = (what: string) => `Claude will exos Steuerdateien ändern (Notausschalter, Hausregeln oder exo-Einstellungen): ${what} – zulassen?`
+export const CONTROL_QUESTION = (what: string) => `Claude wants to change exo's control files (kill switch, house rules or exo settings): ${what} – allow?`
 
 export const CONTROL_DENIED =
-  'exo: Änderung an exos Steuerdateien abgelehnt. exo abschalten kannst nur du selbst: touch ~/.claude/exo/DISABLED in einem eigenen Terminal, oder /exo off.'
+  "exo: change to exo's control files denied. Only you can switch exo off: touch ~/.claude/exo/DISABLED in a terminal of your own, or /exo off."

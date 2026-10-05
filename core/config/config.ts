@@ -7,20 +7,20 @@ export type ModuleGroup = 'waechter' | 'cockpit' | 'rueckblick' | 'extras'
 export type FailPolicy = 'closed' | 'open'
 
 export const MODULES = [
-  { id: 'secrets', group: 'waechter', label: 'Secret-Wächter', policy: 'closed' },
-  { id: 'prodShield', group: 'waechter', label: 'Prod-Schild', policy: 'closed' },
-  { id: 'brake', group: 'waechter', label: 'Aufräum-Bremse', policy: 'open' },
-  { id: 'diet', group: 'waechter', label: 'Kontext-Diät', policy: 'open' },
-  { id: 'testLight', group: 'cockpit', label: 'Testampel', policy: 'open' },
-  { id: 'doneCheck', group: 'cockpit', label: 'Fertig-Prüfer', policy: 'open' },
-  { id: 'sidebar', group: 'cockpit', label: 'Änderungs-Seitenleiste', policy: 'open' },
-  { id: 'ci', group: 'cockpit', label: 'CI-Ampel', policy: 'open' },
+  { id: 'secrets', group: 'waechter', label: 'Secret guard', policy: 'closed' },
+  { id: 'prodShield', group: 'waechter', label: 'Prod shield', policy: 'closed' },
+  { id: 'brake', group: 'waechter', label: 'Cleanup brake', policy: 'open' },
+  { id: 'diet', group: 'waechter', label: 'Context diet', policy: 'open' },
+  { id: 'testLight', group: 'cockpit', label: 'Test light', policy: 'open' },
+  { id: 'doneCheck', group: 'cockpit', label: 'Done check', policy: 'open' },
+  { id: 'sidebar', group: 'cockpit', label: 'Changes sidebar', policy: 'open' },
+  { id: 'ci', group: 'cockpit', label: 'CI light', policy: 'open' },
   { id: 'recap', group: 'rueckblick', label: 'Recap', policy: 'open' },
-  { id: 'lessons', group: 'rueckblick', label: 'Lehren-Sammler', policy: 'open' },
-  { id: 'hours', group: 'rueckblick', label: 'Zeiterfassung', policy: 'open' },
-  { id: 'achievements', group: 'extras', label: 'Erfolge', policy: 'open' },
-  { id: 'cinema', group: 'extras', label: 'Spinner-Kino', policy: 'open' },
-  { id: 'duck', group: 'extras', label: 'Gummi-Ente', policy: 'open' },
+  { id: 'lessons', group: 'rueckblick', label: 'Lessons', policy: 'open' },
+  { id: 'hours', group: 'rueckblick', label: 'Time tracking', policy: 'open' },
+  { id: 'achievements', group: 'extras', label: 'Achievements', policy: 'open' },
+  { id: 'cinema', group: 'extras', label: 'Spinner cinema', policy: 'open' },
+  { id: 'duck', group: 'extras', label: 'Rubber duck', policy: 'open' },
 ] as const satisfies readonly { id: string; group: ModuleGroup; label: string; policy: FailPolicy }[]
 
 export type ModuleId = (typeof MODULES)[number]['id']
@@ -76,7 +76,7 @@ export function readPrefs(stored: unknown): Prefs {
   return p
 }
 
-/** `name=adresse` → host; both parts non-empty, no spaces. */
+/** `name=address` → host; both parts non-empty, no spaces. */
 export function parseProdHost(entry: string): ProdHost | null {
   const m = /^\s*([^=\s]+)\s*=\s*([^=\s]+)\s*$/.exec(entry)
   return m ? { name: m[1]!, address: m[2]! } : null
@@ -99,31 +99,31 @@ export function resolveConfig(options: Readonly<Record<string, unknown>>, prefs:
     const v = options[key]
     if (v === undefined) return d
     if (typeof v === 'boolean') return v
-    errors.push(`${key}: kein Wahrheitswert, Standard ${d} gilt`)
+    errors.push(`${key}: not a boolean, default ${d} applies`)
     return d
   }
   const num = (key: string, d: number, lo: number, hi: number): number => {
     const v = options[key]
     if (v === undefined) return d
     if (typeof v === 'number' && Number.isFinite(v)) {
-      if (v < lo || v > hi) errors.push(`${key}: ${v} außerhalb ${lo}–${hi}, auf den Rand gesetzt`)
+      if (v < lo || v > hi) errors.push(`${key}: ${v} outside ${lo}–${hi}, clamped to the limit`)
       return clampInt(v, lo, hi)
     }
-    errors.push(`${key}: keine Zahl, Standard ${d} gilt`)
+    errors.push(`${key}: not a number, default ${d} applies`)
     return d
   }
   const str = (key: string, d: string): string => {
     const v = options[key]
     if (v === undefined) return d
     if (typeof v === 'string') return v
-    errors.push(`${key}: kein Text, Standard gilt`)
+    errors.push(`${key}: not a string, default applies`)
     return d
   }
   const list = (key: string, d: string[]): string[] => {
     const v = options[key]
     if (v === undefined) return d
     if (Array.isArray(v) && v.every(x => typeof x === 'string')) return [...v]
-    errors.push(`${key}: keine Textliste, Standard gilt`)
+    errors.push(`${key}: not a list of strings, default applies`)
     return d
   }
 
@@ -134,11 +134,11 @@ export function resolveConfig(options: Readonly<Record<string, unknown>>, prefs:
   for (const entry of list('prodHosts', [])) {
     const h = parseProdHost(entry)
     if (h) prodHosts.push(h)
-    else errors.push(`prodHosts: Eintrag ohne Form name=adresse ignoriert`)
+    else errors.push(`prodHosts: entry not of the form name=address ignored`)
   }
 
   const qh = parseQuietHours(str('quietHours', '22-07'))
-  if (qh === 'invalid') errors.push('quietHours: erwartet HH-HH, keine Ruhezeit gesetzt')
+  if (qh === 'invalid') errors.push('quietHours: expected HH-HH, no quiet hours set')
 
   return {
     enabled,

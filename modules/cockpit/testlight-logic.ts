@@ -1,5 +1,5 @@
 /**
- * #4 Live-Testampel, the pure part: which runner, which command for the
+ * #4 Live test light, the pure part: which runner, which command for the
  * changed files, which Bash commands are Claude's own test or build runs, and
  * what a run's output says (counted as green and red tests).
  */

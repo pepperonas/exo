@@ -1,8 +1,8 @@
 /**
- * #4 Live-Testampel: after Edit/Write of source code the affected tests run
+ * #4 Live test light: after Edit/Write of source code the affected tests run
  * in the background (debounced 1.5 s, at low priority, a running one is cut
  * off by newer changes, never alongside a test run Claude started itself).
- * The line under the prompt shows `● 48/48` or `● 2 rot`; red tests go into
+ * The line under the prompt shows `● 48/48` or `● 2 red`; red tests go into
  * the next prompt once.
  */
 import type { Spawned } from '../../core/adapter/host'
@@ -61,13 +61,13 @@ async function showSlot(env: ModuleEnv, text: string, color?: string, dim?: bool
 }
 
 export function slotText(o: RunOutcome): { text: string; color: string } {
-  if (o.ok) return { text: o.green !== undefined ? `● ${o.green}/${o.green}` : '● grün', color: GREEN }
-  if (o.red) return { text: `● ${o.red} rot`, color: RED }
-  return { text: '● rot', color: RED }
+  if (o.ok) return { text: o.green !== undefined ? `● ${o.green}/${o.green}` : '● green', color: GREEN }
+  if (o.red) return { text: `● ${o.red} red`, color: RED }
+  return { text: '● red', color: RED }
 }
 
-export const ALLOW = 'Erlauben'
-export const DENY = 'Nicht erlauben'
+export const ALLOW = 'Allow'
+export const DENY = "Don't allow"
 type Trust = Record<string, { fp: string; allowed: boolean }>
 
 /** The runner config's fingerprint: what the test light would run, and what decides it. */
@@ -94,8 +94,8 @@ async function consented(env: ModuleEnv, runner: Runner, files: string[]): Promi
   const cmd = runner.argv(files).join(' ')
   const name = env.project.split('/').pop()
   const question = known
-    ? `Testampel: Die Test-Konfiguration in ${name} hat sich geändert. Darf exo nach Änderungen weiter automatisch „${cmd}“ ausführen?`
-    : `Testampel: Darf exo in ${name} nach jeder Änderung automatisch „${cmd}“ ausführen? (Befehl aus dem Projekt; exo fragt neu, wenn sich die Test-Konfiguration ändert.)`
+    ? `Test light: the test configuration in ${name} has changed. May exo keep running “${cmd}” automatically after changes?`
+    : `Test light: may exo run “${cmd}” in ${name} automatically after every change? (The command comes from the project; exo asks again when the test configuration changes.)`
   let allowed = false
   try {
     allowed = (await env.host.ask(question, [ALLOW, DENY])) === ALLOW
@@ -179,7 +179,7 @@ export function testlightStep(): Step {
       if (!st.undelivered) return []
       const text = st.undelivered
       st.undelivered = null
-      return [`exo/Testampel: Tests sind rot (${st.last?.red ?? '?'} fehlgeschlagen, Läufer ${st.runner?.name ?? '?'}):\n${text}`]
+      return [`exo/test light: tests are red (${st.last?.red ?? '?'} failed, runner ${st.runner?.name ?? '?'}):\n${text}`]
     },
     before(ctx: CallCtx) {
       if (ctx.call.tool !== 'Bash' || !ctx.parsed?.ok) return

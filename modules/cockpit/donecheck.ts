@@ -1,5 +1,5 @@
 /**
- * #6 „Fertig?“-Prüfer: when an answer claims the work is done or working,
+ * #6 "Done?" check: when an answer claims the work is done or working,
  * but the turn changed files and no green test or build ran after the last
  * change, a quiet line appears beneath the answer. At most once per turn,
  * and only when files changed (decided after phase 2).
@@ -8,7 +8,7 @@ import type { Step } from '../../core/dispatcher/dispatcher'
 import type { JournalEvent } from '../../core/journal/journal'
 
 const CLAIM =
-  /\b(?:fertig|erledigt|funktioniert|klappt(?: jetzt)?|läuft (?:jetzt|wieder)|behoben|alle tests (?:sind )?grün|tests (?:sind|laufen) grün|done|works|working now|fixed|passing|all tests pass(?:ed)?|tests pass)\b/gi
+  /\b(?:fertig|erledigt|funktioniert|klappt(?: jetzt)?|läuft (?:jetzt|wieder)|behoben|alle tests (?:sind )?grün|tests (?:sind|laufen) grün|done|works|working now|fixed|passing|resolved|all set|should work now|all tests pass(?:ed)?|tests pass)\b/gi
 
 export function claims(answer: string): string[] {
   return [...new Set([...answer.matchAll(CLAIM)].map(m => m[0].toLowerCase()))]
@@ -25,7 +25,7 @@ export function verdict(events: readonly JournalEvent[], turnId: string): Verdic
   return green ? 'checked' : 'unchecked'
 }
 
-export const WARNING = '⚠ In diesem Turn lief kein Test.'
+export const WARNING = '⚠ No test ran in this turn.'
 
 export function donecheckStep(): Step {
   return {

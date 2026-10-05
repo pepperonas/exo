@@ -85,9 +85,9 @@ test('/exo answers with the status of every module', async ($, on) => {
   engine(on)
   await start($)
   const r = await $.command.run({ command: 'exo', args: '' } as any)
-  expect(r.text).toContain('exo ist an.')
-  expect(r.text).toContain('Secret-Wächter (secrets)')
-  expect(r.text).toContain('Notausschalter')
+  expect(r.text).toContain('exo is on.')
+  expect(r.text).toContain('Secret guard (secrets)')
+  expect(r.text).toContain('Kill switch')
 })
 
 test('default rules.json is written on first start', async ($, on) => {
@@ -120,9 +120,9 @@ for (const surface of ['terminal', 'desktop'] as const) {
     await $.tool.call({ tool: 'Bash', command: 'echo hi' } as any)
     expect(ran).toEqual(['echo hi'])
     const ui = await $.ui.mount({ ...HINT, surface, viewport: { columns: 120, rows: 40 } } as any)
-    expect(await all(ui)).toContain('exo aus')
+    expect(await all(ui)).toContain('exo off')
     const r = await $.command.run({ command: 'exo', args: '' } as any)
-    expect(r.text).toContain('exo ist AUS')
+    expect(r.text).toContain('exo is OFF')
   })
 }
 
@@ -136,7 +136,7 @@ test('EXO_DISABLE=1 switches exo off', async ($, on) => {
 test('broken rules.json: defaults stay, a toast and /exo say why', async ($, on) => {
   const { toasts, fs } = engine(on, { '/home/u/.claude/exo/rules.json': '{ kaputt' })
   await start($)
-  expect(toasts.join('|')).toContain('rules.json fehlerhaft')
+  expect(toasts.join('|')).toContain('rules.json has errors')
   const r = await $.command.run({ command: 'exo', args: 'rules' } as any)
   expect(r.text).toContain('nginx-certbot')
   expect(fs.get('/home/u/.claude/exo/rules.json')).toBe('{ kaputt')
@@ -146,7 +146,7 @@ test('/exo off is remembered in the store and lets calls through', async ($, on)
   const { ran, store } = engine(on)
   await start($)
   const r = await $.command.run({ command: 'exo', args: 'off' } as any)
-  expect(r.text).toContain('alle Module aus')
+  expect(r.text).toContain('all modules off')
   await $.tool.call({ tool: 'Bash', command: 'pwd' } as any)
   expect(ran).toEqual(['pwd'])
   expect(store.get('prefs')).toEqual({ allOff: true, modules: {} })
@@ -160,7 +160,7 @@ test('the secret guard denies a Write with a key, masked', async ($, on) => {
   await start($)
   const r: any = await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/k.ts', content: `export const k = "${KEY}"` } as any)
   const text = String(r.deny ?? r.text ?? '')
-  expect(text).toContain('Secret-Wächter')
+  expect(text).toContain('secret guard')
   expect(text).toContain('sk-ant-…a1b2')
   expect(text.includes(KEY)).toBe(false)
   expect(ran).toEqual([])
@@ -170,7 +170,7 @@ test('/undo-list answers, without snapshots', async ($, on) => {
   engine(on)
   await start($)
   const r = await $.command.run({ command: 'undo-list', args: '' } as any)
-  expect(r.text).toContain('Keine Schnappschüsse')
+  expect(r.text).toContain('No snapshots')
 })
 
 test('done check: a claim after a change without a test shows a line beneath the answer', async ($, on) => {
@@ -179,7 +179,7 @@ test('done check: a claim after a change without a test shows a line beneath the
   await $.turn.start({ text: 'mach', turnId: 't1' } as any)
   await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/a.ts', content: 'export const a = 1\n', tool_use_id: 'u1' } as any)
   const r: any = await $.turn.complete({ answer: 'Fertig, funktioniert.', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as any)
-  expect(r.text).toContain('In diesem Turn lief kein Test')
+  expect(r.text).toContain('No test ran in this turn')
 })
 
 test('done check: no claim, no line', async ($, on) => {
@@ -196,9 +196,9 @@ for (const surface of ['terminal', 'desktop'] as const) {
     engine(on)
     await start($)
     const r = await $.command.run({ command: 'changes', args: '' } as any)
-    expect(r.text).toContain('Änderungen geöffnet')
-    const ui = await $.ui.mount({ plugin: 'exo', component: 'Pane', requestId: 'exo-changes', surface, props: { title: 'Änderungen', isFocused: false, bodyColumns: 60, placement: 'dock' }, viewport: { columns: 120, rows: 40 } } as any)
-    expect(await all(ui)).toContain('noch keine Datei')
+    expect(r.text).toContain('Changes opened')
+    const ui = await $.ui.mount({ plugin: 'exo', component: 'Pane', requestId: 'exo-changes', surface, props: { title: 'Changes', isFocused: false, bodyColumns: 60, placement: 'dock' }, viewport: { columns: 120, rows: 40 } } as any)
+    expect(await all(ui)).toContain('No file has been changed')
   })
 }
 
@@ -209,16 +209,16 @@ test('/recap shows the card with open points from the small model', async ($, on
   await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/r.ts', content: 'x\n', tool_use_id: 'u9' } as any)
   await $.turn.complete({ answer: 'Ich habe r.ts angelegt.', durationMs: 5, isAborted: false, turnId: 't9', reason: 'answer' } as any)
   const r = await $.command.run({ command: 'recap', args: '' } as any)
-  expect(r.text).toContain('## Rückblick')
+  expect(r.text).toContain('## Recap')
   expect(r.text).toContain('README ergänzen')
-  expect(r.text).toContain('Kosten 0,42 $')
+  expect(r.text).toContain('cost $0.42')
 })
 
 test('/hours answers with the week', async ($, on) => {
   engine(on)
   await start($)
   const r = await $.command.run({ command: 'hours', args: '' } as any)
-  expect(r.text).toContain('Woche')
+  expect(String(r.text).toLowerCase()).toContain('week')
 })
 
 for (const surface of ['terminal', 'desktop'] as const) {
@@ -226,19 +226,19 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const { filled } = engine(on)
     await start($)
     const r = await $.command.run({ command: 'duck', args: '' } as any)
-    expect(r.text).toContain('Ente')
-    const ui: any = await $.ui.mount({ plugin: 'exo', component: 'Pane', requestId: 'exo-duck', surface, props: { title: 'Gummi-Ente', isFocused: true, bodyColumns: 70, placement: 'dock' }, viewport: { columns: 120, rows: 40 } } as any)
-    expect(await all(ui)).toContain('Frage 1/5')
+    expect(r.text).toContain('duck')
+    const ui: any = await $.ui.mount({ plugin: 'exo', component: 'Pane', requestId: 'exo-duck', surface, props: { title: 'Rubber duck', isFocused: true, bodyColumns: 70, placement: 'dock' }, viewport: { columns: 120, rows: 40 } } as any)
+    expect(await all(ui)).toContain('Question 1/5')
     await ui.input({ key: 'in0', text: 'Drei Einträge' })
     await ui.press({ key: 'skip' })
     await ui.input({ key: 'in2', text: 'TypeError: boom' })
     await ui.press({ key: 'skip' })
     await ui.input({ key: 'in4', text: 'Ja, immer' })
-    expect(await all(ui)).toContain('Daraus wird dieser Prompt')
+    expect(await all(ui)).toContain('This becomes the prompt')
     await ui.press({ key: 'take' })
-    expect(filled[0]).toContain('Erwartet: Drei Einträge')
+    expect(filled[0]).toContain('Expected: Drei Einträge')
     expect(filled[0]).toContain('TypeError: boom')
-    expect(String(filled[0]).includes('Stattdessen')).toBe(false)
+    expect(String(filled[0]).includes('Instead')).toBe(false)
   })
 }
 
@@ -246,8 +246,8 @@ test('/achievements draws the card', async ($, on) => {
   engine(on)
   await start($)
   const r = await $.command.run({ command: 'achievements', args: '' } as any)
-  expect(r.text).toContain('exo · Erfolge')
-  expect(r.text).toContain('Erster Schritt')
+  expect(r.text).toContain('exo · Achievements')
+  expect(r.text).toContain('First step')
 })
 
 test('a long turn turns the spinner into coffee, with the real seconds', async ($, on) => {
@@ -257,6 +257,6 @@ test('a long turn turns the spinner into coffee, with the real seconds', async (
   await clock.advance(61_000)
   const ui = await $.ui.mount({ plugin: 'exo', component: 'Spinner', surface: 'terminal', props: { word: 'Thinking', message: null, suffix: '…', mode: 'thinking' }, viewport: { columns: 120, rows: 40 } } as any)
   const t = await all(ui)
-  expect(t).toContain('denkt nach')
+  expect(t).toContain('thinking:')
 })
 

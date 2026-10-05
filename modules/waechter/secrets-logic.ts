@@ -17,16 +17,16 @@ interface Pattern {
 
 /** Known formats. `g` flag: several per line are found. */
 const PATTERNS: Pattern[] = [
-  { kind: 'Anthropic-API-Schlüssel', re: /\bsk-ant-[A-Za-z0-9_-]{20,}/g },
-  { kind: 'OpenAI-API-Schlüssel', re: /\bsk-(?!ant-)(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}/g },
-  { kind: 'GitHub-Token', re: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b/g },
-  { kind: 'GitHub-Token', re: /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g },
-  { kind: 'AWS-Zugangsschlüssel', re: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g },
-  { kind: 'Stripe-Live-Schlüssel', re: /\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b/g },
-  { kind: 'Slack-Token', re: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g },
-  { kind: 'Slack-Webhook', re: /https:\/\/hooks\.slack\.com\/services\/T[A-Za-z0-9]+\/B[A-Za-z0-9]+\/[A-Za-z0-9]+/g },
-  { kind: 'Google-API-Schlüssel', re: /\bAIza[0-9A-Za-z_-]{35}\b/g },
-  { kind: 'Privater Schlüssel (PEM)', re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g },
+  { kind: 'Anthropic API key', re: /\bsk-ant-[A-Za-z0-9_-]{20,}/g },
+  { kind: 'OpenAI API key', re: /\bsk-(?!ant-)(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{32,}/g },
+  { kind: 'GitHub token', re: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b/g },
+  { kind: 'GitHub token', re: /\bgithub_pat_[A-Za-z0-9_]{22,}\b/g },
+  { kind: 'AWS access key', re: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g },
+  { kind: 'Stripe live key', re: /\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b/g },
+  { kind: 'Slack token', re: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g },
+  { kind: 'Slack webhook', re: /https:\/\/hooks\.slack\.com\/services\/T[A-Za-z0-9]+\/B[A-Za-z0-9]+\/[A-Za-z0-9]+/g },
+  { kind: 'Google API key', re: /\bAIza[0-9A-Za-z_-]{35}\b/g },
+  { kind: 'Private key (PEM)', re: /-----BEGIN (?:[A-Z]+ )*PRIVATE KEY-----/g },
   { kind: 'JWT', re: /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
 ]
 
@@ -137,11 +137,11 @@ export function scanText(text: string, options: ScanOptions = {}, lineOffset = 0
       if (value.startsWith('/')) continue
       if (/^(?:https?|file):\/\//.test(value) && !/:[^/@]+@/.test(value)) continue
       if (isPasswordName(name) && !/_?(?:hash|file|path|field|label|policy|length|min|max|reset|prompt)$/i.test(name)) {
-        if (value.length >= 8 && !/^\d+$/.test(value)) add('Passwort in Zuweisung', value)
+        if (value.length >= 8 && !/^\d+$/.test(value)) add('password in assignment', value)
         continue
       }
       if (isCredentialName(name) && !/_?(?:name|type|url|uri|file|path|header|field|id|length|ttl|expires?)$/i.test(name)) {
-        if (value.length >= 16 && entropy(value) >= 3.3 && !UUID.test(value)) add('Zugangsdaten in Zuweisung', value)
+        if (value.length >= 16 && entropy(value) >= 3.3 && !UUID.test(value)) add('credentials in assignment', value)
       }
     }
 
@@ -152,7 +152,7 @@ export function scanText(text: string, options: ScanOptions = {}, lineOffset = 0
       if (!/[A-Z]/.test(v) || !/[a-z]/.test(v) || !/[0-9]/.test(v)) continue
       if (entropy(v) < 4.3) continue
       if (/^[A-Za-z]+(?:[-_][A-Za-z0-9]+)+$/.test(v)) continue // identifier-like-with-dashes
-      add('Zeichenkette mit hoher Entropie', v)
+      add('high-entropy string', v)
     }
   })
   return hits

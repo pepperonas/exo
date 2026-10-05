@@ -102,7 +102,7 @@ test('git clean -fd: untracked files saved and restored', async () => {
     assert.ok(r.context?.[0]?.includes('/undo-last'), JSON.stringify(r))
     assert.equal(existsSync(join(repo, 'u.txt')), false)
     const msg = await undoLast(host, d.store, undefined)
-    assert.ok(msg.includes('wiederhergestellt'), msg)
+    assert.ok(msg.includes('restored'), msg)
     assert.equal(readFileSync(join(repo, 'u.txt'), 'utf8'), 'untracked\n')
     assert.equal(readFileSync(join(repo, 'gen', 'x.js'), 'utf8'), 'x\n')
   } finally {
@@ -139,11 +139,11 @@ test('rm -rf: directory saved and restored; existing files are not overwritten u
     assert.equal(existsSync(join(repo, 'build')), false)
     mkdirSync(join(repo, 'build'))
     writeFileSync(join(repo, 'build', 'out.txt'), 'new\n')
-    host.answers = ['Nur fehlende']
+    host.answers = ['Only missing']
     await undoLast(host, d.store, undefined)
-    assert.ok(host.asked[0]!.question.includes('Überschreiben'))
+    assert.ok(host.asked[0]!.question.includes('Overwrite?'))
     assert.equal(readFileSync(join(repo, 'build', 'out.txt'), 'utf8'), 'new\n')
-    host.answers = ['Überschreiben']
+    host.answers = ['Overwrite']
     const [meta] = await readSnapshots(d.store)
     await undoLast(host, d.store, meta!.id)
     assert.equal(readFileSync(join(repo, 'build', 'out.txt'), 'utf8'), 'old\n')
@@ -180,13 +180,13 @@ test('nothing to save, nothing noted; clean tree reset needs no snapshot', async
   }
 })
 
-test('variables in the path: asked; Abbrechen denies', async () => {
+test('variables in the path: asked; Cancel denies', async () => {
   const host = new RealHost()
   try {
     const repo = host.repo()
     const ran: string[] = []
     const r = await dispatch(deps(host, repo), { tool: 'Bash', input: { command: 'rm -rf "$TARGET"' } }, async i => (ran.push(String(i.command)), { result: 'ok' }))
-    assert.ok(r.deny?.includes('Variablen'))
+    assert.ok(r.deny?.includes('variables'))
     assert.deepEqual(ran, [])
     assert.ok(host.asked[0]!.question.includes('$TARGET'))
   } finally {
@@ -202,8 +202,8 @@ test('over the size limit: asked instead of a silent pass', async () => {
     writeFileSync(join(repo, 'big', 'blob'), Buffer.alloc(2 * 1048576, 7))
     const d = deps(host, repo, { config: resolveConfig({ snapshotMaxMb: 1 }, emptyPrefs()) })
     const r = await dispatch(d, { tool: 'Bash', input: { command: 'rm -rf big' } }, shell(host, repo))
-    assert.ok(r.deny?.includes('Limit') || r.deny?.includes('Schnappschuss-Limit'), JSON.stringify(r))
-    assert.ok(host.asked[0]!.question.includes('Limit'))
+    assert.ok(r.deny?.includes('snapshot limit'), JSON.stringify(r))
+    assert.ok(host.asked[0]!.question.includes('limit'))
     assert.equal(existsSync(join(repo, 'big', 'blob')), true)
   } finally {
     host.dispose()

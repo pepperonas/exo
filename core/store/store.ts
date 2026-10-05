@@ -41,7 +41,7 @@ export function runMigrations(
   const applied: number[] = []
   for (let v = from + 1; v <= to; v++) {
     const m = migrations[v]
-    if (!m) throw new Error(`Migration auf Schema ${v} fehlt`)
+    if (!m) throw new Error(`migration to schema ${v} missing`)
     d = m(d)
     applied.push(v)
   }
@@ -111,7 +111,7 @@ export class StoreBox {
     this.pending.delete(key)
     const v = fit(value, BUDGETS[key], shrink)
     if (v === null) {
-      this.warnings.push(`${key}: passt nicht ins Budget von ${BUDGETS[key]} Bytes, nicht gespeichert`)
+      this.warnings.push(`${key}: exceeds the budget of ${BUDGETS[key]} bytes, not saved`)
       return false
     }
     await this.host.storeSet(key, v)
@@ -137,7 +137,7 @@ export class StoreBox {
       const v = make()
       if (v === null) continue
       if (jsonBytes(v) > BUDGETS[key]) {
-        this.warnings.push(`${key}: passt nicht ins Budget, nicht gespeichert`)
+        this.warnings.push(`${key}: exceeds the budget, not saved`)
         continue
       }
       await this.host.storeSet(key, v)

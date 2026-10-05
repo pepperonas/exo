@@ -60,7 +60,7 @@ export async function createRuntime(host: Host, options: Readonly<Record<string,
       if (await host.exists(path)) rules = loadRules(await host.readFile(path))
       else await host.writeFile(path, JSON.stringify(DEFAULT_RULES_JSON, null, 2) + '\n')
     } catch (err) {
-      rules = { ...loadRules(null), errors: [`rules.json nicht lesbar: ${errorText(err)}`, 'Es gelten die eingebauten Regeln.'], source: 'default-after-error' }
+      rules = { ...loadRules(null), errors: [`rules.json not readable: ${errorText(err)}`, 'The built-in rules apply.'], source: 'default-after-error' }
     }
   }
 

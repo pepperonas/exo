@@ -2,7 +2,7 @@
 
 Claude Code mod (function hooks, Claude Code 2.1.289). Plan and decisions: `docs/PLAN.md`. Mutation protocol: `docs/MUTATIONS.md`.
 
-The **interface is German** on purpose (status line, dialogs, toasts, command output). Documentation, code and commits are English.
+Everything is English: interface (status line, dialogs, toasts, command output), documentation, code and commits. Detection logic still recognises German input (claims like „fertig“, password names like `passwort`, the old `## Lehren (exo)` heading) — keep it when you touch those rules.
 
 ## Layout
 
@@ -53,6 +53,6 @@ Changing the number of tests means changing the `node tests`/`engine tests` badg
 
 ## Conventions
 
-- Interface German; code, docs and commits English.
+- English everywhere; German only where exo must *recognise* German input.
 - No real addresses in the repo: examples use `203.0.113.x`, `198.51.100.x`, `example.com`.
 - No runtime dependencies; devDependencies pinned exactly. No lockfile in the plugin root (`.npmrc`: `package-lock=false`) – Claude Code would install the dev tools for every user.

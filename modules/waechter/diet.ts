@@ -1,5 +1,5 @@
 /**
- * #15 Kontext-Diät: a whole-file Read of a big or generated file is cut to
+ * #15 Context diet: a whole-file Read of a big or generated file is cut to
  * its head (Read's own `limit`), with the tail and a hint added as context.
  */
 import type { CallCtx, Step } from '../../core/dispatcher/dispatcher'

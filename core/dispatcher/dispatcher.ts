@@ -33,7 +33,7 @@ import { READ_TOOLS } from '../tools'
 import { changeIs, readControl, settleEffects, undoneText } from '../integrity'
 import type { ControlState } from '../integrity'
 import type { StoreBox } from '../store/store'
-import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
+import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, REFUSE, touchesControlResolved } from '../selfprotect'
 
 export interface ToolCall {
   tool: string
@@ -148,9 +148,9 @@ export function ordered(steps: readonly Step[]): Step[] {
 export const isGuardedTool = (tool: string) => !READ_TOOLS.has(tool)
 
 export function failClosedMessage(id: ModuleId | 'core', err: string): string {
-  const label = id === 'core' ? 'Kern' : moduleInfo(id).label
+  const label = id === 'core' ? 'core' : moduleInfo(id).label.toLowerCase()
   const off = id === 'core' ? '/exo off' : `/exo off ${id}`
-  return `exo/${label} ist gestört (${err}). Dieser Aufruf wurde zur Sicherheit abgelehnt. Abschalten: ${off} · ${KILL_HINT}`
+  return `exo/${label} is broken (${err}). This call was denied to be safe. Switch off: ${off} · ${KILL_HINT}`
 }
 
 function policyOf(id: ModuleId): FailPolicy {
@@ -216,7 +216,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
       let allowed = false
       if (deps.interactive) {
         try {
-          allowed = (await ctx.untimed(deps.host.ask(CONTROL_QUESTION(what), [ALLOW, 'Ablehnen']))) === ALLOW
+          allowed = (await ctx.untimed(deps.host.ask(CONTROL_QUESTION(what), [ALLOW, REFUSE]))) === ALLOW
         } catch {
           allowed = false // Esc, or nobody to ask
         }
@@ -322,7 +322,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
         const text = undoneText(undone)
         ctx.notes.push(text)
         deps.host.toast(text, 8000)
-        deps.journal.push({ type: 'module.error', module: 'self', message: `Steueränderung rückgängig: ${undone.length}` }, clock())
+        deps.journal.push({ type: 'module.error', module: 'self', message: `control change undone: ${undone.length}` }, clock())
       }
     } catch (err) {
       deps.health.fail('core', errorText(err), clock())

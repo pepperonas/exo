@@ -1,8 +1,8 @@
 /**
- * #10 Recap + #16 Lehren as one report.
+ * #10 Recap + #16 Lessons as one report.
  *
  * At session end the facts are stored, fast and without a model. At the next
- * start in the same project a "Letzte Sitzung …" band appears once (dismiss
+ * start in the same project a "Last session …" band appears once (dismiss
  * button, not when older than seven days). `/recap` shows the card for the
  * running session, asks the small model for open points, and offers up to
  * three lessons for the project's CLAUDE.md: nothing is written unless ticked.
@@ -84,17 +84,17 @@ export async function recapCommand(env: ModuleEnv, args: string, lessonsOn: bool
     .slice(-12)
     .map(m => m.text)
   const points = answers.length ? parsePoints(await env.host.complete(openPointsPrompt(answers), OPEN_POINTS_SYSTEM).catch(() => null)) : []
-  const text = card(f, points, dayKey(now)) + (points === null ? '\n(Offene Punkte: das Modell hat nicht rechtzeitig geantwortet.)\n' : '')
+  const text = card(f, points, dayKey(now)) + (points === null ? '\n(Open points: the model did not answer in time.)\n' : '')
   const out: string[] = [text]
 
   if (sub === 'md') {
     const path = `${env.project}/.exo/recap-${dayKey(now)}.md`
     if (await insideRoot(env.host, path, env.project)) {
       await env.host.writeFile(path, text)
-      out.push(`Gespeichert: ${path}`)
-    } else out.push(`Nicht gespeichert: ${path} liegt über einen Symlink nicht im Projekt.`)
+      out.push(`Saved: ${path}`)
+    } else out.push(`Not saved: ${path} lies outside the project through a symlink.`)
   } else if (sub === 'copy') {
-    out.push((await env.host.copy(text).catch(() => false)) ? 'In die Zwischenablage kopiert.' : 'Kopieren hat nicht geklappt.')
+    out.push((await env.host.copy(text).catch(() => false)) ? 'Copied to the clipboard.' : 'Copying did not work.')
   }
 
   if (lessonsOn) out.push(await offerLessons(env, now))
@@ -107,20 +107,20 @@ async function offerLessons(env: ModuleEnv, now: number): Promise<string> {
   const fresh = (await readLessons(env)).filter(l => !isDuplicate(l, existing ?? ''))
   const offer = fresh.slice(-3)
   if (!offer.length) return ''
-  if (!(await insideRoot(env.host, target, env.project))) return `Lehren: ${target} liegt über einen Symlink nicht im Projekt – nichts geschrieben.`
+  if (!(await insideRoot(env.host, target, env.project))) return `Lessons: ${target} lies outside the project through a symlink – nothing written.`
   const labels = offer.map(label)
   const listed = offer.map((l, i) => `${labels[i]}. ${l}`).join('\n')
   let chosen: string[] = []
   try {
-    chosen = await env.host.askMany(`Welche Lehren sollen wörtlich in ${target} unter „Lehren (exo)“?\n${listed}\nNichts wird ohne Häkchen geschrieben.`, labels)
+    chosen = await env.host.askMany(`Which lessons should go verbatim into ${target} under “Lessons (exo)”?\n${listed}\nNothing is written without a tick.`, labels)
   } catch {
-    return 'Lehren: nichts übernommen.'
+    return 'Lessons: nothing added.'
   }
   const picked = offer.filter((_, i) => chosen.includes(labels[i]!))
-  if (!picked.length) return 'Lehren: nichts übernommen.'
+  if (!picked.length) return 'Lessons: nothing added.'
   await env.host.writeFile(target, appendLessons(existing, picked, dayKey(now)))
   // what is in the file now is not offered again
   const rest = (await readLessons(env)).filter(l => !picked.includes(l))
   await env.store?.set('lessons', { sessionId: env.sessionId, items: rest })
-  return `Lehren: ${picked.length} in ${target} übernommen.`
+  return `Lessons: ${picked.length} added to ${target}.`
 }

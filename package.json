@@ -15,7 +15,8 @@
     "check": "tsc -p . && claude plugin validate .",
     "mutate": "node --import tsx tools/mutate.ts",
     "history-scan": "node --import tsx tools/history-scan.ts",
-    "social": "node --import tsx tools/social.ts"
+    "social": "node --import tsx tools/social.ts",
+    "screens": "node --import tsx tools/screens.ts"
   },
   "devDependencies": {
     "playwright": "1.63.0",
