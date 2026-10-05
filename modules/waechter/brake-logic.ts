@@ -10,7 +10,7 @@ import { joinPath } from '../../core/cwd'
 import { flags, gitCall } from '../../core/shell/git'
 import type { Cmd } from '../../core/shell/words'
 
-export type BrakeKind = 'rm' | 'reset-hard' | 'checkout' | 'restore' | 'clean'
+export type BrakeKind = 'rm' | 'reset-hard' | 'checkout' | 'restore' | 'clean' | 'revert'
 
 export interface BrakePlan {
   kind: BrakeKind

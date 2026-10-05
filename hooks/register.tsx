@@ -5,20 +5,27 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Banner, Slot } from '../types'
+import type { Banner, ChangeRow, Slot } from '../types'
 import type { Host, Timer } from '../core/adapter/host'
 import { exoCommand } from '../core/exo-command'
 import { errorText } from '../core/health/health'
 import { L } from '../core/i18n'
-import { catchDecision, createRuntime, killReason, log, refreshLiveness, saveJournalLater, toolCall } from '../core/runtime'
+import { catchDecision, createRuntime, killReason, log, moduleEnv, promptContexts, refreshLiveness, saveJournalLater, startModules, toolCall, turnTexts } from '../core/runtime'
 import type { Runtime } from '../core/runtime'
 import { KillSwitch } from '../core/killswitch'
-import { DISMISS, pressBanner } from '../core/statusline/banners'
+import { DISMISS, pressBanner, pressPane } from '../core/statusline/banners'
+import { refreshChanges } from '../modules/cockpit/sidebar'
 import { pruneSnapshots } from '../modules/waechter/brake'
 import { undoLast, undoList } from '../modules/waechter/undo'
 import { layout } from '../core/statusline/statusline'
 
 const COMMAND = 'exo'
+const CHANGES = 'changes'
+const CHANGES_PANE = 'exo-changes'
+
+function shortPath(p: string, max: number): string {
+  return p.length <= max ? p : '…' + p.slice(p.length - Math.max(8, max - 1))
+}
 /** Commands besides /exo: name, description, argument hint. */
 const COMMANDS: [string, string, string][] = [
   ['undo-last', 'exo: letzten Schnappschuss der Aufräum-Bremse wiederherstellen', '[id]'],
@@ -32,6 +39,9 @@ const TICK_MS = 2_000
 const slotsA = atom({ plugin: 'exo', key: 'slots' } as const, {} as Record<string, Slot>)
 const bannersA = atom({ plugin: 'exo', key: 'banners' } as const, [] as Banner[])
 const killedA = atom({ plugin: 'exo', key: 'killed' } as const, null as string | null)
+const changesA = atom({ plugin: 'exo', key: 'changes' } as const, [] as ChangeRow[])
+const selectedA = atom({ plugin: 'exo', key: 'selected' } as const, null as string | null)
+const diffA = atom({ plugin: 'exo', key: 'diff' } as const, '')
 
 /**
  * The adapter: the one place that speaks to `$`. Everything else works
@@ -87,6 +97,24 @@ function hostOf($: EngineInterface): Host {
     },
     setKilled: async reason => {
       await update($, killedA, () => reason)
+    },
+    spawn: (argv, o) => {
+      const s = $.process.spawn({ argv: [...argv], cwd: o?.cwd })
+      return {
+        chunks: s,
+        stop: () => void s.return({ code: null, signal: 'stop' }).catch(() => undefined),
+        done: s.result.then(r => ({ code: r.code })),
+      }
+    },
+    fillPrompt: async text => {
+      const r = await $.prompt.fill({ text, mode: 'append' })
+      return r.isFilled
+    },
+    openPane: async (id, title) => (await $.ui.open({ id, title })).isPlaced,
+    setChanges: async (changes, selected, diff) => {
+      await update($, changesA, () => changes)
+      await update($, selectedA, () => selected)
+      await update($, diffA, () => diff)
     },
   }
 }
@@ -148,6 +176,8 @@ export const register: Register = (on, options) => {
       await $.command.register({ name: final, description, argumentHint, immediate: true })
     }
     if (rt.home) void pruneSnapshots(host, rt.store, rt.home, await $.clock.now()).catch(() => undefined)
+    await $.command.register({ name: CHANGES, description: 'exo: in dieser Sitzung geänderte Dateien mit Diff', immediate: true })
+    await startModules(rt, host)
     if (rt.journal.size() === 0 || rt.journal.last('session.start')?.sessionId !== rt.journal.sessionId)
       await log(rt, host, { type: 'session.start', sessionId: rt.journal.sessionId, project: (await host.repoRoot().catch(() => null)) ?? e.cwd })
     if (rt.rules.errors.length && !rt.rulesWarned) {
@@ -188,8 +218,10 @@ export const register: Register = (on, options) => {
 
   on('prompt.submit', async ($, e, next) => {
     const l = await live($).catch(() => null)
-    if (l) await log(l.rt, l.host, { type: 'prompt.submit', chars: e.text.length }).catch(() => undefined)
-    return next(e)
+    if (!l) return next(e)
+    await log(l.rt, l.host, { type: 'prompt.submit', chars: e.text.length }).catch(() => undefined)
+    const extra = await promptContexts(l.rt, l.host).catch(() => [])
+    return next(extra.length ? { ...e, context: [...(e.context ?? []), ...extra] } : e)
   })
 
   on('turn.start', async ($, e, next) => {
@@ -203,11 +235,13 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     const l = await live($).catch(() => null)
-    if (l && !e.agentId) {
-      await log(l.rt, l.host, { type: 'turn.complete', turnId: e.turnId, ms: e.durationMs, claims: [], reason: e.reason }).catch(() => undefined)
-      l.rt.journal.turnId = undefined
-    }
-    return next(e)
+    if (!l || e.agentId) return next(e)
+    await log(l.rt, l.host, { type: 'turn.complete', turnId: e.turnId, ms: e.durationMs, claims: [], reason: e.reason }).catch(() => undefined)
+    const texts = await turnTexts(l.rt, l.host, { turnId: e.turnId, answer: e.answer, reason: e.reason }).catch(() => [])
+    l.rt.journal.turnId = undefined
+    const r = await next(e)
+    // a text other than the answer is shown beneath it
+    return texts.length ? { ...r, text: texts.join('\n') } : r
   })
 
   on('session.end', async ($, e, next) => {
@@ -232,6 +266,41 @@ export const register: Register = (on, options) => {
       return { text: await undoLast(host, rt.store, e.args.trim() || undefined) }
     })
   }
+
+  on('command.run', { command: CHANGES }, async $ => {
+    const rt = await ensure($)
+    const placed = await $.ui.open({ id: CHANGES_PANE, title: 'Änderungen' })
+    await refreshChanges(moduleEnv(rt, hostOf($))).catch(() => undefined)
+    return { text: placed.isPlaced ? 'Änderungen geöffnet.' : `Änderungen: Platz fehlt (${placed.reason}).` }
+  })
+
+  on('ui.render', { component: 'Pane', requestId: CHANGES_PANE }, async ($, e) => {
+    const { Box, Text, Button, Code } = $.ui.resolve(e)
+    const rows = await read($, changesA)
+    const selected = await read($, selectedA)
+    const diff = await read($, diffA)
+    if (!rows.length) return <Text dimColor>In dieser Sitzung wurde noch keine Datei über Write/Edit geändert.</Text>
+    const width = e.props.bodyColumns ?? 60
+    return (
+      <Box flexDirection="column">
+        {rows.map(r => (
+          <Box key={`row:${r.path}`} flexDirection="row">
+            <Button key={`sel:${r.path}`} plain label={`${r.path === selected ? '▸' : ' '} +${r.added} −${r.removed} ${shortPath(r.path, width - 14)}${r.isNew ? ' (neu)' : ''}`} onPress={() => void pressPane(hostOf($), `sel:${r.path}`)} />
+          </Box>
+        ))}
+        {selected ? (
+          <Box key="detail" flexDirection="column" marginTop={1}>
+            {diff ? <Code key="diff" source={diff} format="diff" path={selected} /> : <Text dimColor>Keine Unterschiede mehr zum Stand vor der Sitzung.</Text>}
+            <Box key="actions" flexDirection="row">
+              <Button key="revert" label="Zurücksetzen" onPress={() => void pressPane(hostOf($), `revert:${selected}`)} />
+            </Box>
+          </Box>
+        ) : (
+          <Text dimColor>Datei auswählen für den Diff.</Text>
+        )}
+      </Box>
+    )
+  })
 
   on('command.run', { command: COMMAND }, async ($, e) => {
     const rt = await ensure($)

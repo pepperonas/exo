@@ -26,6 +26,7 @@ import type { ParseResult } from '../shell/parse'
 import { commands, summarize } from '../shell/words'
 import type { Cmd } from '../shell/words'
 import { KILL_HINT } from '../killswitch'
+import { counts } from '../diff'
 import { cwdAfter } from '../cwd'
 import type { CwdGuess } from '../cwd'
 import { READ_TOOLS } from '../tools'
@@ -74,12 +75,40 @@ export interface CallCtx {
   memo: Record<string, unknown>
   /** exo's store, for modules that keep state across sessions. */
   store: StoreBox | undefined
+  /** File tools: the file's text before the call; null when it did not exist. */
+  fileBefore: string | null | undefined
 }
 
 export type BeforeResult = { deny: string } | { input: Record<string, unknown> } | undefined | void
 
+/** What a module sees outside a tool call (start, prompt, end of turn). */
+export interface ModuleEnv {
+  host: Host
+  journal: Journal
+  config: Config
+  store: StoreBox | undefined
+  home: string | undefined
+  /** Git root of the session, else its working directory. */
+  project: string
+  cwd: CwdGuess
+  interactive: boolean
+  sessionId: string
+}
+
+export interface TurnEnd {
+  turnId: string
+  answer: string
+  reason: string
+}
+
 export interface Step {
   id: ModuleId
+  /** At session start (and after a reload). Long-lived work starts here. */
+  start?(env: ModuleEnv): void | Promise<void>
+  /** Lines the model reads beside the next prompt. */
+  promptContext?(env: ModuleEnv): string[] | Promise<string[]>
+  /** A line shown beneath the answer, or nothing. */
+  turnComplete?(env: ModuleEnv, t: TurnEnd): string | undefined | Promise<string | undefined>
   before?(ctx: CallCtx): BeforeResult | Promise<BeforeResult>
   after?(ctx: CallCtx, result: ToolResult): ToolResult | void | Promise<ToolResult | void>
 }
@@ -155,6 +184,7 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     cmdCwd: deps.cwd ?? { cwd: '/', known: false },
     memo: {},
     store: deps.store,
+    fileBefore: undefined,
     async untimed<T>(work: Promise<T>): Promise<T> {
       const t0 = clock()
       try {
@@ -250,6 +280,12 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
   let before: ControlState | null = null
   if (guardEffects) before = await readControl(deps.host, deps.home!).catch(() => null)
 
+  const fileTool = call.tool === 'Write' || call.tool === 'Edit' || call.tool === 'NotebookEdit'
+  const filePath = fileTool ? String(input.file_path ?? input.notebook_path ?? '') : ''
+  if (fileTool && filePath) {
+    ctx.fileBefore = (await deps.host.exists(filePath).catch(() => false)) ? await deps.host.readFile(filePath).catch(() => undefined) : null
+  }
+
   const summary = isBash ? summarize(String(input.command ?? '')) : typeof input.file_path === 'string' ? input.file_path : ''
   deps.journal.push({ type: 'tool.start', id: call.id ?? '', tool: call.tool, summary }, clock())
   const started = clock()
@@ -265,6 +301,16 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
     },
     clock(),
   )
+
+  if (fileTool && filePath && ctx.fileBefore !== undefined && result.deny === undefined && result.isError !== true) {
+    try {
+      const after = await deps.host.readFile(filePath)
+      const c = counts(ctx.fileBefore ?? '', after)
+      deps.journal.push({ type: 'file.changed', path: filePath, added: c.added, removed: c.removed, via: call.tool as 'Edit' | 'Write' | 'NotebookEdit' }, clock())
+    } catch {
+      // unreadable after the call (deleted, too big): no count
+    }
+  }
 
   // … and after it: a change is put to the person, undone without a yes.
   if (before) {

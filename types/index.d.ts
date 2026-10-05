@@ -17,12 +17,17 @@ export type Banner = {
   buttons: BannerButton[]
 }
 
+export type ChangeRow = { path: string; added: number; removed: number; isNew: boolean }
+
 declare module 'claude-code' {
   interface PluginState {
     exo: {
       slots: Record<string, Slot>
       banners: Banner[]
       killed: string | null
+      changes: ChangeRow[]
+      selected: string | null
+      diff: string
     }
   }
 }

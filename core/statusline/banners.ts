@@ -26,3 +26,16 @@ export async function pressBanner(host: Host, banner: string, button: string): P
   }
   await action(host)
 }
+
+/** Buttons in exo's panes, by key prefix (`sel:`, `revert:`): the rest of the key is the argument. */
+const paneActions = new Map<string, (host: Host, arg: string) => Promise<void> | void>()
+
+export function onPane(prefix: string, action: (host: Host, arg: string) => Promise<void> | void): void {
+  paneActions.set(prefix, action)
+}
+
+export async function pressPane(host: Host, key: string): Promise<void> {
+  const cut = key.indexOf(':')
+  const action = paneActions.get(key.slice(0, cut + 1))
+  if (action) await action(host, key.slice(cut + 1))
+}

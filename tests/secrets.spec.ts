@@ -6,7 +6,7 @@ import { dispatch } from '../core/dispatcher/dispatcher'
 import type { DispatchDeps, ToolResult } from '../core/dispatcher/dispatcher'
 import { Health } from '../core/health/health'
 import { Journal } from '../core/journal/journal'
-import { entropy, isEnvFile, isPlaceholder, mask, scanDiff, scanText } from '../modules/waechter/secrets-logic'
+import { entropy, isCredentialName, isEnvFile, isPasswordName, isPlaceholder, mask, nameParts, scanDiff, scanText } from '../modules/waechter/secrets-logic'
 import { secretsStep } from '../modules/waechter/secrets'
 import { FakeHost } from './fake-host'
 
@@ -87,6 +87,28 @@ const CLEAN = [
 for (const line of CLEAN) {
   test(`no false alarm: ${line.slice(0, 60)}`, () => assert.deepEqual(scanText(line), []))
 }
+
+// Found live: the old substring match flagged exo's own test-light code.
+const PS = 'pas' + 'sed'
+const NAME_FALSE_ALARMS = [
+  `${PS} = sum(/^# pass (\\d+)/gm, text)`, // exo-allow-secret: false-alarm fixture
+  `{ ${PS}: o.${PS}, failed: o.failed }`, // exo-allow-secret: false-alarm fixture
+  `const compass = "northnorthwest"`, // exo-allow-secret: false-alarm fixture
+  `bypass_cache = someFunctionCall()`, // exo-allow-secret: false-alarm fixture
+  `const tokens = countTokensInTheFile(path)`, // exo-allow-secret: false-alarm fixture
+  `secretary = "Frau Mustermann-Schmidt"`, // exo-allow-secret: false-alarm fixture
+]
+for (const line of NAME_FALSE_ALARMS) {
+  test(`no false alarm on a name that only contains the word: ${line.slice(0, 50)}`, () => assert.deepEqual(scanText(line), []))
+}
+
+test('name parts: whole parts count, camelCase and snake_case alike', () => {
+  for (const n of ['password', 'DB_PASSWORD', 'dbPassword', 'user.pass', 'PWD', 'smtp_passwd']) assert.ok(isPasswordName(n), n)
+  for (const n of [PS, 'compass', 'bypass']) assert.ok(!isPasswordName(n), n)
+  for (const n of ['api_key', 'apiKey', 'API_KEY', 'client_secret', 'authToken', 'GITHUB_TOKEN', 'secret']) assert.ok(isCredentialName(n), n)
+  for (const n of ['tokens', 'tokenizer', 'secretary', 'keyboard', 'apiUrl']) assert.ok(!isCredentialName(n), n)
+  assert.deepEqual(nameParts('dbPasswordHash'), ['db', 'password', 'hash'])
+})
 
 test('lockfiles: only known formats, no entropy guesses', () => {
   const v = j('Zk3q9XvT2mLw8RbN', '4cYp7Hd1Fs6Gj5Ke0Ua2')

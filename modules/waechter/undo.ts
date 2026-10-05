@@ -13,6 +13,7 @@ const KINDS: Record<SnapshotMeta['kind'], string> = {
   checkout: 'git checkout --',
   restore: 'git restore',
   clean: 'git clean',
+  revert: 'Zurücksetzen (Seitenleiste)',
 }
 
 function when(at: number, now: number): string {

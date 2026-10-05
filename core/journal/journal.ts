@@ -16,7 +16,7 @@ type Ev =
   | { type: 'tool.start'; id: string; tool: string; summary: string; kind?: ActivityKind }
   | { type: 'tool.end'; id: string; tool: string; ms: number; ok: boolean; exitCode?: number; files?: string[]; denied?: string }
   | { type: 'file.changed'; path: string; added: number; removed: number; via: 'Edit' | 'Write' | 'NotebookEdit' }
-  | { type: 'test.run'; source: 'testlight' | 'claude'; phase: 'start' | 'end'; ok?: boolean; passed?: number; failed?: number; runner?: string }
+  | { type: 'test.run'; source: 'testlight' | 'claude'; phase: 'start' | 'end'; ok?: boolean; green?: number; red?: number; runner?: string }
   | { type: 'build.run'; ok: boolean }
   | { type: 'ci.status'; state: 'green' | 'red' | 'running' | 'unknown'; runId?: number }
   | { type: 'turn.complete'; turnId: string; ms: number; claims: string[]; reason: string }

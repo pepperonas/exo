@@ -510,6 +510,29 @@ erst, wenn Martin Enter drückt.
 - **Testdaten:** Die Fake-Schlüssel der Tests tragen `exo-allow-secret`, sonst blockierte exo
   die Commits seines eigenen Repos (Selbsttest mit dem eigenen Scanner: 0 Funde).
 
+### 4.8 Stand Etappe 3 (2026-10-05)
+
+- **Modul-Lebenszyklus:** Schritte können zusätzlich `start` (Sitzungsbeginn/Reload),
+  `promptContext` (Text an den nächsten Prompt, über `prompt.submit`) und `turnComplete` (Zeile
+  unter der Antwort) haben; die Laufzeit ruft sie je Modul geschützt auf.
+- **Dateiänderungen** meldet der Kern selbst (`file.changed` mit +/−, Myers-Diff in `core/diff.ts`,
+  gegen `patch` getestet) – alle Cockpit-Module lesen sie aus dem Journal.
+- **Testampel:** Hintergrundlauf über `$.process.spawn` (abbrechbar), `nice -n 10`, 1,5 s
+  entprellt, wartet auf Claudes eigene Testläufe. Für `node --test`/`npm test` läuft die ganze
+  Suite (keine verlässliche Zuordnung Datei → Test); vitest/jest nutzen `related`/
+  `--findRelatedTests`, pytest bei geänderten Testdateien nur diese.
+- **Fertig-Prüfer:** nur bei Dateiänderung im Turn; ein grüner Test- *oder* Buildlauf nach der
+  letzten Änderung genügt (auch der Testampel).
+- **Seitenleiste:** `/changes` öffnet das Pane. Der Vergleich läuft gegen den Stand **vor der
+  ersten Änderung in dieser Sitzung** (gesichert unter `~/.claude/exo/originals/<sitzung>/`),
+  nicht gegen Git – funktioniert damit gleich mit und ohne Git. Zurücksetzen fragt, sichert vorher
+  (sichtbar in `/undo-list`), löscht eine neu entstandene Datei nur nach Rückfrage.
+- **CI-Ampel:** startet im Hintergrund (der Sitzungsstart wartet nicht auf `gh`); der Knopf legt
+  das Log per `$.prompt.fill` ins Eingabefeld, abgeschickt wird von Hand.
+- **Live-Fehlalarm des Secret-Wächters:** Er hat exos eigene Testampel blockiert (`passed = …`
+  galt als Passwort, die Namensprüfung suchte die Zeichenfolge `pass`). Jetzt zählen nur ganze
+  Namensbestandteile (`db_password`, `dbPassword`, `PWD` ja; `passed`, `compass`, `bypass` nein).
+
 ## 5. Zustandsvertrag (`types/index.d.ts`)
 
 `PluginState['exo']`: `status` (Statuszeilen-Slots), `banner` (AbovePrompt-Einträge),

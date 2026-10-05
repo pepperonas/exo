@@ -9,7 +9,7 @@ import type { Config, Prefs } from './config/config'
 import { DEFAULT_RULES_JSON, loadRules } from './config/rules'
 import type { RulesLoad } from './config/rules'
 import { catchDecision, dispatch } from './dispatcher/dispatcher'
-import type { Step, ToolCall, ToolResult } from './dispatcher/dispatcher'
+import type { ModuleEnv, Step, ToolCall, ToolResult, TurnEnd } from './dispatcher/dispatcher'
 import { Health, errorText } from './health/health'
 import { L } from './i18n'
 import { Journal } from './journal/journal'
@@ -36,6 +36,8 @@ export interface Runtime {
   steps: Step[]
   /** The Bash tool's working directory as exo follows it. */
   bashCwd: CwdGuess
+  /** Git root of the session, else its working directory. */
+  project: string
   /** Last liveness text drawn, to skip redundant state writes. */
   shownLiveness?: string
   rulesWarned: boolean
@@ -71,7 +73,9 @@ export async function createRuntime(host: Host, options: Readonly<Record<string,
   journal.restore(await store.get('journal:current').catch(() => undefined), sessionId)
 
   const cwd = await host.cwd().catch(() => '/')
-  return { home, options, prefs, config, rules, journal, health, store, kill: new KillSwitch(), interactive, steps: createSteps(), rulesWarned: false, bashCwd: { cwd, known: true } }
+  const project = (await host.repoRoot().catch(() => null)) ?? cwd
+  return {
+    project, home, options, prefs, config, rules, journal, health, store, kill: new KillSwitch(), interactive, steps: createSteps(), rulesWarned: false, bashCwd: { cwd, known: true } }
 }
 
 /** Applies new prefs: recomputes the config and stores them. */
@@ -150,4 +154,37 @@ export async function refreshLiveness(rt: Runtime, host: Host): Promise<void> {
 
 export function freshPrefs(): Prefs {
   return emptyPrefs()
+}
+
+export function moduleEnv(rt: Runtime, host: Host): ModuleEnv {
+  return { host, journal: rt.journal, config: rt.config, store: rt.store, home: rt.home, project: rt.project, cwd: rt.bashCwd, interactive: rt.interactive, sessionId: rt.journal.sessionId }
+}
+
+/** Runs a lifecycle hook of every enabled module, each guarded on its own. */
+async function each<T>(rt: Runtime, host: Host, call: (step: Step, env: ModuleEnv) => T | Promise<T> | undefined): Promise<T[]> {
+  if (await killReason(rt, host)) return []
+  const env = moduleEnv(rt, host)
+  const out: T[] = []
+  for (const step of rt.steps) {
+    if (!rt.config.enabled[step.id]) continue
+    try {
+      const v = await call(step, env)
+      if (v !== undefined) out.push(v)
+    } catch (err) {
+      rt.health.fail(step.id, errorText(err), await host.now())
+    }
+  }
+  return out
+}
+
+export async function startModules(rt: Runtime, host: Host): Promise<void> {
+  await each(rt, host, (s, env) => s.start?.(env))
+}
+
+export async function promptContexts(rt: Runtime, host: Host): Promise<string[]> {
+  return (await each(rt, host, (s, env) => s.promptContext?.(env))).flat().filter(Boolean)
+}
+
+export async function turnTexts(rt: Runtime, host: Host, t: TurnEnd): Promise<string[]> {
+  return (await each(rt, host, (s, env) => s.turnComplete?.(env, t))).filter((x): x is string => typeof x === 'string' && x.length > 0)
 }

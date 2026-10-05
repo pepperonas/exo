@@ -22,6 +22,7 @@ const SEC = ['tests/secrets.spec.ts']
 const PROD = ['tests/prod.spec.ts']
 const BRAKE = ['tests/brake.spec.ts']
 const DIET = ['tests/diet.spec.ts']
+const COCK = ['tests/cockpit.spec.ts']
 
 export const MUTATIONS: Mutation[] = [
   // ---- shell parser
@@ -126,6 +127,27 @@ export const MUTATIONS: Mutation[] = [
   { id: 'diet-range', file: 'modules/waechter/diet-logic.ts', find: '  if (i.hasRange || i.justCut || SPECIAL.test(i.path)) return null', replace: '  if (SPECIAL.test(i.path)) return null', tests: DIET, breaks: 'gezielte Reads werden trotzdem gekürzt / Endlosschleife' },
   { id: 'diet-guard', file: 'modules/waechter/diet.ts', find: '      lastCut = path\n', replace: '', tests: DIET, breaks: 'zweites Lesen derselben Datei wird wieder gekürzt' },
   { id: 'diet-tail', file: 'modules/waechter/diet.ts', find: '          if (r.exitCode === 0) tail = capTail(r.stdout)', replace: '', tests: DIET, breaks: 'das Ende der Datei fehlt' },
+  { id: 'sec-name-parts', file: 'modules/waechter/secrets-logic.ts', find: 'export const isPasswordName = (name: string) => nameParts(name).some(p => PASSWORD_PARTS.has(p))', replace: 'export const isPasswordName = (name: string) => /pass|pwd/i.test(name)', tests: SEC, breaks: 'passed/compass/bypass gelten als Passwort (Fehlalarm, live erlebt)' },
+  // ---- cockpit
+  { id: 'tl-debounce', file: 'modules/cockpit/testlight.ts', find: '  st.timer = env.host.after(DEBOUNCE_MS, () => void run())', replace: '  void run()', tests: COCK, breaks: 'jede Änderung startet sofort einen Testlauf' },
+  { id: 'tl-nice', file: 'modules/cockpit/testlight.ts', find: "  const argv = ['nice', '-n', '10', ...st.runner.argv(files)]", replace: '  const argv = [...st.runner.argv(files)]', tests: COCK, breaks: 'Hintergrundtests mit voller Priorität' },
+  { id: 'tl-claude-wait', file: 'modules/cockpit/testlight.ts', find: '  if (st.claudeRuns > 0) return schedule() // Claude is testing itself: later', replace: '', tests: COCK, breaks: 'Testampel läuft parallel zu Claudes eigenem Testlauf' },
+  { id: 'tl-cut', file: 'modules/cockpit/testlight.ts', find: '  st.pending.add(e.path)\n  st.running?.stop()', replace: '  st.pending.add(e.path)', tests: COCK, breaks: 'veralteter Lauf wird nicht abgebrochen' },
+  { id: 'tl-once', file: 'modules/cockpit/testlight.ts', find: '      st.undelivered = null\n      return [', replace: '      return [', tests: COCK, breaks: 'rote Tests in jedem Prompt erneut' },
+  { id: 'tl-project', file: 'modules/cockpit/testlight.ts', find: "  if (st.env && !e.path.startsWith(st.env.project + '/')) return", replace: '', tests: COCK, breaks: 'Änderungen außerhalb des Projekts lösen Tests aus' },
+  { id: 'tl-vitest', file: 'modules/cockpit/testlight-logic.ts', find: '    red = Number(vt[1] ?? 0)\n    green = Number(vt[2])', replace: '    green = Number(vt[2])', tests: COCK, breaks: 'vitest-Fehlschläge werden nicht gezählt' },
+  { id: 'tl-ssh', file: 'modules/cockpit/testlight-logic.ts', find: "    if (c.via.some(v => v.kind === 'ssh')) continue\n    const a = c.argv", replace: '    const a = c.argv', tests: COCK, breaks: 'Tests auf einem anderen Rechner gelten als lokale' },
+  { id: 'dc-files', file: 'modules/cockpit/donecheck.ts', find: "  if (!changes.length) return 'nothing-changed'", replace: "  if (!changes.length) return 'unchecked'", tests: COCK, breaks: 'Warnung auch ohne Dateiänderung' },
+  { id: 'dc-after', file: 'modules/cockpit/donecheck.ts', find: '  const green = events.some(e => e.seq > after &&', replace: '  const green = events.some(e => e.seq > 0 &&', tests: COCK, breaks: 'ein grüner Lauf vor der letzten Änderung zählt' },
+  { id: 'dc-reason', file: 'modules/cockpit/donecheck.ts', find: "      if (t.reason !== 'answer' || !claims(t.answer).length) return", replace: '      if (!claims(t.answer).length) return', tests: COCK, breaks: 'Warnung auch bei abgebrochenen Turns' },
+  { id: 'sb-first-touch', file: 'modules/cockpit/sidebar.ts', find: '      if (!originals.has(path)) {', replace: '      if (true) {', tests: COCK, breaks: 'Ausgangsstand wird bei jeder Änderung überschrieben' },
+  { id: 'sb-snapshot', file: 'modules/cockpit/sidebar.ts', find: "    const tar = await env.host.run(['tar', '-czPf', `${dir}/files.tgz`, '--', path])", replace: '    const tar = { exitCode: 0, stderr: \'\' }', tests: COCK, breaks: 'Zurücksetzen ohne Schnappschuss' },
+  { id: 'sb-ask', file: 'modules/cockpit/sidebar.ts', find: "    ok = (await env.host.ask(what, ['Zurücksetzen', 'Abbrechen'])) === 'Zurücksetzen'", replace: '    ok = true', tests: COCK, breaks: 'Zurücksetzen ohne Rückfrage' },
+  { id: 'sb-persist', file: 'modules/cockpit/sidebar.ts', find: '        await persist(env)\n', replace: '', tests: COCK, breaks: 'Ausgangsstände gehen beim Neuladen verloren' },
+  { id: 'ci-once', file: 'modules/cockpit/ci.ts', find: "    if (run.state === 'red' && st.notified !== run.id) {", replace: "    if (run.state === 'red') {", tests: COCK, breaks: 'Toast bei jedem Abruf erneut' },
+  { id: 'ci-idle', file: 'modules/cockpit/ci.ts', find: '  if (now - lastActivity > IDLE_MS) return', replace: '', tests: COCK, breaks: 'CI wird auch in ruhenden Sitzungen abgefragt' },
+  { id: 'ci-backoff', file: 'modules/cockpit/ci.ts', find: 'export const nextDelay = (failures: number) => (failures === 0 ? POLL_MS : Math.min(MAX_BACKOFF_MS, POLL_MS * 2 ** failures))', replace: 'export const nextDelay = (_failures: number) => POLL_MS', tests: COCK, breaks: 'kein Backoff bei Fehlern' },
+  { id: 'core-filechanged', file: 'core/dispatcher/dispatcher.ts', find: "      deps.journal.push({ type: 'file.changed', path: filePath,", replace: "      void ({ type: 'file.changed', path: filePath,", tests: COCK, breaks: 'Dateiänderungen landen nicht im Journal' },
   // ---- dispatcher
   { id: 'fail-closed', file: 'core/dispatcher/dispatcher.ts', find: "      if (policyOf(step.id) === 'closed') {", replace: '      if (false) {', tests: DISP, breaks: 'ein gestörter Wächter lässt durch' },
   { id: 'deny-stops', file: 'core/dispatcher/dispatcher.ts', find: '      return { deny: out.deny }', replace: '      void 0', tests: DISP, breaks: 'eine Ablehnung wird ignoriert' },

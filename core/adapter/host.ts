@@ -27,6 +27,13 @@ export interface Timer {
   cancel(): void
 }
 
+/** A child process running in the background; `stop()` kills it. */
+export interface Spawned {
+  chunks: AsyncIterable<{ stream: 'stdout' | 'stderr'; text: string }>
+  stop(): void
+  done: Promise<{ code: number | null }>
+}
+
 /** The environment variables exo reads; the engine wants them listed. */
 export type EnvName = 'HOME' | 'EXO_DISABLE' | 'NO_COLOR'
 
@@ -61,4 +68,17 @@ export interface Host {
   setBanner(id: string, banner: Banner | null): Promise<void>
   /** Whether exo is switched off by its kill switch, for drawings. */
   setKilled(reason: string | null): Promise<void>
+  spawn(argv: readonly string[], options?: { cwd?: string }): Spawned
+  /** Puts text into the prompt box as a draft; the person sends it. */
+  fillPrompt(text: string): Promise<boolean>
+  openPane(id: string, title: string): Promise<boolean>
+  /** Change sidebar: the list, the selected file and its diff. */
+  setChanges(changes: ChangeRow[], selected: string | null, diff: string): Promise<void>
+}
+
+export interface ChangeRow {
+  path: string
+  added: number
+  removed: number
+  isNew: boolean
 }

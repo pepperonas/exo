@@ -39,6 +39,9 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
   })
   on('fs.list', () => ({ value: [] }))
   on('command.list', () => ({ value: [] }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('turn.start', (_$: any, e: any) => ({ turnId: e.turnId }))
+  on('turn.complete', (_$: any, e: any) => ({ text: e.answer }))
   on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr: '' } }))
   on('session.cwd', () => ({ value: '/work/proj' }))
   on('session.id', () => ({ value: 'sess-test' }))
@@ -54,6 +57,7 @@ function engine(on: any, files: Record<string, string> = {}, env: Record<string,
     return <Text dimColor>{e.props.hint}</Text>
   })
   on('tool.call', (_$: any, e: any) => {
+    if (e.tool === 'Write') fs.set(String(e.file_path), String(e.content))
     ran.push(String(e.command ?? e.file_path))
     return { result: { stdout: 'ok', stderr: '', interrupted: false }, text: 'ok' }
   })
@@ -154,3 +158,32 @@ test('/undo-list answers, without snapshots', async ($, on) => {
   const r = await $.command.run({ command: 'undo-list', args: '' } as any)
   expect(r.text).toContain('Keine Schnappschüsse')
 })
+
+test('done check: a claim after a change without a test shows a line beneath the answer', async ($, on) => {
+  engine(on)
+  await start($)
+  await $.turn.start({ text: 'mach', turnId: 't1' } as any)
+  await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/a.ts', content: 'export const a = 1\n', tool_use_id: 'u1' } as any)
+  const r: any = await $.turn.complete({ answer: 'Fertig, funktioniert.', durationMs: 5, isAborted: false, turnId: 't1', reason: 'answer' } as any)
+  expect(r.text).toContain('In diesem Turn lief kein Test')
+})
+
+test('done check: no claim, no line', async ($, on) => {
+  engine(on)
+  await start($)
+  await $.turn.start({ text: 'mach', turnId: 't2' } as any)
+  await $.tool.call({ tool: 'Write', file_path: '/work/proj/src/b.ts', content: 'x\n', tool_use_id: 'u2' } as any)
+  const r: any = await $.turn.complete({ answer: 'Ich habe b.ts angelegt.', durationMs: 5, isAborted: false, turnId: 't2', reason: 'answer' } as any)
+  expect(r.text).toBe('Ich habe b.ts angelegt.')
+})
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`/changes opens the pane; empty it says so (${surface})`, async ($, on) => {
+    engine(on)
+    await start($)
+    const r = await $.command.run({ command: 'changes', args: '' } as any)
+    expect(r.text).toContain('Änderungen geöffnet')
+    const ui = await $.ui.mount({ plugin: 'exo', component: 'Pane', requestId: 'exo-changes', surface, props: { title: 'Änderungen', isFocused: false, bodyColumns: 60, placement: 'dock' }, viewport: { columns: 120, rows: 40 } } as any)
+    expect(await all(ui)).toContain('noch keine Datei')
+  })
+}

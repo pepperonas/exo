@@ -63,10 +63,34 @@ export function isPlaceholder(v: string): boolean {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** Names whose value is a password: any non-placeholder of 8+ counts. */
-const PASSWORD_NAME = /pass(?:word|wd|phrase)?|pwd/i
-/** Names whose value is a credential: needs length and entropy. */
-const CREDENTIAL_NAME = /secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|client[_-]?secret|auth[_-]?key|credential/i
+/** `dbPassword`, `DB_PASSWORD`, `user.pass` → ['db', 'password'] …: name parts, lower case. */
+export function nameParts(name: string): string[] {
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map(x => x.toLowerCase())
+}
+
+const PASSWORD_PARTS = new Set(['password', 'passwd', 'pass', 'pwd', 'passphrase', 'passwort', 'kennwort'])
+const CREDENTIAL_PARTS = new Set(['secret', 'token', 'apikey', 'credential', 'credentials'])
+const CREDENTIAL_PAIRS = [
+  ['api', 'key'],
+  ['access', 'key'],
+  ['private', 'key'],
+  ['client', 'secret'],
+  ['auth', 'key'],
+  ['auth', 'token'],
+  ['secret', 'key'],
+]
+
+/** A password by its name: a whole name part, not a substring (`passed`, `bypass`). */
+export const isPasswordName = (name: string) => nameParts(name).some(p => PASSWORD_PARTS.has(p))
+export function isCredentialName(name: string): boolean {
+  const parts = nameParts(name)
+  if (parts.some(p => CREDENTIAL_PARTS.has(p))) return true
+  return CREDENTIAL_PAIRS.some(([a, b]) => parts.some((p, i) => p === a && parts[i + 1] === b))
+}
 
 const ASSIGNMENT = /([A-Za-z_][A-Za-z0-9_.-]*)["']?\s*(?::=|=|:)\s*(["'`]?)([^\s"'`,;)}\]]+)\2/g
 
@@ -107,11 +131,11 @@ export function scanText(text: string, options: ScanOptions = {}, lineOffset = 0
       // a regex literal or a path (`NAME = /pass(word)?/`) is no password
       if (value.startsWith('/')) continue
       if (/^(?:https?|file):\/\//.test(value) && !/:[^/@]+@/.test(value)) continue
-      if (PASSWORD_NAME.test(name) && !/_?(?:hash|file|path|field|label|policy|length|min|max|reset|prompt)$/i.test(name)) {
+      if (isPasswordName(name) && !/_?(?:hash|file|path|field|label|policy|length|min|max|reset|prompt)$/i.test(name)) {
         if (value.length >= 8 && !/^\d+$/.test(value)) add('Passwort in Zuweisung', value)
         continue
       }
-      if (CREDENTIAL_NAME.test(name) && !/_?(?:name|type|url|uri|file|path|header|field|id|length|ttl|expires?)$/i.test(name)) {
+      if (isCredentialName(name) && !/_?(?:name|type|url|uri|file|path|header|field|id|length|ttl|expires?)$/i.test(name)) {
         if (value.length >= 16 && entropy(value) >= 3.3 && !UUID.test(value)) add('Zugangsdaten in Zuweisung', value)
       }
     }

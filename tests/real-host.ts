@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpath
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import type { EnvName, Host, RunOptions, Timer } from '../core/adapter/host'
+import type { ChangeRow, EnvName, Host, RunOptions, Spawned, Timer } from '../core/adapter/host'
 import type { Banner, Slot } from '../core/statusline/statusline'
 
 export class RealHost implements Host {
@@ -117,4 +117,48 @@ export class RealHost implements Host {
   async setSlot(_id: string, _slot: Slot | null) {}
   async setBanner(_id: string, _banner: Banner | null) {}
   async setKilled() {}
+
+  spawned: { argv: readonly string[]; cwd?: string; stopped: boolean }[] = []
+  /** What a spawned child prints and exits with, per argv. */
+  spawnResult: (argv: readonly string[]) => { out: string; code: number } = () => ({ out: '', code: 0 })
+  spawn(argv: readonly string[], options?: { cwd?: string }): Spawned {
+    const rec = { argv, cwd: options?.cwd, stopped: false }
+    this.spawned.push(rec)
+    const r = this.spawnResult(argv)
+    let release!: () => void
+    const gate = new Promise<void>(res => (release = res))
+    this.releases.push(release)
+    async function* gen() {
+      await gate
+      if (!rec.stopped) yield { stream: 'stdout' as const, text: r.out }
+    }
+    const chunks = gen()
+    return {
+      chunks,
+      stop: () => {
+        rec.stopped = true
+        release()
+      },
+      done: gate.then(() => ({ code: rec.stopped ? null : r.code })),
+    }
+  }
+  releases: (() => void)[] = []
+  /** Lets every spawned child finish. */
+  finishAll() {
+    for (const r of this.releases.splice(0)) r()
+  }
+  prompts: string[] = []
+  async fillPrompt(text: string) {
+    this.prompts.push(text)
+    return true
+  }
+  panes: string[] = []
+  async openPane(id: string) {
+    this.panes.push(id)
+    return true
+  }
+  changes: { rows: ChangeRow[]; selected: string | null; diff: string } = { rows: [], selected: null, diff: '' }
+  async setChanges(rows: ChangeRow[], selected: string | null, diff: string) {
+    this.changes = { rows, selected, diff }
+  }
 }
