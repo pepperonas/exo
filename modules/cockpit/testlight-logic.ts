@@ -25,7 +25,8 @@ export interface ProjectFacts {
 }
 
 const has = (pkg: ProjectFacts['pkg'], dep: string) => !!(pkg?.dependencies?.[dep] ?? pkg?.devDependencies?.[dep])
-const rel = (root: string, f: string) => (f.startsWith(root + '/') ? f.slice(root.length + 1) : f)
+/** A file for a runner's command line: `./relative` inside the project, so no name reads as an option. */
+const rel = (root: string, f: string) => (f.startsWith(root + '/') ? './' + f.slice(root.length + 1) : f.startsWith('/') ? f : './' + f)
 
 export function detectRunner(p: ProjectFacts, override: string): Runner | null {
   if (override.trim()) {
@@ -165,4 +166,38 @@ export function failureText(text: string, max = FAILURE_MAX): string {
   const out = [...keep].sort((a, b) => a - b).map(i => lines[i]!.trimEnd()).filter(Boolean)
   const joined = (out.length ? out : lines.slice(-20)).join('\n')
   return joined.length > max ? joined.slice(0, max) + '\n…' : joined
+}
+
+/** Files whose content decides what the test light would run (they can run code). */
+export const RUNNER_CONFIG = [
+  'package.json',
+  'pytest.ini',
+  'conftest.py',
+  'tox.ini',
+  'pyproject.toml',
+  'setup.cfg',
+  'Cargo.toml',
+  'build.rs',
+  'gradlew',
+  'build.gradle',
+  'build.gradle.kts',
+  'settings.gradle',
+  'settings.gradle.kts',
+  'go.mod',
+  'vitest.config.ts',
+  'vitest.config.js',
+  'vitest.config.mjs',
+  'jest.config.js',
+  'jest.config.ts',
+  'jest.config.mjs',
+]
+
+/** FNV-1a, 32 bit: a fingerprint, not a security hash. */
+export function fingerprint(text: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h.toString(16).padStart(8, '0')
 }

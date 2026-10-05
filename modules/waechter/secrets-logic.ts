@@ -67,6 +67,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 export function nameParts(name: string): string[] {
   return name
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Za-z])([0-9])/g, '$1 $2')
     .split(/[^A-Za-z0-9]+/)
     .filter(Boolean)
     .map(x => x.toLowerCase())
@@ -84,11 +85,15 @@ const CREDENTIAL_PAIRS = [
   ['secret', 'key'],
 ]
 
-/** A password by its name: a whole name part, not a substring (`passed`, `bypass`). */
-export const isPasswordName = (name: string) => nameParts(name).some(p => PASSWORD_PARTS.has(p))
+/** Unmistakable cores, also inside run-together names (`dbpassword`, `apitoken`). */
+const PASSWORD_CORE = /password|passwd|passphrase|passwort|kennwort|pwd$/
+const CREDENTIAL_CORE = /(?:token|secret|apikey|accesskey|privatekey|secretkey|authkey)$/
+
+/** A password by its name: a whole part (`pass`, `pwd`) or an unmistakable core; not `passed`, `bypass`. */
+export const isPasswordName = (name: string) => nameParts(name).some(p => PASSWORD_PARTS.has(p) || PASSWORD_CORE.test(p))
 export function isCredentialName(name: string): boolean {
   const parts = nameParts(name)
-  if (parts.some(p => CREDENTIAL_PARTS.has(p))) return true
+  if (parts.some(p => CREDENTIAL_PARTS.has(p) || CREDENTIAL_CORE.test(p))) return true
   return CREDENTIAL_PAIRS.some(([a, b]) => parts.some((p, i) => p === a && parts[i + 1] === b))
 }
 

@@ -1,6 +1,6 @@
 # Mutationsprobe
 
-Stand 2026-10-05 · `npm run mutate` · 127/127 erkannt
+Stand 2026-10-05 · `npm run mutate` · 134/134 erkannt
 
 Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“ heißt: die Mutation hat nachweislich gegriffen (Prüfsumme vorher → nachher) und die genannten Tests wurden rot.
 
@@ -29,8 +29,8 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `brace-quoted` | `core/shell/parse.ts` | Befehle in ${x:-'$(…)'} bleiben unsichtbar | erkannt: 1 Test(s) rot · 06f53ae83c3c→86a2a92e373e |
 | `ssh-proxy` | `core/shell/words.ts` | ssh -o ProxyCommand führt unsichtbar lokal aus | erkannt: 4 Test(s) rot · 9fbadc5692e4→4063935d2950 |
 | `find-exec` | `core/shell/words.ts` | find -exec rm bleibt unsichtbar | erkannt: 2 Test(s) rot · 9fbadc5692e4→0f650e186169 |
-| `self-off` | `core/dispatcher/dispatcher.ts` | Claude kann den Notausschalter selbst setzen | erkannt: 4 Test(s) rot · 5a38263a30b7→e738df693a4b |
-| `self-esc` | `core/dispatcher/dispatcher.ts` | Esc im Dialog erlaubt die Änderung | erkannt: 2 Test(s) rot · 5a38263a30b7→a63a990c501d |
+| `self-off` | `core/dispatcher/dispatcher.ts` | Claude kann den Notausschalter selbst setzen | erkannt: 4 Test(s) rot · c2ffdfc67292→20ce8d9012f4 |
+| `self-esc` | `core/dispatcher/dispatcher.ts` | Esc im Dialog erlaubt die Änderung | erkannt: 2 Test(s) rot · c2ffdfc67292→f293c3cde624 |
 | `self-path` | `core/selfprotect.ts` | Write auf ~/.claude/exo/ geht ungefragt durch | erkannt: 7 Test(s) rot · c6cccd80c901→359106802ea0 |
 | `self-readonly` | `core/selfprotect.ts` | jeder Bash-Befehl gilt als nur lesend | erkannt: 29 Test(s) rot · c6cccd80c901→5a6bb51aed35 |
 | `self-settings` | `core/selfprotect.ts` | exo-Optionen in settings.json gehen ungefragt durch | erkannt: 3 Test(s) rot · c6cccd80c901→f158215223ee |
@@ -48,27 +48,27 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `self-cwd-dir` | `core/selfprotect.ts` | cd ~/.claude/exo, dann touch x | erkannt: 1 Test(s) rot · c6cccd80c901→312b313df429 |
 | `self-cwd-rel` | `core/selfprotect.ts` | relative Ziele nach ~/.claude/exo | erkannt: 1 Test(s) rot · c6cccd80c901→30ac45d7ca23 |
 | `self-cwd-after` | `core/selfprotect.ts` | cd innerhalb des Befehls wird übersehen | erkannt: 1 Test(s) rot · c6cccd80c901→bb18881ba01f |
-| `eff-off` | `core/dispatcher/dispatcher.ts` | verschleierte Befehle setzen DISABLED unbemerkt | erkannt: 7 Test(s) rot · 5a38263a30b7→d486affa3398 |
-| `eff-esc` | `core/dispatcher/dispatcher.ts` | Esc behält die Änderung | erkannt: 5 Test(s) rot · 5a38263a30b7→2900814c2e7a |
-| `eff-noui` | `core/dispatcher/dispatcher.ts` | ohne UI bleibt die Änderung | erkannt: 1 Test(s) rot · 5a38263a30b7→ae3d36a88840 |
-| `eff-disabled` | `core/integrity.ts` | DISABLED wird nicht bemerkt | erkannt: 6 Test(s) rot · 34345ab44b87→a5548e71edf3 |
-| `eff-rules` | `core/integrity.ts` | rules.json-Änderung wird nicht bemerkt | erkannt: 1 Test(s) rot · 34345ab44b87→2950ed7bcfd1 |
-| `eff-settings` | `core/integrity.ts` | settings.json-Änderung wird nicht bemerkt | erkannt: 1 Test(s) rot · 34345ab44b87→728bfc1cb74d |
-| `eff-prefs` | `core/integrity.ts` | /exo-Schalter im Store unbemerkt geändert | erkannt: 1 Test(s) rot · 34345ab44b87→7d28ab29be90 |
-| `eff-keep-others` | `core/integrity.ts` | Rücksetzen löscht fremde Plugin-Einstellungen | erkannt: 1 Test(s) rot · 34345ab44b87→798b74c43a61 |
-| `eff-approved` | `core/dispatcher/dispatcher.ts` | nach Zulassen wird ein zweites Mal gefragt (und rückgängig gemacht) | erkannt: 2 Test(s) rot · 5a38263a30b7→f569a44ce926 |
-| `eff-approved-scope` | `core/dispatcher/dispatcher.ts` | ein Zulassen deckt auch andere Schalter | erkannt: 1 Test(s) rot · 5a38263a30b7→4f5f3a923dc5 |
-| `eff-approved-bash` | `core/dispatcher/dispatcher.ts` | ein Bash-Zulassen deckt die Wirkung | erkannt: 1 Test(s) rot · 5a38263a30b7→6927291616f8 |
-| `sec-anthropic` | `modules/waechter/secrets-logic.ts` | Anthropic-Schlüssel werden nicht erkannt | erkannt: 7 Test(s) rot · 04ee3d48f8d0→498f36b49b04 |
-| `sec-github` | `modules/waechter/secrets-logic.ts` | GitHub-Tokens werden nicht erkannt | erkannt: 4 Test(s) rot · 04ee3d48f8d0→e1d316274e36 |
-| `sec-pem` | `modules/waechter/secrets-logic.ts` | private Schlüssel werden nicht erkannt | erkannt: 1 Test(s) rot · 04ee3d48f8d0→eba923b4e99e |
-| `sec-mask` | `modules/waechter/secrets-logic.ts` | Meldungen zeigen das Geheimnis im Klartext | erkannt: 11 Test(s) rot · 04ee3d48f8d0→55ba8e5870cd |
-| `sec-password` | `modules/waechter/secrets-logic.ts` | Passwörter in Zuweisungen fallen durch | erkannt: 1 Test(s) rot · 04ee3d48f8d0→1475839126a2 |
-| `sec-entropy` | `modules/waechter/secrets-logic.ts` | Zeichenketten mit hoher Entropie fallen durch | erkannt: 1 Test(s) rot · 04ee3d48f8d0→ceccf4937237 |
-| `sec-placeholder` | `modules/waechter/secrets-logic.ts` | Platzhalter lösen Fehlalarm aus | erkannt: 2 Test(s) rot · 04ee3d48f8d0→6318cea92337 |
-| `sec-uuid` | `modules/waechter/secrets-logic.ts` | Hashes und UUIDs lösen Fehlalarm aus | erkannt: 1 Test(s) rot · 04ee3d48f8d0→173cd7459363 |
-| `sec-allow` | `modules/waechter/secrets-logic.ts` | exo-allow-secret wirkt nicht | erkannt: 1 Test(s) rot · 04ee3d48f8d0→42db7233e4fd |
-| `sec-diff-added` | `modules/waechter/secrets-logic.ts` | auch entfernte Zeilen gelten als Fund | erkannt: 1 Test(s) rot · 04ee3d48f8d0→6dfcd961113e |
+| `eff-off` | `core/dispatcher/dispatcher.ts` | verschleierte Befehle setzen DISABLED unbemerkt | erkannt: 7 Test(s) rot · c2ffdfc67292→fc00c3d05317 |
+| `eff-esc` | `core/integrity.ts` | Esc behält die Änderung | erkannt: 5 Test(s) rot · a42ffb83bbd4→a8dd7626103e |
+| `eff-noui` | `core/integrity.ts` | ohne UI bleibt die Änderung | erkannt: 1 Test(s) rot · a42ffb83bbd4→fd073fcf32a4 |
+| `eff-disabled` | `core/integrity.ts` | DISABLED wird nicht bemerkt | erkannt: 6 Test(s) rot · a42ffb83bbd4→ea6b3c6265f5 |
+| `eff-rules` | `core/integrity.ts` | rules.json-Änderung wird nicht bemerkt | erkannt: 1 Test(s) rot · a42ffb83bbd4→a96249138649 |
+| `eff-settings` | `core/integrity.ts` | settings.json-Änderung wird nicht bemerkt | erkannt: 1 Test(s) rot · a42ffb83bbd4→50841466f564 |
+| `eff-prefs` | `core/integrity.ts` | /exo-Schalter im Store unbemerkt geändert | erkannt: 1 Test(s) rot · a42ffb83bbd4→2ee677bc8c5b |
+| `eff-keep-others` | `core/integrity.ts` | Rücksetzen löscht fremde Plugin-Einstellungen | erkannt: 1 Test(s) rot · a42ffb83bbd4→1636b14d3b6c |
+| `eff-approved` | `core/dispatcher/dispatcher.ts` | nach Zulassen wird ein zweites Mal gefragt (und rückgängig gemacht) | erkannt: 2 Test(s) rot · c2ffdfc67292→5ac5ecc6528e |
+| `eff-approved-scope` | `core/dispatcher/dispatcher.ts` | ein Zulassen deckt auch andere Schalter | erkannt: 1 Test(s) rot · c2ffdfc67292→f791510adea2 |
+| `eff-approved-bash` | `core/dispatcher/dispatcher.ts` | ein Bash-Zulassen deckt die Wirkung | erkannt: 1 Test(s) rot · c2ffdfc67292→52ae9162756a |
+| `sec-anthropic` | `modules/waechter/secrets-logic.ts` | Anthropic-Schlüssel werden nicht erkannt | erkannt: 7 Test(s) rot · 86dbaf356b22→e367341e9924 |
+| `sec-github` | `modules/waechter/secrets-logic.ts` | GitHub-Tokens werden nicht erkannt | erkannt: 4 Test(s) rot · 86dbaf356b22→24e10cef768c |
+| `sec-pem` | `modules/waechter/secrets-logic.ts` | private Schlüssel werden nicht erkannt | erkannt: 1 Test(s) rot · 86dbaf356b22→7e2e3f414d9a |
+| `sec-mask` | `modules/waechter/secrets-logic.ts` | Meldungen zeigen das Geheimnis im Klartext | erkannt: 11 Test(s) rot · 86dbaf356b22→0a7400a3068d |
+| `sec-password` | `modules/waechter/secrets-logic.ts` | Passwörter in Zuweisungen fallen durch | erkannt: 1 Test(s) rot · 86dbaf356b22→40122cf02cee |
+| `sec-entropy` | `modules/waechter/secrets-logic.ts` | Zeichenketten mit hoher Entropie fallen durch | erkannt: 1 Test(s) rot · 86dbaf356b22→74983d944bc7 |
+| `sec-placeholder` | `modules/waechter/secrets-logic.ts` | Platzhalter lösen Fehlalarm aus | erkannt: 2 Test(s) rot · 86dbaf356b22→16233750927f |
+| `sec-uuid` | `modules/waechter/secrets-logic.ts` | Hashes und UUIDs lösen Fehlalarm aus | erkannt: 1 Test(s) rot · 86dbaf356b22→4222b3d85984 |
+| `sec-allow` | `modules/waechter/secrets-logic.ts` | exo-allow-secret wirkt nicht | erkannt: 1 Test(s) rot · 86dbaf356b22→f795129a01ac |
+| `sec-diff-added` | `modules/waechter/secrets-logic.ts` | auch entfernte Zeilen gelten als Fund | erkannt: 1 Test(s) rot · 86dbaf356b22→b5b32712b278 |
 | `sec-env` | `modules/waechter/secrets.ts` | ignorierte .env wird blockiert | erkannt: 1 Test(s) rot · fd2a60a2a137→94f1947cb34a |
 | `sec-commit` | `modules/waechter/secrets.ts` | der Staging-Diff wird nicht geprüft | erkannt: 1 Test(s) rot · fd2a60a2a137→5b43acf6b013 |
 | `sec-push` | `modules/waechter/secrets.ts` | zu pushende Commits werden nicht geprüft | erkannt: 1 Test(s) rot · fd2a60a2a137→af15fb23acac |
@@ -101,15 +101,15 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `diet-range` | `modules/waechter/diet-logic.ts` | gezielte Reads werden trotzdem gekürzt / Endlosschleife | erkannt: 1 Test(s) rot · c25f29a9f97e→a53e774559b7 |
 | `diet-guard` | `modules/waechter/diet.ts` | zweites Lesen derselben Datei wird wieder gekürzt | erkannt: 1 Test(s) rot · 08ba2897039d→fa5758856bd6 |
 | `diet-tail` | `modules/waechter/diet.ts` | das Ende der Datei fehlt | erkannt: 1 Test(s) rot · 08ba2897039d→e421978c3482 |
-| `sec-name-parts` | `modules/waechter/secrets-logic.ts` | passed/compass/bypass gelten als Passwort (Fehlalarm, live erlebt) | erkannt: 4 Test(s) rot · 04ee3d48f8d0→9b06d03cebca |
-| `tl-debounce` | `modules/cockpit/testlight.ts` | jede Änderung startet sofort einen Testlauf | erkannt: 2 Test(s) rot · 324b6658441a→1ae649706905 |
-| `tl-nice` | `modules/cockpit/testlight.ts` | Hintergrundtests mit voller Priorität | erkannt: 1 Test(s) rot · 324b6658441a→0d9e93760b0e |
-| `tl-claude-wait` | `modules/cockpit/testlight.ts` | Testampel läuft parallel zu Claudes eigenem Testlauf | erkannt: 1 Test(s) rot · 324b6658441a→a9a800801dd0 |
-| `tl-cut` | `modules/cockpit/testlight.ts` | veralteter Lauf wird nicht abgebrochen | erkannt: 1 Test(s) rot · 324b6658441a→d67eca368592 |
-| `tl-once` | `modules/cockpit/testlight.ts` | rote Tests in jedem Prompt erneut | erkannt: 1 Test(s) rot · 324b6658441a→b62866aa8ce0 |
-| `tl-project` | `modules/cockpit/testlight.ts` | Änderungen außerhalb des Projekts lösen Tests aus | erkannt: 1 Test(s) rot · 324b6658441a→0ac748690e84 |
-| `tl-vitest` | `modules/cockpit/testlight-logic.ts` | vitest-Fehlschläge werden nicht gezählt | erkannt: 1 Test(s) rot · 83e1394067a4→15d47ed14d3c |
-| `tl-ssh` | `modules/cockpit/testlight-logic.ts` | Tests auf einem anderen Rechner gelten als lokale | erkannt: 1 Test(s) rot · 83e1394067a4→4538d6206d5c |
+| `sec-name-parts` | `modules/waechter/secrets-logic.ts` | passed/compass/bypass gelten als Passwort (Fehlalarm, live erlebt) | erkannt: 4 Test(s) rot · 86dbaf356b22→87159880da9c |
+| `tl-debounce` | `modules/cockpit/testlight.ts` | jede Änderung startet sofort einen Testlauf | erkannt: 2 Test(s) rot · 3727cc440ed9→89ab61423261 |
+| `tl-nice` | `modules/cockpit/testlight.ts` | Hintergrundtests mit voller Priorität | erkannt: 1 Test(s) rot · 3727cc440ed9→4a0c375f515a |
+| `tl-claude-wait` | `modules/cockpit/testlight.ts` | Testampel läuft parallel zu Claudes eigenem Testlauf | erkannt: 1 Test(s) rot · 3727cc440ed9→81b630f34282 |
+| `tl-cut` | `modules/cockpit/testlight.ts` | veralteter Lauf wird nicht abgebrochen | erkannt: 1 Test(s) rot · 3727cc440ed9→a34cbcf9f75f |
+| `tl-once` | `modules/cockpit/testlight.ts` | rote Tests in jedem Prompt erneut | erkannt: 1 Test(s) rot · 3727cc440ed9→5ffa4e2c2509 |
+| `tl-project` | `modules/cockpit/testlight.ts` | Änderungen außerhalb des Projekts lösen Tests aus | erkannt: 1 Test(s) rot · 3727cc440ed9→a37d8a823791 |
+| `tl-vitest` | `modules/cockpit/testlight-logic.ts` | vitest-Fehlschläge werden nicht gezählt | erkannt: 1 Test(s) rot · bdf1e85975ce→ad863d2ff12e |
+| `tl-ssh` | `modules/cockpit/testlight-logic.ts` | Tests auf einem anderen Rechner gelten als lokale | erkannt: 1 Test(s) rot · bdf1e85975ce→72784b768c6f |
 | `dc-files` | `modules/cockpit/donecheck.ts` | Warnung auch ohne Dateiänderung | erkannt: 1 Test(s) rot · 40a8f3756d55→290615c8fae8 |
 | `dc-after` | `modules/cockpit/donecheck.ts` | ein grüner Lauf vor der letzten Änderung zählt | erkannt: 1 Test(s) rot · 40a8f3756d55→72bae0c51e7c |
 | `dc-reason` | `modules/cockpit/donecheck.ts` | Warnung auch bei abgebrochenen Turns | erkannt: 1 Test(s) rot · 40a8f3756d55→2b701100e015 |
@@ -120,14 +120,21 @@ Jede Zeile bricht absichtlich ein sicherheitsrelevantes Verhalten. „erkannt“
 | `ci-once` | `modules/cockpit/ci.ts` | Toast bei jedem Abruf erneut | erkannt: 1 Test(s) rot · 00aba8d9b363→3dffbf619a00 |
 | `ci-idle` | `modules/cockpit/ci.ts` | CI wird auch in ruhenden Sitzungen abgefragt | erkannt: 1 Test(s) rot · 00aba8d9b363→b32986d6463c |
 | `ci-backoff` | `modules/cockpit/ci.ts` | kein Backoff bei Fehlern | erkannt: 1 Test(s) rot · 00aba8d9b363→acac5122ad4e |
-| `core-filechanged` | `core/dispatcher/dispatcher.ts` | Dateiänderungen landen nicht im Journal | erkannt: 1 Test(s) rot · 5a38263a30b7→389a40f7d771 |
-| `fail-closed` | `core/dispatcher/dispatcher.ts` | ein gestörter Wächter lässt durch | erkannt: 2 Test(s) rot · 5a38263a30b7→6f0d4a75f640 |
-| `deny-stops` | `core/dispatcher/dispatcher.ts` | eine Ablehnung wird ignoriert | erkannt: 1 Test(s) rot · 5a38263a30b7→ad7d86224169 |
-| `kill-first` | `core/dispatcher/dispatcher.ts` | der Notausschalter wirkt nicht im Dispatcher | erkannt: 1 Test(s) rot · 5a38263a30b7→98eeb2abfca2 |
-| `step-order` | `core/dispatcher/dispatcher.ts` | die feste Reihenfolge gilt nicht | erkannt: 1 Test(s) rot · 5a38263a30b7→fcc00e90ec7e |
-| `catch-guarded` | `core/dispatcher/dispatcher.ts` | der Kern-Ausfall lässt Bash durch | erkannt: 2 Test(s) rot · 5a38263a30b7→cf81afb078e5 |
-| `catch-ran` | `core/dispatcher/dispatcher.ts` | ein schon gelaufener Aufruf wird nachträglich abgelehnt | erkannt: 1 Test(s) rot · 5a38263a30b7→9a69cc2f765b |
-| `disabled-off` | `core/dispatcher/dispatcher.ts` | abgeschaltete Module laufen weiter | erkannt: 1 Test(s) rot · 5a38263a30b7→e01c44c018ac |
+| `core-filechanged` | `core/dispatcher/dispatcher.ts` | Dateiänderungen landen nicht im Journal | erkannt: 1 Test(s) rot · c2ffdfc67292→21c5c5057151 |
+| `tl-consent` | `modules/cockpit/testlight.ts` | Projektbefehle laufen ohne Zustimmung | erkannt: 3 Test(s) rot · 3727cc440ed9→1c46098f7cc0 |
+| `tl-consent-fp` | `modules/cockpit/testlight.ts` | geänderte Test-Konfiguration läuft ohne neue Frage | erkannt: 1 Test(s) rot · 3727cc440ed9→dfe31b31d3d9 |
+| `tl-noui` | `modules/cockpit/testlight.ts` | ohne UI wird trotzdem gefragt/gestartet | erkannt: 1 Test(s) rot · 3727cc440ed9→e81f59c379f2 |
+| `tl-effects` | `modules/cockpit/testlight.ts` | Testlauf schaltet exo unbemerkt ab | erkannt: 1 Test(s) rot · 3727cc440ed9→8e872dd0b181 |
+| `tl-argv-dot` | `modules/cockpit/testlight-logic.ts` | Dateinamen werden als Optionen gelesen | erkannt: 2 Test(s) rot · bdf1e85975ce→069d976af6f5 |
+| `sec-name-core` | `modules/waechter/secrets-logic.ts` | dbpassword/rootpwd rutschen durch | erkannt: 1 Test(s) rot · 86dbaf356b22→2fc0fe177ad7 |
+| `sec-name-digits` | `modules/waechter/secrets-logic.ts` | pass123 rutscht durch | erkannt: 1 Test(s) rot · 86dbaf356b22→f7bf63b73e29 |
+| `fail-closed` | `core/dispatcher/dispatcher.ts` | ein gestörter Wächter lässt durch | erkannt: 2 Test(s) rot · c2ffdfc67292→ac6a5b33539c |
+| `deny-stops` | `core/dispatcher/dispatcher.ts` | eine Ablehnung wird ignoriert | erkannt: 1 Test(s) rot · c2ffdfc67292→3eb1cbbada05 |
+| `kill-first` | `core/dispatcher/dispatcher.ts` | der Notausschalter wirkt nicht im Dispatcher | erkannt: 1 Test(s) rot · c2ffdfc67292→de2a959d16f7 |
+| `step-order` | `core/dispatcher/dispatcher.ts` | die feste Reihenfolge gilt nicht | erkannt: 1 Test(s) rot · c2ffdfc67292→9b9d1a1f22cf |
+| `catch-guarded` | `core/dispatcher/dispatcher.ts` | der Kern-Ausfall lässt Bash durch | erkannt: 2 Test(s) rot · c2ffdfc67292→c5bf52252b92 |
+| `catch-ran` | `core/dispatcher/dispatcher.ts` | ein schon gelaufener Aufruf wird nachträglich abgelehnt | erkannt: 1 Test(s) rot · c2ffdfc67292→930e8fbb9dca |
+| `disabled-off` | `core/dispatcher/dispatcher.ts` | abgeschaltete Module laufen weiter | erkannt: 1 Test(s) rot · c2ffdfc67292→9f395b337d25 |
 | `kill-file` | `core/killswitch.ts` | die DISABLED-Datei wirkt nicht | erkannt: 2 Test(s) rot · da54bcf5bb3e→47f842ebc53c |
 | `kill-env` | `core/killswitch.ts` | EXO_DISABLE wirkt nicht | erkannt: 1 Test(s) rot · da54bcf5bb3e→7319566b0932 |
 | `kill-cache` | `core/killswitch.ts` | die Datei wird nach dem ersten Blick nie wieder geprüft | erkannt: 1 Test(s) rot · da54bcf5bb3e→efef0eb52577 |

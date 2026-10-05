@@ -527,6 +527,11 @@ erst, wenn Martin Enter drückt.
   ersten Änderung in dieser Sitzung** (gesichert unter `~/.claude/exo/originals/<sitzung>/`),
   nicht gegen Git – funktioniert damit gleich mit und ohne Git. Zurücksetzen fragt, sichert vorher
   (sichtbar in `/undo-list`), löscht eine neu entstandene Datei nur nach Rückfrage.
+- **Testampel – Zustimmung (nach Sicherheitsprüfung):** Projektbefehle (`npm test`, `gradlew`,
+  `conftest.py` …) laufen erst nach einem **Erlauben** pro Projekt; gespeichert mit einem
+  Fingerabdruck der Runner-Konfiguration (Store-Schlüssel `trust`, außerhalb des Repos), bei jeder
+  Änderung daran neu gefragt; ohne UI nie. Um jeden Hintergrundlauf liegt dieselbe
+  Wirkungsprüfung wie um Tool-Aufrufe. Dateinamen gehen als `./pfad` an den Runner.
 - **CI-Ampel:** startet im Hintergrund (der Sitzungsstart wartet nicht auf `gh`); der Knopf legt
   das Log per `$.prompt.fill` ins Eingabefeld, abgeschickt wird von Hand.
 - **Live-Fehlalarm des Secret-Wächters:** Er hat exos eigene Testampel blockiert (`passed = …`

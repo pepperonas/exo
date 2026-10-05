@@ -30,7 +30,7 @@ import { counts } from '../diff'
 import { cwdAfter } from '../cwd'
 import type { CwdGuess } from '../cwd'
 import { READ_TOOLS } from '../tools'
-import { KEEP, QUESTION, REVERT, changeIs, describe, diffControl, readControl, undo } from '../integrity'
+import { changeIs, readControl, settleEffects, undoneText } from '../integrity'
 import type { ControlState } from '../integrity'
 import type { StoreBox } from '../store/store'
 import { ALLOW, CONTROL_DENIED, CONTROL_QUESTION, touchesControlResolved } from '../selfprotect'
@@ -315,22 +315,9 @@ export async function dispatch(deps: DispatchDeps, call: ToolCall, next: (input:
   // … and after it: a change is put to the person, undone without a yes.
   if (before) {
     try {
-      const changes = diffControl(before, await readControl(deps.host, deps.home!))
-      const undone: string[] = []
-      for (const c of changes) {
-        if (approvedPath && changeIs(c, approvedPath)) continue
-        let keep = false
-        if (deps.interactive) {
-          try {
-            keep = (await ctx.untimed(deps.host.ask(QUESTION(describe(c)), [KEEP, REVERT]))) === KEEP
-          } catch {
-            keep = false
-          }
-        }
-        if (!keep && (await undo(deps.host, deps.home!, c))) undone.push(describe(c))
-      }
+      const undone = await settleEffects(deps.host, deps.home!, before, deps.interactive, ctx.untimed, c => approvedPath !== null && changeIs(c, approvedPath))
       if (undone.length) {
-        const text = `exo: rückgängig gemacht – ${undone.join('; ')}. exo abschalten kannst nur du selbst (touch ~/.claude/exo/DISABLED im eigenen Terminal oder /exo off).`
+        const text = undoneText(undone)
         ctx.notes.push(text)
         deps.host.toast(text, 8000)
         deps.journal.push({ type: 'module.error', module: 'self', message: `Steueränderung rückgängig: ${undone.length}` }, clock())

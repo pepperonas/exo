@@ -35,18 +35,26 @@ test('run kind: tests and builds Claude starts itself', () => {
   for (const s of ['npm install', 'ls', 'git status', 'ssh h npm test', 'echo test']) assert.equal(k(s), null, s)
 })
 
+test('review: file names never reach a runner as options', () => {
+  const base = { root: PROJECT, hasPytest: true, hasCargo: false, hasGradlew: false, hasGradle: false, hasGoMod: false }
+  const evil = [`${PROJECT}/--config=evil.js`, `${PROJECT}/tests/-k.py`]
+  for (const r of [detectRunner({ ...base, pkg: { devDependencies: { vitest: '1' } } }, '')!, detectRunner({ ...base, pkg: { devDependencies: { jest: '1' } } }, '')!, detectRunner(base, 'bin/t {files}')!]) {
+    for (const a of r.argv(evil).filter(a => a.includes('config=evil') || a.includes('-k.py'))) assert.ok(a.startsWith('./'), a)
+  }
+})
+
 test('runner detection', () => {
   const base = { root: PROJECT, hasPytest: false, hasCargo: false, hasGradlew: false, hasGradle: false, hasGoMod: false }
   const files = [`${PROJECT}/src/a.ts`]
-  assert.deepEqual(detectRunner({ ...base, pkg: { devDependencies: { vitest: '1' } } }, '')!.argv(files), ['npx', '--no-install', 'vitest', 'related', '--run', 'src/a.ts'])
-  assert.deepEqual(detectRunner({ ...base, pkg: { devDependencies: { jest: '1' } } }, '')!.argv(files).slice(0, 5), ['npx', '--no-install', 'jest', '--findRelatedTests', 'src/a.ts'])
+  assert.deepEqual(detectRunner({ ...base, pkg: { devDependencies: { vitest: '1' } } }, '')!.argv(files), ['npx', '--no-install', 'vitest', 'related', '--run', './src/a.ts'])
+  assert.deepEqual(detectRunner({ ...base, pkg: { devDependencies: { jest: '1' } } }, '')!.argv(files).slice(0, 5), ['npx', '--no-install', 'jest', '--findRelatedTests', './src/a.ts'])
   assert.equal(detectRunner({ ...base, pkg: { scripts: { test: 'node --import tsx --test tests/*.spec.ts' } } }, '')!.name, 'node')
   assert.equal(detectRunner({ ...base, pkg: { scripts: { test: 'echo "Error: no test specified" && exit 1' } } }, ''), null)
-  assert.deepEqual(detectRunner({ ...base, hasPytest: true }, '')!.argv([`${PROJECT}/tests/test_a.py`]), ['python3', '-m', 'pytest', '-q', 'tests/test_a.py'])
+  assert.deepEqual(detectRunner({ ...base, hasPytest: true }, '')!.argv([`${PROJECT}/tests/test_a.py`]), ['python3', '-m', 'pytest', '-q', './tests/test_a.py'])
   assert.deepEqual(detectRunner({ ...base, hasPytest: true }, '')!.argv([`${PROJECT}/app.py`]), ['python3', '-m', 'pytest', '-q'])
   assert.equal(detectRunner({ ...base, hasCargo: true }, '')!.name, 'cargo')
   assert.deepEqual(detectRunner(base, 'make check FILES={files}')!.argv(files), ['make', 'check', 'FILES={files}'])
-  assert.deepEqual(detectRunner(base, 'bin/test {files}')!.argv(files), ['bin/test', 'src/a.ts'])
+  assert.deepEqual(detectRunner(base, 'bin/test {files}')!.argv(files), ['bin/test', './src/a.ts'])
   assert.equal(detectRunner(base, ''), null)
 })
 
@@ -84,9 +92,10 @@ test('slot text', () => {
 
 // ---------------------------------------------------------------- test light flow
 
-async function lightEnv() {
+async function lightEnv(trust = true) {
   resetTestlight()
   const host = new FakeHost()
+  if (trust) host.answers = ['Erlauben']
   host.files.set(`${PROJECT}/package.json`, JSON.stringify({ scripts: { test: 'node --test' } }))
   const journal = new Journal('s')
   const step = testlightStep()
@@ -324,4 +333,78 @@ test('ci: idle sessions are not polled; errors back off', async () => {
   host.runResult = () => ({ exitCode: 1, stdout: '', stderr: 'boom' })
   await poll(e)
   assert.equal(ciState().failures, 1)
+})
+
+
+// ---- review: the test light must not run repo-defined commands without consent
+test('test light asks once per project before running anything', async () => {
+  const { host, journal } = await lightEnv(false)
+  host.answers = ['Nicht erlauben']
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  await tick()
+  assert.equal(host.spawned.length, 0)
+  assert.ok(host.asked[0]!.question.includes('npm test'))
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  assert.equal(host.asked.length, 1) // the no is remembered
+  assert.equal(host.spawned.length, 0)
+})
+
+test('test light: consent is remembered, and asked again when the runner config changes', async () => {
+  const { host, journal } = await lightEnv()
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  await tick()
+  assert.equal(host.spawned.length, 1)
+  host.finishAll()
+  await tick()
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  await tick()
+  assert.equal(host.asked.length, 1)
+  assert.equal(host.spawned.length, 2)
+  host.finishAll()
+  await tick()
+  host.files.set(`${PROJECT}/package.json`, JSON.stringify({ scripts: { test: 'touch ~/.claude/exo/DISABLED' } }))
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  await tick()
+  assert.equal(host.asked.length, 2)
+  assert.ok(host.asked[1]!.question.includes('geändert'))
+  assert.equal(host.spawned.length, 2) // no answer: nothing ran
+})
+
+test('test light: without a UI nothing runs', async () => {
+  resetTestlight()
+  const host = new FakeHost()
+  host.files.set(`${PROJECT}/package.json`, JSON.stringify({ scripts: { test: 'node --test' } }))
+  const journal = new Journal('s')
+  testlightStep().start!(env(host, journal, { interactive: false }))
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  assert.equal(host.spawned.length, 0)
+  assert.equal(host.asked.length, 0)
+})
+
+test('test light: a background run that switches exo off is undone', async () => {
+  const { host, journal } = await lightEnv()
+  host.runResult = argv => {
+    if (argv[0] === 'rm') for (const p of argv.slice(2)) host.files.delete(p)
+    return { exitCode: 0, stdout: '', stderr: '' }
+  }
+  change(journal)
+  await host.advance(DEBOUNCE_MS)
+  await tick()
+  await tick()
+  host.files.set('/home/u/.claude/exo/DISABLED', '') // what the repo's test script did
+  host.finishAll()
+  for (let i = 0; i < 6; i++) await tick()
+  assert.equal(host.files.has('/home/u/.claude/exo/DISABLED'), false)
 })

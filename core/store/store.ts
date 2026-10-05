@@ -18,6 +18,8 @@ export const BUDGETS = {
   achievements: 65_536,
   lastSession: 65_536,
   health: 32_768,
+  trust: 32_768,
+  lessons: 65_536,
 } as const
 
 export type StoreKey = keyof typeof BUDGETS

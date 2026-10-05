@@ -110,6 +110,11 @@ test('name parts: whole parts count, camelCase and snake_case alike', () => {
   assert.deepEqual(nameParts('dbPasswordHash'), ['db', 'password', 'hash'])
 })
 
+test('review: concatenated and numbered names still count', () => {
+  for (const n of ['dbpassword', 'MYSQLPASSWORD', 'pass123', 'rootpwd', 'smtppasswd', 'adminPassphrase']) assert.ok(isPasswordName(n), n)
+  for (const n of ['apitoken', 'githubtoken', 'clientsecret', 'awssecretkey', 'myapikey']) assert.ok(isCredentialName(n), n)
+})
+
 test('lockfiles: only known formats, no entropy guesses', () => {
   const v = j('Zk3q9XvT2mLw8RbN', '4cYp7Hd1Fs6Gj5Ke0Ua2')
   assert.deepEqual(scanText(`"resolved": "${v}"`, { lockfile: true }), [])

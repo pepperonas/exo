@@ -146,3 +146,36 @@ export async function undo(host: Host, home: string, c: ControlChange): Promise<
 export const KEEP = 'Behalten'
 export const REVERT = 'Rückgängig machen'
 export const QUESTION = (what: string) => `Während eines Claude-Aufrufs hat sich an exo etwas geändert: ${what}. Behalten?`
+
+/**
+ * After work that could have changed the switches: each change is put to the
+ * person (keep / undo); undone without a yes. Returns what was undone.
+ * `skip` leaves out the change the person already allowed up front.
+ */
+export async function settleEffects(
+  host: Host,
+  home: string,
+  before: ControlState,
+  interactive: boolean,
+  untimed: <T>(p: Promise<T>) => Promise<T> = p => p,
+  skip: (c: ControlChange) => boolean = () => false,
+): Promise<string[]> {
+  const changes = diffControl(before, await readControl(host, home))
+  const undone: string[] = []
+  for (const c of changes) {
+    if (skip(c)) continue
+    let keep = false
+    if (interactive) {
+      try {
+        keep = (await untimed(host.ask(QUESTION(describe(c)), [KEEP, REVERT]))) === KEEP
+      } catch {
+        keep = false
+      }
+    }
+    if (!keep && (await undo(host, home, c))) undone.push(describe(c))
+  }
+  return undone
+}
+
+export const undoneText = (undone: string[]) =>
+  `exo: rückgängig gemacht – ${undone.join('; ')}. exo abschalten kannst nur du selbst (touch ~/.claude/exo/DISABLED im eigenen Terminal oder /exo off).`

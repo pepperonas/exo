@@ -8,7 +8,8 @@
 import type { Spawned } from '../../core/adapter/host'
 import type { CallCtx, ModuleEnv, Step } from '../../core/dispatcher/dispatcher'
 import type { JournalEvent } from '../../core/journal/journal'
-import { detectRunner, isSourceFile, parseRun, runKind } from './testlight-logic'
+import { readControl, settleEffects, undoneText } from '../../core/integrity'
+import { RUNNER_CONFIG, detectRunner, fingerprint, isSourceFile, parseRun, runKind } from './testlight-logic'
 import type { ProjectFacts, RunOutcome, Runner } from './testlight-logic'
 
 export const DEBOUNCE_MS = 1_500
@@ -65,6 +66,46 @@ export function slotText(o: RunOutcome): { text: string; color: string } {
   return { text: '● rot', color: RED }
 }
 
+export const ALLOW = 'Erlauben'
+export const DENY = 'Nicht erlauben'
+type Trust = Record<string, { fp: string; allowed: boolean }>
+
+/** The runner config's fingerprint: what the test light would run, and what decides it. */
+async function configFingerprint(env: ModuleEnv): Promise<string> {
+  let text = `testCommand=${env.config.testCommand}\n`
+  for (const f of RUNNER_CONFIG) {
+    const p = `${env.project}/${f}`
+    if (await env.host.exists(p).catch(() => false)) text += `--- ${f}\n${await env.host.readFile(p).catch(() => '?')}\n`
+  }
+  return fingerprint(text)
+}
+
+/**
+ * Commands from the project run only with consent, asked once per project and
+ * again whenever the runner config changes (a cloned repo's test script, or
+ * one Claude edited, would otherwise run unasked, past every guard).
+ */
+async function consented(env: ModuleEnv, runner: Runner, files: string[]): Promise<boolean> {
+  if (!env.interactive) return false
+  const fp = await configFingerprint(env)
+  const all = ((await env.store?.get('trust').catch(() => null)) ?? {}) as Trust
+  const known = all[env.project]
+  if (known && known.fp === fp) return known.allowed
+  const cmd = runner.argv(files).join(' ')
+  const name = env.project.split('/').pop()
+  const question = known
+    ? `Testampel: Die Test-Konfiguration in ${name} hat sich geändert. Darf exo nach Änderungen weiter automatisch „${cmd}“ ausführen?`
+    : `Testampel: Darf exo in ${name} nach jeder Änderung automatisch „${cmd}“ ausführen? (Befehl aus dem Projekt; exo fragt neu, wenn sich die Test-Konfiguration ändert.)`
+  let allowed = false
+  try {
+    allowed = (await env.host.ask(question, [ALLOW, DENY])) === ALLOW
+  } catch {
+    allowed = false // Esc counts as no, until the config changes
+  }
+  await env.store?.set('trust', { ...all, [env.project]: { fp, allowed } })
+  return allowed
+}
+
 function schedule(): void {
   const env = st.env
   if (!env) return
@@ -77,14 +118,13 @@ export async function run(): Promise<void> {
   const env = st.env
   if (!env || !st.pending.size) return
   if (st.claudeRuns > 0) return schedule() // Claude is testing itself: later
-  if (st.runner === undefined) st.runner = detectRunner(await facts(env), env.config.testCommand)
-  if (!st.runner) {
-    st.pending.clear()
-    return
-  }
-  st.running?.stop()
+  // fresh each run: the runner follows the config (package.json may have changed)
+  st.runner = detectRunner(await facts(env), env.config.testCommand)
   const files = [...st.pending]
   st.pending.clear()
+  if (!st.runner || !(await consented(env, st.runner, files))) return
+  st.running?.stop()
+  const before = env.home ? await readControl(env.host, env.home).catch(() => null) : null
   const argv = ['nice', '-n', '10', ...st.runner.argv(files)]
   await showSlot(env, '● …', undefined, true)
   env.journal.push({ type: 'test.run', source: 'testlight', phase: 'start', runner: st.runner.name }, await env.host.now())
@@ -99,6 +139,11 @@ export async function run(): Promise<void> {
     // a child that could not start: reported as not ok below
   }
   const { code } = await child.done.catch(() => ({ code: null }))
+  // what the project's test command did to exo's switches is put to the person
+  if (before && env.home) {
+    const undone = await settleEffects(env.host, env.home, before, env.interactive).catch(() => [])
+    if (undone.length) env.host.toast(undoneText(undone), 8000)
+  }
   if (st.running !== child) return // cut off by a newer run
   st.running = null
   if (code === null && !out) {
