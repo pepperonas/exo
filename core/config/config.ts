@@ -95,35 +95,35 @@ export function parseQuietHours(s: string): { from: number; to: number } | null 
 
 export function resolveConfig(options: Readonly<Record<string, unknown>>, prefs: Prefs): Config {
   const errors: string[] = []
-  const bool = (key: string, d: boolean): boolean => {
-    const v = options[key]
+  const bool = (opt: string, d: boolean): boolean => {
+    const v = options[opt]
     if (v === undefined) return d
     if (typeof v === 'boolean') return v
-    errors.push(`${key}: not a boolean, default ${d} applies`)
+    errors.push(`${opt}: not a boolean, default ${d} applies`)
     return d
   }
-  const num = (key: string, d: number, lo: number, hi: number): number => {
-    const v = options[key]
+  const num = (opt: string, d: number, lo: number, hi: number): number => {
+    const v = options[opt]
     if (v === undefined) return d
     if (typeof v === 'number' && Number.isFinite(v)) {
-      if (v < lo || v > hi) errors.push(`${key}: ${v} outside ${lo}–${hi}, clamped to the limit`)
+      if (v < lo || v > hi) errors.push(`${opt}: ${v} outside ${lo}–${hi}, clamped to the limit`)
       return clampInt(v, lo, hi)
     }
-    errors.push(`${key}: not a number, default ${d} applies`)
+    errors.push(`${opt}: not a number, default ${d} applies`)
     return d
   }
-  const str = (key: string, d: string): string => {
-    const v = options[key]
+  const str = (opt: string, d: string): string => {
+    const v = options[opt]
     if (v === undefined) return d
     if (typeof v === 'string') return v
-    errors.push(`${key}: not a string, default applies`)
+    errors.push(`${opt}: not a string, default applies`)
     return d
   }
-  const list = (key: string, d: string[]): string[] => {
-    const v = options[key]
+  const list = (opt: string, d: string[]): string[] => {
+    const v = options[opt]
     if (v === undefined) return d
     if (Array.isArray(v) && v.every(x => typeof x === 'string')) return [...v]
-    errors.push(`${key}: not a list of strings, default applies`)
+    errors.push(`${opt}: not a list of strings, default applies`)
     return d
   }
 

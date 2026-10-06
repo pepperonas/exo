@@ -1,6 +1,6 @@
 # Mutation probe
 
-As of 2026-10-05 · `npm run mutate` · 174/174 caught
+As of 2026-10-06 · `npm run mutate` · 174/174 caught
 
 Each row breaks one safety-relevant behaviour on purpose. *caught* means: the mutation provably took effect (checksum before → after) and the named tests turned red. *INVALID* means the anchor moved or the mutant does not run; *BLIND* means all tests stayed green — a weak test or redundant code.
 

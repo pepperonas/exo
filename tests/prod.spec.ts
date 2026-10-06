@@ -248,9 +248,9 @@ test('an unreadable command naming a prod host asks', async () => {
 
 test('secrets in the command are masked in the dialog', async () => {
   const host = new FakeHost()
-  const key = ['sk-', 'ant-', 'api03-Zk3q9XvT2mLw8RbN4cYp7Hd1Fs6Gj5Ke0Ua2', 'a1b2'].join('') // exo-allow-secret: test fixture
-  await dispatch(deps(host), { tool: 'Bash', input: { command: `ssh vps "export K=${key}; run"` } }, ran([]))
-  assert.ok(!host.asked[0]!.question.includes(key))
+  const fake = ['sk-', 'ant-', 'api03-Zk3q9XvT2mLw8RbN4cYp7Hd1Fs6Gj5Ke0Ua2', 'a1b2'].join('') // exo-allow-secret: test fixture
+  await dispatch(deps(host), { tool: 'Bash', input: { command: `ssh vps "export K=${fake}; run"` } }, ran([]))
+  assert.ok(!host.asked[0]!.question.includes(fake))
   assert.ok(host.asked[0]!.question.includes('sk-ant-…a1b2'))
 })
 

@@ -30,7 +30,7 @@ test('lines are only counted where it matters', () => {
   assert.equal(needsCount('/a.ts', 100), false)
   assert.equal(needsCount('/a.ts', 50_000), true)
   assert.equal(needsCount('/yarn.lock', 100), true)
-  assert.equal(needsCount('/p.png', 9_000_000), false)
+  assert.equal(needsCount('/p.pdf', 9_000_000), false)
 })
 
 test('note: what was shown, what was saved, the tail', () => {

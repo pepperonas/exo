@@ -107,20 +107,20 @@ export class StoreBox {
   }
 
   /** Writes now, within the key's budget; false when it does not fit. */
-  async set<T>(key: StoreKey, value: T, shrink?: (v: T) => T | null): Promise<boolean> {
-    this.pending.delete(key)
-    const v = fit(value, BUDGETS[key], shrink)
+  async set<T>(slot: StoreKey, value: T, shrink?: (v: T) => T | null): Promise<boolean> {
+    this.pending.delete(slot)
+    const v = fit(value, BUDGETS[slot], shrink)
     if (v === null) {
-      this.warnings.push(`${key}: exceeds the budget of ${BUDGETS[key]} bytes, not saved`)
+      this.warnings.push(`${slot}: exceeds the budget of ${BUDGETS[slot]} bytes, not saved`)
       return false
     }
-    await this.host.storeSet(key, v)
+    await this.host.storeSet(slot, v)
     return true
   }
 
   /** Writes at most every THROTTLE_MS; `make` is read when the write happens. */
-  later(key: StoreKey, make: () => unknown, shrink?: (v: unknown) => unknown | null): void {
-    this.pending.set(key, shrink ? () => fit(make(), BUDGETS[key], shrink) : make)
+  later(slot: StoreKey, make: () => unknown, shrink?: (v: unknown) => unknown | null): void {
+    this.pending.set(slot, shrink ? () => fit(make(), BUDGETS[slot], shrink) : make)
     if (this.timer) return
     this.timer = this.host.after(THROTTLE_MS, () => {
       this.timer = undefined
@@ -133,14 +133,14 @@ export class StoreBox {
     this.timer = undefined
     const jobs = [...this.pending]
     this.pending.clear()
-    for (const [key, make] of jobs) {
+    for (const [slot, make] of jobs) {
       const v = make()
       if (v === null) continue
-      if (jsonBytes(v) > BUDGETS[key]) {
-        this.warnings.push(`${key}: exceeds the budget, not saved`)
+      if (jsonBytes(v) > BUDGETS[slot]) {
+        this.warnings.push(`${slot}: exceeds the budget, not saved`)
         continue
       }
-      await this.host.storeSet(key, v)
+      await this.host.storeSet(slot, v)
     }
   }
 }

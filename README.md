@@ -14,8 +14,8 @@
 
 <h3>👉 <code>/plugin marketplace add pepperonas/exo</code> · <code>/plugin install exo@pepperonas-exo</code> — that's it.</h3>
 
-[![version](https://img.shields.io/badge/version-0.2.0-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
-[![node tests](https://img.shields.io/badge/node%20tests-534-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
+[![version](https://img.shields.io/badge/version-0.2.1-7B4DFF?style=for-the-badge&logo=anthropic&logoColor=white)](CHANGELOG.md)
+[![node tests](https://img.shields.io/badge/node%20tests-536-2E9E5B?style=for-the-badge&logo=nodedotjs&logoColor=white)](tests)
 [![engine tests](https://img.shields.io/badge/engine%20tests-26-2E9E5B?style=for-the-badge&logo=anthropic&logoColor=white)](hooks)
 [![mutations](https://img.shields.io/badge/mutations-174%2F174%20caught-FF6F00?style=for-the-badge&logo=testinglibrary&logoColor=white)](docs/MUTATIONS.md)
 [![lines of code](https://img.shields.io/badge/lines%20of%20code-6.9k-4B6BDF?style=for-the-badge&logo=typescript&logoColor=white)](core)
@@ -305,7 +305,7 @@ Claude itself can't switch exo off: changes to `~/.claude/exo/`, to exo's entrie
  next() ─► journal file.changed ─► effect check (control state before/after) ─► after-steps
 ```
 
-- **One adapter.** `hooks/register.tsx` is the only file that talks to Claude Code's engine (`$`). Core and modules work against a small `Host` interface — which is why 503 tests run on plain Node.
+- **One adapter.** `hooks/register.tsx` is the only file that talks to Claude Code's engine (`$`). Core and modules work against a small `Host` interface — which is why over 500 tests run on plain Node.
 - **A fixed order with an error policy.** Guards fail closed, comfort modules fail open; every step has a 50 ms budget.
 - **Text check *and* effect check.** The text check warns before a call; the effect check compares exo's control state before and after, and that is what actually holds — four review rounds kept finding new spellings that slip past any text check.
 - **One journal.** Every module reads the same session journal (commands without arguments, never prompt or answer text); recap, hours and achievements are built on it.
@@ -386,6 +386,7 @@ npm run screens          # re-render the screenshots from docs/screens/*.ans
 
 The full history is in [CHANGELOG.md](CHANGELOG.md) ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)).
 
+- **0.2.1** — ready for the Claude plugin directory: listing icon, scanner-clean tests.
 - **0.2.0** — `/exo` lists its arguments while you type; real screenshots; fixes after `/clear`, `/achievements`, the `/exo` table.
 - **0.1.0** — first release: core, kill switch, self-protection, guards, cockpit, review and extras.
 

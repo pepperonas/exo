@@ -1,6 +1,6 @@
 /**
  * Renders the social card (docs/social.png, 1280×640) and the listing icon
- * (.claude-plugin/icon.png, 512×512, plus docs/icon.svg).
+ * (.claude-plugin/icon.png, 1024×1024 for the plugin directory, plus docs/icon.svg).
  *
  *   npm run social
  *
@@ -81,7 +81,7 @@ async function main() {
   const page = await browser.newPage({ viewport: { width: 1280, height: 640 }, deviceScaleFactor: 1 })
   await page.goto(`file://${join(TMP, 'social.html')}`)
   await page.screenshot({ path: join(DOCS, 'social.png') })
-  const icon = await browser.newPage({ viewport: { width: 512, height: 512 }, deviceScaleFactor: 1 })
+  const icon = await browser.newPage({ viewport: { width: 512, height: 512 }, deviceScaleFactor: 2 })
   await icon.goto(`file://${join(TMP, 'icon.html')}`)
   await icon.screenshot({ path: join(ROOT, '.claude-plugin', 'icon.png'), omitBackground: true })
   await browser.close()

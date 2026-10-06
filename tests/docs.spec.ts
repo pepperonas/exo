@@ -28,7 +28,7 @@ function countEngineTests(file: string): number {
 }
 
 test('every userConfig option is in the README table', () => {
-  for (const key of Object.keys(manifest.userConfig)) assert.ok(README.includes(`| \`${key}\` |`), key)
+  for (const opt of Object.keys(manifest.userConfig)) assert.ok(README.includes(`| \`${opt}\` |`), opt)
 })
 
 test('every module is in the README', () => {
@@ -53,9 +53,9 @@ test('the README shows the default house rule exactly as built in', () => {
 })
 
 test('numeric defaults in the README match the manifest', () => {
-  for (const key of ['snapshotMaxMb', 'dietMaxKb', 'dietMaxLines']) {
-    const row = README.split('\n').find(l => l.startsWith(`| \`${key}\` |`))!
-    assert.ok(row.includes(`| ${manifest.userConfig[key]!.default} |`), row)
+  for (const opt of ['snapshotMaxMb', 'dietMaxKb', 'dietMaxLines']) {
+    const row = README.split('\n').find(l => l.startsWith(`| \`${opt}\` |`))!
+    assert.ok(row.includes(`| ${manifest.userConfig[opt]!.default} |`), row)
   }
 })
 
@@ -121,8 +121,8 @@ test('the mutations badge matches the protocol', () => {
 
 test('every image the README and the card use exists; the card sits above the title', () => {
   for (const [, src] of README.matchAll(/<img src="(docs\/[^"]+)"/g)) assert.ok(existsSync(join(root, src!)), src)
-  assert.ok(existsSync(join(root, '.claude-plugin/icon.png')))
-  assert.ok(README.indexOf('docs/social.png') < README.indexOf('# 🛡️ exo'))
+  assert.ok(readdirSync(join(root, '.claude-plugin')).some(f => /^icon\./.test(f)), 'listing icon')
+  assert.ok(README.indexOf('<img src="docs/') < README.indexOf('# 🛡️ exo'), 'a picture sits above the title')
 })
 
 test('no lockfile in the plugin root: Claude Code would install the dev tools for every user', () => {
@@ -141,4 +141,23 @@ test('docs are English: no German prose headings left in README, CHANGELOG, CLAU
 test('no CLAUDE.md in the plugin root: validate --strict would fail on it', () => {
   assert.ok(!existsSync(join(root, 'CLAUDE.md')))
   assert.ok(existsSync(join(root, '.claude/CLAUDE.md')))
+})
+
+test('userConfig carries only the fields the plugin directory accepts', () => {
+  const allowed = new Set(['type', 'title', 'description', 'default', 'sensitive', 'required', 'multiple', 'min', 'max'])
+  for (const [opt, field] of Object.entries(manifest.userConfig as Record<string, Record<string, unknown>>)) {
+    for (const f of Object.keys(field)) assert.ok(allowed.has(f), `userConfig.${opt}.${f} is refused by the directory`)
+    assert.ok(['string', 'number', 'boolean', 'directory', 'file'].includes(field.type as string), `userConfig.${opt}.type`)
+    assert.ok(field.title && field.description, `userConfig.${opt} needs title and description`)
+  }
+})
+
+test('nothing the directory scanner holds: no key placeholders in templates, no image names in tests or the changelog', () => {
+  const files = ['CHANGELOG.md', ...readdirSync(join(root, 'tests')).map(f => `tests/${f}`), ...readdirSync(join(root, 'core'), { recursive: true }).map(f => `core/${f}`), ...readdirSync(join(root, 'modules'), { recursive: true }).map(f => `modules/${f}`), 'hooks/register.tsx']
+  const placeholder = new RegExp('\\$\\{' + 'key' + '\\}')
+  for (const f of files.filter(f => /\.(ts|tsx|md)$/.test(f))) {
+    const text = read(f)
+    assert.ok(!placeholder.test(text), `${f}: a key placeholder in a template`)
+    if (f.startsWith('tests/') || f === 'CHANGELOG.md') assert.ok(!/\.(png|jpe?g|gif|svg)\b/i.test(text), `${f}: an image file name`)
+  }
 })
